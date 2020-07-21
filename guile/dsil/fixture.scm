@@ -7,7 +7,7 @@
   #:use-module (web uri)
   #:export (<fixture> <fixture-attribute>
              start-ola-output patch-fixture
-             set-attr!
+             set-attr! home-attr! home-all! blackout
              percent->dmxval msb lsb chan))
 
 (use-modules (srfi srfi-1))
@@ -85,6 +85,12 @@
 (define (home-all! fix)
   (for-each home-attr!
             (get-attributes fix)))
+
+
+(define (blackout)
+  (for-each (lambda (fix)
+              (set-attr! fix 'intensity 0))
+            (atomic-box-ref patched-fixture-list)))
 
 
 (define (find-attr fix attr-name)
