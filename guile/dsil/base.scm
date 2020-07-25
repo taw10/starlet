@@ -1,4 +1,4 @@
-(define-module (dsil fixture)
+(define-module (dsil base)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
@@ -8,9 +8,11 @@
   #:export (<fixture> <fixture-attribute>
              start-ola-output patch-fixture
              set-attr! home-attr! home-all! blackout
+             make-workspace
              percent->dmxval msb lsb chan))
 
 (use-modules (srfi srfi-1))
+
 
 (define-class <fixture-attribute> (<object>)
 
@@ -38,12 +40,7 @@
     #:init-value 0
     #:init-keyword #:home-value
     #:getter get-attr-home-value
-    #:setter set-attr-home-value!)
-
-  (value
-    #:init-value 0
-    #:getter get-attr-value
-    #:setter set-attr-value!))
+    #:setter set-attr-home-value!))
 
 
 (define-class <fixture> (<object>)
@@ -67,29 +64,88 @@
     #:setter set-fixture-friendly-name!))
 
 
+(define-class <workspace> (<object>)
+
+  (attributes
+   #:init-form (make-atomic-box '())
+   #:getter get-workspace-attributes
+   #:setter set-workspace-attributes!)
+
+  (priority
+   #:init-value 0
+   #:init-keyword #:priority
+   #:getter get-workspace-priority
+   #:setter set-workspace-priority!))
+
+
+(define-class <state-assignment> (<object>)
+
+  (fixture
+    #:init-value #f
+    #:init-keyword #:fixture
+    #:getter get-assignment-fixture)
+
+  (attribute
+    #:init-value #f
+    #:init-keyword #:attribute
+    #:getter get-assignment-attribute)
+
+  (value
+    #:init-value #f
+    #:init-keyword #:value-func
+    #:getter get-assignment-value))
+
+
 ;; List of fixtures
 (define patched-fixture-list (make-atomic-box '()))
 
+;; List of workspaces
+(define base-workspace (make <workspace>))
+(define workspace-list (make-atomic-box (list base-workspace)))
 
-(define (get-attributes fix)
+
+(define (make-assignment fix attr value)
+  (make <state-assignment>
+    #:fixture fix
+    #:attribute attr
+    #:value value))
+
+
+(define (add-attribute workspace
+                       fix
+                       attr
+                       value)
+  (letrec* ((attr-box (get-workspace-attributes workspace))
+            (workspace-attrs (atomic-box-ref attr-box)))
+    ;; FIXME: Should be compare-and-swap
+    (atomic-box-set! attr-box
+                     (cons (make-assignment fix attr value)
+                           workspace-attrs))))
+
+
+(define (get-fixture-attributes fix)
   (slot-ref fix 'attributes))
 
 
 ;; Set a single attribute to home position
-(define (home-attr! attr)
-  (set-attr-value! attr
-                   (get-attr-home-value attr)))
+(define (home-attr! workspace fix attr)
+  (add-attribute workspace
+                 fix
+                 attr
+                 (get-attr-home-value attr)))
 
 
 ;; Set all attributes of a fixture to home position
-(define (home-all! fix)
-  (for-each home-attr!
-            (get-attributes fix)))
+(define (home-all! workspace fix)
+  (for-each (lambda (attr)
+              (home-attr! workspace fix attr))
+            (get-fixture-attributes fix)))
 
 
-(define (blackout)
+;; Set the intensity of all patched fixtures to zero
+(define (blackout workspace)
   (for-each (lambda (fix)
-              (set-attr! fix 'intensity 0))
+              (set-attr! workspace fix 'intensity 0))
             (atomic-box-ref patched-fixture-list)))
 
 
@@ -97,14 +153,25 @@
   (find (lambda (a)
           (eq? (get-attr-name a)
                attr-name))
-        (get-attributes fix)))
+        (get-fixture-attributes fix)))
 
 
-(define (set-attr! fix attr-name value)
+(define (make-workspace)
+  (let ((new-workspace (make <workspace>)))
+    (atomic-box-set! workspace-list
+                     (cons new-workspace
+                           (atomic-box-ref workspace-list)))
+    new-workspace))
+
+
+;; Set an attribute
+(define (set-attr! workspace fix attr-name value)
   (let ((attr (find-attr fix attr-name)))
-    (when attr (set-attr-value! attr value))))
+    (when attr (add-attribute workspace fix attr value))))
 
 
+
+;; Patch a new fixture
 (define* (patch-fixture class
                         start-addr
                         #:key (universe 1) (friendly-name "Fixture"))
@@ -112,11 +179,12 @@
                        #:sa start-addr
                        #:uni universe
                        #:friendly-name friendly-name)))
-    (home-all! new-fixture)
+    (home-all! base-workspace new-fixture)
     (atomic-box-set! patched-fixture-list
                      (cons new-fixture
                            (atomic-box-ref patched-fixture-list)))
     new-fixture))
+
 
 
 ;; Helper functions for attribute translators
@@ -136,8 +204,17 @@
   (- (+ channel start-addr) 1))
 
 
-;; Scanout
 
+;; Combine states
+(define (combine-states list-of-states)
+  (let (()))
+  (fold
+    (lambda (assignment-to-add combined-state))
+    '() (apply append list-of-states)))
+
+
+
+;; Scanout
 (define (bytevec->string bv)
   (string-join
     (map
@@ -188,21 +265,22 @@
                            (- addr 1)                   ; u8vector-set indexing starts from zero
                            (round-dmx value)))
 
-          ;; Scan out all fixtures
-          (for-each (lambda (fix)
+          ;; Combine all the workspaces into one
+          (let ((combined-workspace
+                 (combine-workspaces
+                  (atomic-box-ref workspace-list))))
 
-                      ;; Scan out one fixture
-                      (for-each (lambda (attr)
+            ;; Scan out all attributes of the combined workspace
+            (for-each (lambda (fix-attr-val)
 
-                                  ;; Scan out one attribute
-                                  (let ((trans (get-attr-translator attr)))
-                                    (trans (get-fixture-universe fix)
-                                           (get-fixture-addr fix)
-                                           (get-attr-value attr)
-                                           set-dmx)))
-                                (get-attributes fix)))
+                        ;; Scan out one attribute
+                        (let ((trans (get-attr-translator (cadr fix-attr-val))))
+                          (trans (get-fixture-universe (car fix-attr-val))
+                                 (get-fixture-addr (car fix-attr-val))
+                                 (cddr fix-attr-val)
+                                 set-dmx)))
 
-                    (atomic-box-ref patched-fixture-list))
+                      (get-workspace-attributes combined-workspace)))
 
           ;; Send everything to OLA
           (for-each (lambda (a)

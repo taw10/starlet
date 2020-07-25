@@ -1,6 +1,6 @@
 (define-module (dsil fixture-library generic)
   #:use-module (oop goops)
-  #:use-module (dsil fixture)
+  #:use-module (dsil base)
   #:export (<generic-dimmer>))
 
 (define-class <generic-dimmer> (<fixture>)
