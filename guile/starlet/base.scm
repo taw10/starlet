@@ -205,7 +205,7 @@
                           (set-in-state! combined-state
                                          fix
                                          attr
-                                         (merge-rule current-value value))
+                                         (wrap-merge merge-rule current-value value))
                           (set-in-state! combined-state
                                          fix
                                          attr
@@ -213,22 +213,32 @@
                  new))
 
 
-(define (merge-rule-ltp a b) b)
+(define (value->number val time)
+  (if (procedure? val)
+      (val time)
+      val))
+
+
+(define (wrap-merge merge-rule a b)
+  (lambda (time)
+    (merge-rule (value->number a time)
+                (value->number b time))))
+
+
+(define (merge-rule-ltp a b)
+  b)
 
 (define (merge-rule-htp a b)
-  (if (> a b)
-      a
-      b))
+  (max a b))
 
 
 ;; Combine states
 (define (merge-states merge-rule list-of-workspaces)
   (let ((combined-state (make <starlet-state>)))
     (for-each (lambda (workspace)
-                (add-state-to-state
-                 merge-rule
-                 workspace
-                 combined-state))
+                (add-state-to-state merge-rule
+                                    workspace
+                                    combined-state))
               list-of-workspaces)
     combined-state))
 
@@ -256,6 +266,14 @@
                           (number->string (car universe))
                           "&d="
                           (bytevec->string (cdr universe)))))
+
+
+(define (hirestime)
+  (let ((a (gettimeofday)))
+    (+ (car a)
+       (/ (cdr a)
+          1000000))))
+
 
 (define (start-ola-output)
   (letrec* ((ola-uri (build-uri 'http
@@ -292,7 +310,7 @@
                             (let ((trans (get-attr-translator attr)))
                               (trans (get-fixture-universe fix)
                                      (get-fixture-addr fix)
-                                     value
+                                     (value->number value (hirestime))
                                      set-dmx)))
 
                           (merge-states merge-rule-htp
