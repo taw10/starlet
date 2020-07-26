@@ -1,4 +1,4 @@
-(define-module (dsil base)
+(define-module (starlet base)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
@@ -43,6 +43,7 @@
     #:setter set-attr-home-value!))
 
 
+
 (define-class <fixture> (<object>)
 
   (universe
@@ -64,13 +65,28 @@
     #:setter set-fixture-friendly-name!))
 
 
-(define-class <workspace> (<object>)
-
-  (state
+;; A "state" is just a thin wrapper around a hash table
+;; of (fixture . attribute)  -->  value
+(define-class <starlet-state> (<object>)
+  (hash-table
    #:init-form (make-hash-table)
-   #:getter get-workspace-state
-   #:setter set-workspace-state!)
+   #:getter get-state-hash-table))
 
+
+(define-generic set-in-state!)
+
+(define-method (set-in-state! (state <starlet-state>)
+                              (fix <fixture>)
+                              (attr <fixture-attribute>)
+                              value)
+  (hash-set! (get-state-hash-table state)
+             (cons fix attr)
+             value))
+
+
+;; A "workspace" is just a "state" with extra information
+;; about how its contents should be sent out on the wire
+(define-class <starlet-workspace> (<starlet-state>)
   (priority
    #:init-value 0
    #:init-keyword #:priority
@@ -78,87 +94,31 @@
    #:setter set-workspace-priority!))
 
 
-(define-class <state-assignment> (<object>)
-
-  (fixture
-    #:init-value #f
-    #:init-keyword #:fixture
-    #:getter get-assignment-fixture)
-
-  (attribute
-    #:init-value #f
-    #:init-keyword #:attribute
-    #:getter get-assignment-attribute)
-
-  (value
-    #:init-value 10
-    #:init-keyword #:value
-    #:getter get-assignment-value))
-
-
 ;; List of fixtures
 (define patched-fixture-list (make-atomic-box '()))
 
+;; Basic workspace which holds everything at "home" unless
+;; commanded otherwise
+(define base-workspace (make <starlet-workspace>
+                         #:priority -100))
+
 ;; List of workspaces
-(define base-workspace (make <workspace>))
 (define workspace-list (make-atomic-box (list base-workspace)))
-
-(define state-key cons)
-
-(define (merge-rule-ltp a b) b)
-
-(define (merge-rule-htp a b)
-  (if (> a b)
-      a
-      b))
-
-
-(define (add-to-state state
-                      fix
-                      attr
-                      value
-                      merge-rule)
-  (let ((statelet (hash-get-handle state
-                                   (state-key fix attr)))
-        (new-statelet (make <state-assignment>
-                        #:fixture fix
-                        #:attribute attr
-                        #:value value)))
-    (if statelet
-        (set-cdr! statelet new-statelet)
-        (hash-set! state
-                   (state-key fix attr)
-                   new-statelet))))
-
-
-(define (add-to-workspace workspace
-                          fix
-                          attr
-                          value)
-  (add-to-state (get-workspace-state workspace)
-                fix
-                attr
-                value
-                merge-rule-ltp))
-
-
-(define (get-fixture-attributes fix)
-  (slot-ref fix 'attributes))
 
 
 ;; Set a single attribute to home position
-(define (home-attr! workspace fix attr)
-  (add-to-workspace workspace
-                    fix
-                    attr
-                    (get-attr-home-value attr)))
+(define (home-attr! state fix attr)
+  (set-in-state! state
+                 fix
+                 attr
+                 (get-attr-home-value attr)))
 
 
 ;; Set all attributes of a fixture to home position
 (define (home-all! workspace fix)
   (for-each (lambda (attr)
               (home-attr! workspace fix attr))
-            (get-fixture-attributes fix)))
+            (slot-ref fix 'attributes)))
 
 
 ;; Set the intensity of all patched fixtures to zero
@@ -172,11 +132,11 @@
   (find (lambda (a)
           (eq? (get-attr-name a)
                attr-name))
-        (get-fixture-attributes fix)))
+        (slot-ref fix 'attributes)))
 
 
 (define (make-workspace)
-  (let ((new-workspace (make <workspace>)))
+  (let ((new-workspace (make <starlet-workspace>)))
     (atomic-box-set! workspace-list
                      (cons new-workspace
                            (atomic-box-ref workspace-list)))
@@ -186,7 +146,7 @@
 ;; Set an attribute
 (define (set-attr! workspace fix attr-name value)
   (let ((attr (find-attr fix attr-name)))
-    (when attr (add-to-workspace workspace fix attr value))))
+    (when attr (set-in-state! workspace fix attr value))))
 
 
 
@@ -223,26 +183,54 @@
   (- (+ channel start-addr) 1))
 
 
+(define (state-for-each func state)
+  (hash-for-each (lambda (key value)
+                   (func (car key)
+                         (cdr key)
+                         value))
+                 (get-state-hash-table state)))
 
-(define (add-state-to-state new combined)
-  (hash-for-each (lambda (key a)
-                   (add-to-state combined
-                                 (get-assignment-fixture a)
-                                 (get-assignment-attribute a)
-                                 (get-assignment-value a)
-                                 merge-rule-htp))
+(define (state-find fix attr state)
+  (hash-ref (get-state-hash-table state)
+            (cons fix attr)))
+
+
+;; Add the contents of state "new" to "combined-state"
+(define (add-state-to-state merge-rule new combined-state)
+  (state-for-each (lambda (fix attr value)
+                    (let ((current-value (state-find fix
+                                                     attr
+                                                     combined-state)))
+                      (if current-value
+                          (set-in-state! combined-state
+                                         fix
+                                         attr
+                                         (merge-rule current-value value))
+                          (set-in-state! combined-state
+                                         fix
+                                         attr
+                                         value))))
                  new))
 
-;; Combine workspace contents
-;; NB returns the "state" (hash table only)
-(define (combine-workspaces list-of-workspaces)
-  (let ((ht (make-hash-table)))
+
+(define (merge-rule-ltp a b) b)
+
+(define (merge-rule-htp a b)
+  (if (> a b)
+      a
+      b))
+
+
+;; Combine states
+(define (merge-states merge-rule list-of-workspaces)
+  (let ((combined-state (make <starlet-state>)))
     (for-each (lambda (workspace)
                 (add-state-to-state
-                 (get-workspace-state workspace)
-                 ht))
+                 merge-rule
+                 workspace
+                 combined-state))
               list-of-workspaces)
-    ht))
+    combined-state))
 
 
 
@@ -298,21 +286,18 @@
                            (round-dmx value)))
 
           ;; Scan out all attributes of the combined workspace
-          (hash-for-each (lambda (key assignment)
+          (state-for-each (lambda (fix attr value)
 
-                           ;; Scan out one attribute assignment
-                           (letrec* ((fix (get-assignment-fixture assignment))
-                                     (attr (get-assignment-attribute assignment))
-                                     (value (get-assignment-value assignment))
-                                     (trans (get-attr-translator attr)))
-                             (trans (get-fixture-universe fix)
-                                    (get-fixture-addr fix)
-                                    value
-                                    set-dmx)))
+                            ;; Scan out one attribute assignment
+                            (let ((trans (get-attr-translator attr)))
+                              (trans (get-fixture-universe fix)
+                                     (get-fixture-addr fix)
+                                     value
+                                     set-dmx)))
 
-                         (combine-workspaces
-                          (atomic-box-ref
-                           workspace-list)))
+                          (merge-states merge-rule-htp
+                                        (atomic-box-ref
+                                         workspace-list)))
 
           ;; Send everything to OLA
           (for-each (lambda (a)

@@ -1,6 +1,6 @@
-(define-module (dsil fixture-library generic)
+(define-module (starlet fixture-library generic)
   #:use-module (oop goops)
-  #:use-module (dsil base)
+  #:use-module (starlet base)
   #:export (<generic-dimmer>))
 
 (define-class <generic-dimmer> (<fixture>)
