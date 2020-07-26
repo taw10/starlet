@@ -66,10 +66,10 @@
 
 (define-class <workspace> (<object>)
 
-  (attributes
-   #:init-form (make-atomic-box '())
-   #:getter get-workspace-attributes
-   #:setter set-workspace-attributes!)
+  (state
+   #:init-form (make-hash-table)
+   #:getter get-workspace-state
+   #:setter set-workspace-state!)
 
   (priority
    #:init-value 0
@@ -91,8 +91,8 @@
     #:getter get-assignment-attribute)
 
   (value
-    #:init-value #f
-    #:init-keyword #:value-func
+    #:init-value 10
+    #:init-keyword #:value
     #:getter get-assignment-value))
 
 
@@ -103,24 +103,43 @@
 (define base-workspace (make <workspace>))
 (define workspace-list (make-atomic-box (list base-workspace)))
 
+(define state-key cons)
 
-(define (make-assignment fix attr value)
-  (make <state-assignment>
-    #:fixture fix
-    #:attribute attr
-    #:value value))
+(define (merge-rule-ltp a b) b)
+
+(define (merge-rule-htp a b)
+  (if (> a b)
+      a
+      b))
 
 
-(define (add-attribute workspace
-                       fix
-                       attr
-                       value)
-  (letrec* ((attr-box (get-workspace-attributes workspace))
-            (workspace-attrs (atomic-box-ref attr-box)))
-    ;; FIXME: Should be compare-and-swap
-    (atomic-box-set! attr-box
-                     (cons (make-assignment fix attr value)
-                           workspace-attrs))))
+(define (add-to-state state
+                      fix
+                      attr
+                      value
+                      merge-rule)
+  (let ((statelet (hash-get-handle state
+                                   (state-key fix attr)))
+        (new-statelet (make <state-assignment>
+                        #:fixture fix
+                        #:attribute attr
+                        #:value value)))
+    (if statelet
+        (set-cdr! statelet new-statelet)
+        (hash-set! state
+                   (state-key fix attr)
+                   new-statelet))))
+
+
+(define (add-to-workspace workspace
+                          fix
+                          attr
+                          value)
+  (add-to-state (get-workspace-state workspace)
+                fix
+                attr
+                value
+                merge-rule-ltp))
 
 
 (define (get-fixture-attributes fix)
@@ -129,10 +148,10 @@
 
 ;; Set a single attribute to home position
 (define (home-attr! workspace fix attr)
-  (add-attribute workspace
-                 fix
-                 attr
-                 (get-attr-home-value attr)))
+  (add-to-workspace workspace
+                    fix
+                    attr
+                    (get-attr-home-value attr)))
 
 
 ;; Set all attributes of a fixture to home position
@@ -167,7 +186,7 @@
 ;; Set an attribute
 (define (set-attr! workspace fix attr-name value)
   (let ((attr (find-attr fix attr-name)))
-    (when attr (add-attribute workspace fix attr value))))
+    (when attr (add-to-workspace workspace fix attr value))))
 
 
 
@@ -205,12 +224,25 @@
 
 
 
-;; Combine states
-(define (combine-states list-of-states)
-  (let (()))
-  (fold
-    (lambda (assignment-to-add combined-state))
-    '() (apply append list-of-states)))
+(define (add-state-to-state new combined)
+  (hash-for-each (lambda (key a)
+                   (add-to-state combined
+                                 (get-assignment-fixture a)
+                                 (get-assignment-attribute a)
+                                 (get-assignment-value a)
+                                 merge-rule-htp))
+                 new))
+
+;; Combine workspace contents
+;; NB returns the "state" (hash table only)
+(define (combine-workspaces list-of-workspaces)
+  (let ((ht (make-hash-table)))
+    (for-each (lambda (workspace)
+                (add-state-to-state
+                 (get-workspace-state workspace)
+                 ht))
+              list-of-workspaces)
+    ht))
 
 
 
@@ -265,22 +297,22 @@
                            (- addr 1)                   ; u8vector-set indexing starts from zero
                            (round-dmx value)))
 
-          ;; Combine all the workspaces into one
-          (let ((combined-workspace
-                 (combine-workspaces
-                  (atomic-box-ref workspace-list))))
+          ;; Scan out all attributes of the combined workspace
+          (hash-for-each (lambda (key assignment)
 
-            ;; Scan out all attributes of the combined workspace
-            (for-each (lambda (fix-attr-val)
+                           ;; Scan out one attribute assignment
+                           (letrec* ((fix (get-assignment-fixture assignment))
+                                     (attr (get-assignment-attribute assignment))
+                                     (value (get-assignment-value assignment))
+                                     (trans (get-attr-translator attr)))
+                             (trans (get-fixture-universe fix)
+                                    (get-fixture-addr fix)
+                                    value
+                                    set-dmx)))
 
-                        ;; Scan out one attribute
-                        (let ((trans (get-attr-translator (cadr fix-attr-val))))
-                          (trans (get-fixture-universe (car fix-attr-val))
-                                 (get-fixture-addr (car fix-attr-val))
-                                 (cddr fix-attr-val)
-                                 set-dmx)))
-
-                      (get-workspace-attributes combined-workspace)))
+                         (combine-workspaces
+                          (atomic-box-ref
+                           workspace-list)))
 
           ;; Send everything to OLA
           (for-each (lambda (a)
