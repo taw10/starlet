@@ -8,7 +8,7 @@
   #:export (<fixture> <fixture-attribute>
              start-ola-output patch-fixture
              set-attr! home-attr! home-all! blackout
-             make-workspace
+             make-workspace scanout-freq
              percent->dmxval msb lsb chan))
 
 (use-modules (srfi srfi-1))
@@ -274,16 +274,18 @@
        (/ (cdr a)
           1000000))))
 
+(define scanout-freq 0)
 
 (define (start-ola-output)
   (letrec* ((ola-uri (build-uri 'http
                                 #:host "127.0.0.1"
                                 #:port 9090
                                 #:path "/set_dmx"))
-            (ola-socket (open-socket-for-uri ola-uri)))
+            (ola-socket (open-socket-for-uri ola-uri))
+            (start-time (hirestime)))
 
     (begin-thread
-     (let scanout-loop ()
+     (let scanout-loop ((count 0))
 
         (let ((universes '()))
 
@@ -322,5 +324,12 @@
                       (send-to-ola ola-uri ola-socket a))
                     universes))
 
-        (yield)
-        (scanout-loop)))))
+        (usleep 10000)
+        (if (eq? count 100)
+            (begin
+              (set! scanout-freq
+                (exact->inexact (/ 100
+                                   (- (hirestime) start-time))))
+              (set! start-time (hirestime))
+              (scanout-loop 0))
+            (scanout-loop (+ count 1)))))))

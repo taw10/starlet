@@ -137,5 +137,5 @@
          (for-each (lambda (a)
                      (put-u8 midi-port a))
                    bytes-to-send)
-         (yield)
+         (usleep 1000)
          (again))))))
