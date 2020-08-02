@@ -8,7 +8,7 @@
   #:export (<fixture> <fixture-attribute>
              start-ola-output patch-fixture
              set-attr! home-attr! home-all! blackout
-             make-workspace scanout-freq
+             make-workspace fade-up scanout-freq
              percent->dmxval msb lsb chan))
 
 (use-modules (srfi srfi-1))
@@ -70,7 +70,8 @@
 (define-class <starlet-state> (<object>)
   (hash-table
    #:init-form (make-hash-table)
-   #:getter get-state-hash-table))
+   #:getter get-state-hash-table
+   #:setter set-state-hash-table!))
 
 
 (define-generic set-in-state!)
@@ -148,6 +149,40 @@
   (let ((attr (find-attr fix attr-name)))
     (when attr (set-in-state! workspace fix attr value))))
 
+
+(define (fade-frac fade-time start-time time-now)
+  (min (/ (- time-now start-time)
+          fade-time)
+       1.0))
+
+
+(define (wrap-fade value fade-time start-time)
+  (lambda (time)
+    (inexact->exact (* (value->number value time)
+                       (fade-frac fade-time
+                                  start-time
+                                  (hirestime))))))
+
+
+;; "state" is a function with one parameter: a workspace
+;; This function sets up "workspace" to fade in the state
+(define* (fade-up workspace state
+                  #:key (fade-time 5))
+  (let ((fade-up-state (make <starlet-state>))
+        (start-time (hirestime)))
+
+    ;; Execute passed-in function to get state
+    (state fade-up-state)
+
+    (state-for-each (lambda (fix attr value)
+                      (set-in-state! fade-up-state
+                                     fix
+                                     attr
+                                     (wrap-fade value fade-time start-time)))
+                    fade-up-state)
+
+    (set-state-hash-table! workspace
+                           (get-state-hash-table fade-up-state))))
 
 
 ;; Patch a new fixture
