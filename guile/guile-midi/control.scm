@@ -6,10 +6,24 @@
   #:use-module (srfi srfi-1)
   #:export (start-midi-control
             make-midi-controller
-            get-controller-value))
+            get-controller-value
+            make-midi-led
+            set-midi-led!))
 
 
 (define cc-list (make-atomic-box '()))
+(define send-queue (make-atomic-box '()))
+
+
+(define-class <midi-led> (<object>)
+
+  (channel
+   #:init-keyword #:channel
+   #:getter get-channel)
+
+  (note-number
+   #:init-keyword #:note-number
+   #:getter get-note-number))
 
 
 (define-class <midi-control> (<object>)
@@ -42,6 +56,35 @@
     new-controller))
 
 
+(define* (make-midi-led
+          #:key (channel 1) (note-number 1))
+  (let ((new-led (make <midi-led>
+                   #:channel channel
+                   #:note-number note-number)))
+    new-led))
+
+
+(define enqueue-midi-bytes
+  (lambda bytes
+    (unless (eq? (atomic-box-compare-and-swap! send-queue '() bytes)
+                 '())
+      (apply enqueue-midi-bytes bytes))))
+
+
+(define (set-midi-led! led val)
+  (if val
+
+      ;; Note on
+      (enqueue-midi-bytes (+ #b10010000 (get-channel led))
+                          (get-note-number led)
+                          127)
+
+      ;; Note off
+      (enqueue-midi-bytes (+ #b10000000 (get-channel led))
+                          (get-note-number led)
+                          0)))
+
+
 (define (handle-cc-change channel cc-number value)
   (for-each (lambda (a)
               (atomic-box-set! (get-value-box a) value))
@@ -58,6 +101,7 @@
 (define (start-midi-control device-name)
   (let ((midi-port (open-file device-name "r+0b")))
 
+    ;; Read thread
     (begin-thread
      (let again ()
 
@@ -83,5 +127,15 @@
                                      cc-number
                                      (scale-127-100 value)))))
 
+         (yield)
+         (again))))
+
+    ;; Write thread
+    (begin-thread
+     (let again ()
+       (let ((bytes-to-send (atomic-box-swap! send-queue '())))
+         (for-each (lambda (a)
+                     (put-u8 midi-port a))
+                   bytes-to-send)
          (yield)
          (again))))))
