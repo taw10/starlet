@@ -312,12 +312,12 @@
 (define scanout-freq 0)
 
 (define (start-ola-output)
-  (letrec* ((ola-uri (build-uri 'http
-                                #:host "127.0.0.1"
-                                #:port 9090
-                                #:path "/set_dmx"))
-            (ola-socket (open-socket-for-uri ola-uri))
-            (start-time (hirestime)))
+  (let* ((ola-uri (build-uri 'http
+                             #:host "127.0.0.1"
+                             #:port 9090
+                             #:path "/set_dmx"))
+         (ola-socket (open-socket-for-uri ola-uri))
+         (start-time (hirestime)))
 
     (begin-thread
      (let scanout-loop ((count 0))

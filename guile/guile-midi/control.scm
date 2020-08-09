@@ -105,15 +105,15 @@
     (begin-thread
      (let again ()
 
-       (letrec* ((status-byte (get-u8 midi-port))
-                 (channel (bit-extract status-byte 0 4))
-                 (command (bit-extract status-byte 4 8)))
+       (let* ((status-byte (get-u8 midi-port))
+              (channel (bit-extract status-byte 0 4))
+              (command (bit-extract status-byte 4 8)))
 
          (case command
 
            ;; Note on
-           ((9) (let ((note (get-u8 midi-port))
-                      (vel (get-u8 midi-port)))
+           ((9) (let* ((note (get-u8 midi-port))
+                       (vel (get-u8 midi-port)))
                   (display "Note = ")
                   (display (number->string note 16))
                   (display " velocity = ")
