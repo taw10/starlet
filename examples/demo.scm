@@ -78,5 +78,16 @@
   (set-attr! wksp dim8 'intensity 50))
 
 
-(fade-up cue-wksp example-state-1
-         #:fade-time 1)
+(define cue-list
+  (list (cue 1 example-state-1
+             #:fade-up 3
+             #:fade-down 5)
+
+        (cue 2 example-state-2
+             #:fade-up 3
+             #:fade-down 5)))
+
+(define pb
+  (make-playback cue-list))
+
+(cut-to-cue pb 1)

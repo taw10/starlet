@@ -5,10 +5,12 @@
   #:use-module (web client)
   #:use-module (web http)
   #:use-module (web uri)
+  #:use-module (srfi srfi-9)
   #:export (<fixture> <fixture-attribute>
              start-ola-output patch-fixture
              set-attr! home-attr! home-all! blackout
-             make-workspace fade-up scanout-freq
+             make-workspace scanout-freq
+             make-playback cue cut-to-cue
              percent->dmxval msb lsb chan))
 
 (use-modules (srfi srfi-1))
@@ -95,6 +97,79 @@
    #:setter set-workspace-priority!))
 
 
+(define-record-type <fade>
+  (make-fade state target-frac fade-time fade-delay start-time)
+  fade?
+  (state        get-fade-state)
+  (target-frac  get-fade-target-frac)
+  (fade-time    get-fade-time)
+  (fade-delay   get-fade-delay)
+  (start-time   get-fade-start-time))
+
+
+(define-record-type <cue>
+  (make-cue number state-func up-time down-time up-delay down-delay)
+  cue?
+  (number      get-cue-number)
+  (state-func  get-cue-state-func)
+  (up-time     up-time)
+  (up-delay    up-delay)
+  (down-time   down-time)
+  (down-delay  down-delay))
+
+
+(define (qnum a)
+  (/ (inexact->exact (* a 1000)) 1000))
+
+
+(define* (cue number
+              state
+              #:key (fade-up 5) (fade-down 5) (up-delay 0) (down-delay 0))
+  (make-cue (qnum number)
+            state
+            fade-up
+            fade-down
+            up-delay
+            down-delay))
+
+
+(define-class <starlet-playback> (<starlet-workspace>)
+  (active-state
+   #:init-value '()
+   #:getter get-active-state-list
+   #:setter set-active-state-list!)
+  (cue-list
+   #:init-keyword #:cue-list
+   #:getter get-playback-cue-list))
+
+
+(define (make-playback cue-list)
+  (let ((new-playback (make <starlet-playback>
+                        #:cue-list cue-list)))
+    (add-to-workspace-list new-playback)
+    new-playback))
+
+
+(define (find-cue cue-list cue-number)
+  (find (lambda (a)
+          (eqv? (get-cue-number a)
+                cue-number))
+        cue-list))
+
+
+(define (cut-to-cue pb cue-number)
+  (let* ((cue-state-func
+          (get-cue-state-func
+           (find-cue (get-playback-cue-list pb)
+                     cue-number))))
+
+    ;; Flush everything out and just set the state
+    (set-active-state-list! pb
+                            (list (make-fade
+                                   (cue-state-func pb)
+                                   1.0 0.0 0.0 (hirestime))))))
+
+
 ;; List of fixtures
 (define patched-fixture-list (make-atomic-box '()))
 
@@ -135,12 +210,14 @@
                attr-name))
         (slot-ref fix 'attributes)))
 
+(define (add-to-workspace-list new-workspace)
+  (atomic-box-set! workspace-list
+                   (cons new-workspace
+                         (atomic-box-ref workspace-list))))
 
 (define (make-workspace)
   (let ((new-workspace (make <starlet-workspace>)))
-    (atomic-box-set! workspace-list
-                     (cons new-workspace
-                           (atomic-box-ref workspace-list)))
+    (add-to-workspace-list new-workspace)
     new-workspace))
 
 
