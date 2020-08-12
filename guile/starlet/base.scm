@@ -17,7 +17,6 @@
 
 
 (define-class <fixture-attribute> (<object>)
-
   (name
     #:init-value 'unnamed-attribute
     #:init-keyword #:name
@@ -45,9 +44,7 @@
     #:setter set-attr-home-value!))
 
 
-
 (define-class <fixture> (<object>)
-
   (universe
     #:init-value #f
     #:init-keyword #:uni
@@ -83,9 +80,11 @@
    #:init-value '()
    #:getter get-active-fade-list
    #:setter set-active-fade-list!)
+
   (cue-list
    #:init-keyword #:cue-list
    #:getter get-playback-cue-list)
+
   (hash-table
    #:allocation #:virtual
    #:getter get-state-hash-table
@@ -95,8 +94,6 @@
    #:slot-set! (lambda (instance new-val)
                  (error "Can't set hash table on playback"))))
 
-
-(define-generic set-in-state!)
 
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
@@ -342,7 +339,6 @@
     combined-state))
 
 
-
 ;; Scanout
 (define (bytevec->string bv)
   (string-join
@@ -411,10 +407,18 @@
                             (let ((trans (get-attr-translator attr)))
                               (trans (get-fixture-universe fix)
                                      (get-fixture-addr fix)
+
+                                     ;; This function call triggers evaluation of
+                                     ;; the whole chain of attribute functions,
+                                     ;; right down to a real number
                                      (value->number value (hirestime))
+
+                                     ;; Pass a helper function to set DMX values
                                      set-dmx)))
 
                           (merge-states-htp
+
+                           ;; Reverse in order to put "home" state last
                            (reverse
                             (atomic-box-ref state-list))))
 
