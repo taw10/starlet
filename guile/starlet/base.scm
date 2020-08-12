@@ -253,7 +253,8 @@
 
 ;; Helper functions for attribute translators
 (define (round-dmx a)
-  (min 255 (max 0 (round a))))
+  (inexact->exact
+   (min 255 (max 0 (round a)))))
 
 (define (percent->dmxval val)
   (round-dmx (/ (* 256 val) 100)))
