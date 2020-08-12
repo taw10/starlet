@@ -25,57 +25,58 @@
 
 
 ;; Set up working lights on a MIDI fader
-(define worklight (make-workspace))
-
 (define working-light-fader
   (make-midi-controller #:channel 14
                         #:cc-number 19))
 
-(set-attr! worklight dim11 'intensity
-           (lambda (a)
-             (get-controller-value working-light-fader)))
-(set-attr! worklight dim12 'intensity
-           (lambda (a)
-             (get-controller-value working-light-fader)))
-(set-attr! worklight dim13 'intensity
-           (lambda (a)
-             (get-controller-value working-light-fader)))
+(define (worklight)
+  (let ((state (make-empty-state))
+        (fader-pos (get-controller-value working-light-fader)))
+    (set-attr! state dim11 'intensity fader-pos)
+    (set-attr! state dim12 'intensity fader-pos)
+    (set-attr! state dim13 'intensity fader-pos)
+    state))
 
+(register-state! worklight)
 
-
-;; Workspace for cue playback
-(define cue-wksp (make-workspace))
 
 (define pot1
   (make-midi-controller #:channel 14
                         #:cc-number 7))
 
-(define (example-state-1 wksp)
+(define (example-state-1)
 
-  ;; Front wash
-  (set-attr! wksp dim11 'intensity 100)
-  (set-attr! wksp dim12 'intensity 100)
-  (set-attr! wksp dim13 'intensity 100)
+  (let ((state (make-empty-state)))
 
-  ;; Sidelight
-  (set-attr! wksp dim7 'intensity (flash 2))
-  (set-attr! wksp dim8 'intensity 50)
+    ;; Front wash
+    (set-attr! state dim11 'intensity 50)
+    (set-attr! state dim12 'intensity 50)
+    (set-attr! state dim13 'intensity 50)
 
-  (set-attr! wksp dim48 'intensity
-             (lambda (a)
-               (get-controller-value pot1))))
+    ;; Sidelight
+    (set-attr! state dim7 'intensity (flash 2))
+    (set-attr! state dim8 'intensity 50)
+
+    (set-attr! state dim48 'intensity
+               (lambda (a)
+                 (get-controller-value pot1)))
+
+    state))
 
 
-(define (example-state-2 wksp)
+(define (example-state-2)
 
-  ;; Front wash
-  (set-attr! wksp dim1 'intensity 10)
-  (set-attr! wksp dim2 'intensity 10)
-  (set-attr! wksp dim3 'intensity 10)
+  (let ((state (make-empty-state)))
 
-  ;; Sidelight
-  (set-attr! wksp dim7 'intensity (flash 5))
-  (set-attr! wksp dim8 'intensity 50))
+    ;; Front wash
+    (set-attr! state dim1 'intensity 10)
+    (set-attr! state dim2 'intensity 10)
+    (set-attr! state dim3 'intensity 10)
+
+    ;; Sidelight
+    (set-attr! state dim7 'intensity (flash 5))
+
+    state))
 
 
 (define cue-list
@@ -89,5 +90,7 @@
 
 (define pb
   (make-playback cue-list))
+
+(register-state! pb)
 
 (cut-to-cue pb 1)

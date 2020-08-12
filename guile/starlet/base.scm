@@ -9,7 +9,7 @@
   #:export (<fixture> <fixture-attribute>
              start-ola-output patch-fixture
              set-attr! home-attr! home-all! blackout
-             make-workspace scanout-freq
+             scanout-freq make-empty-state register-state!
              make-playback cue cut-to-cue
              percent->dmxval msb lsb chan))
 
@@ -76,6 +76,26 @@
    #:setter set-state-hash-table!))
 
 
+;; A "playback" is a state which knows how to run cues
+;; from a cue list
+(define-class <starlet-playback> (<starlet-state>)
+  (active-fade-list
+   #:init-value '()
+   #:getter get-active-fade-list
+   #:setter set-active-fade-list!)
+  (cue-list
+   #:init-keyword #:cue-list
+   #:getter get-playback-cue-list)
+  (hash-table
+   #:allocation #:virtual
+   #:getter get-state-hash-table
+   #:slot-ref (lambda (instance)
+                (merge-active-fades
+                 (get-active-fade-list instance)))
+   #:slot-set! (lambda (instance new-val)
+                 (error "Can't set hash table on playback"))))
+
+
 (define-generic set-in-state!)
 
 (define-method (set-in-state! (state <starlet-state>)
@@ -85,16 +105,6 @@
   (hash-set! (get-state-hash-table state)
              (cons fix attr)
              value))
-
-
-;; A "workspace" is just a "state" with extra information
-;; about how its contents should be sent out on the wire
-(define-class <starlet-workspace> (<starlet-state>)
-  (priority
-   #:init-value 0
-   #:init-keyword #:priority
-   #:getter get-workspace-priority
-   #:setter set-workspace-priority!))
 
 
 (define-record-type <fade>
@@ -108,14 +118,24 @@
 
 
 (define-record-type <cue>
-  (make-cue number state-func up-time down-time up-delay down-delay)
+  (make-cue number state up-time down-time up-delay down-delay)
   cue?
   (number      get-cue-number)
-  (state-func  get-cue-state-func)
+  (state       get-cue-state)
   (up-time     up-time)
   (up-delay    up-delay)
   (down-time   down-time)
   (down-delay  down-delay))
+
+
+(define (merge-active-fades list-of-fades)
+  (get-state-hash-table
+   (merge-states-htp
+    (map (lambda (fade)
+           ;; Scale a fade according to the current time
+           ;; and return a new state
+           (get-fade-state fade))
+         list-of-fades))))
 
 
 (define (qnum a)
@@ -133,20 +153,9 @@
             down-delay))
 
 
-(define-class <starlet-playback> (<starlet-workspace>)
-  (active-state
-   #:init-value '()
-   #:getter get-active-state-list
-   #:setter set-active-state-list!)
-  (cue-list
-   #:init-keyword #:cue-list
-   #:getter get-playback-cue-list))
-
-
 (define (make-playback cue-list)
   (let ((new-playback (make <starlet-playback>
                         #:cue-list cue-list)))
-    (add-to-workspace-list new-playback)
     new-playback))
 
 
@@ -158,15 +167,15 @@
 
 
 (define (cut-to-cue pb cue-number)
-  (let* ((cue-state-func
-          (get-cue-state-func
-           (find-cue (get-playback-cue-list pb)
-                     cue-number))))
+  (let* ((state (expand-state
+                 (get-cue-state
+                  (find-cue (get-playback-cue-list pb)
+                            cue-number)))))
 
     ;; Flush everything out and just set the state
-    (set-active-state-list! pb
+    (set-active-fade-list! pb
                             (list (make-fade
-                                   (cue-state-func pb)
+                                   state
                                    1.0 0.0 0.0 (hirestime))))))
 
 
@@ -175,11 +184,13 @@
 
 ;; Basic workspace which holds everything at "home" unless
 ;; commanded otherwise
-(define base-workspace (make <starlet-workspace>
-                         #:priority -100))
+(define home-state (make <starlet-state>))
+
+(define (make-empty-state)
+  (make <starlet-state>))
 
 ;; List of workspaces
-(define workspace-list (make-atomic-box (list base-workspace)))
+(define state-list (make-atomic-box (list home-state)))
 
 
 ;; Set a single attribute to home position
@@ -210,18 +221,12 @@
                attr-name))
         (slot-ref fix 'attributes)))
 
-(define (add-to-workspace-list new-workspace)
-  (atomic-box-set! workspace-list
-                   (cons new-workspace
-                         (atomic-box-ref workspace-list))))
+(define (register-state! new-state)
+  (atomic-box-set! state-list
+                   (cons new-state
+                         (atomic-box-ref state-list))))
 
-(define (make-workspace)
-  (let ((new-workspace (make <starlet-workspace>)))
-    (add-to-workspace-list new-workspace)
-    new-workspace))
-
-
-;; Set an attribute
+;; Set an attribute by name
 (define (set-attr! workspace fix attr-name value)
   (let ((attr (find-attr fix attr-name)))
     (when attr (set-in-state! workspace fix attr value))))
@@ -233,35 +238,6 @@
        1.0))
 
 
-(define (wrap-fade value fade-time start-time)
-  (lambda (time)
-    (inexact->exact (* (value->number value time)
-                       (fade-frac fade-time
-                                  start-time
-                                  (hirestime))))))
-
-
-;; "state" is a function with one parameter: a workspace
-;; This function sets up "workspace" to fade in the state
-(define* (fade-up workspace state
-                  #:key (fade-time 5))
-  (let ((fade-up-state (make <starlet-state>))
-        (start-time (hirestime)))
-
-    ;; Execute passed-in function to get state
-    (state fade-up-state)
-
-    (state-for-each (lambda (fix attr value)
-                      (set-in-state! fade-up-state
-                                     fix
-                                     attr
-                                     (wrap-fade value fade-time start-time)))
-                    fade-up-state)
-
-    (set-state-hash-table! workspace
-                           (get-state-hash-table fade-up-state))))
-
-
 ;; Patch a new fixture
 (define* (patch-fixture class
                         start-addr
@@ -270,7 +246,7 @@
                        #:sa start-addr
                        #:uni universe
                        #:friendly-name friendly-name)))
-    (home-all! base-workspace new-fixture)
+    (home-all! home-state new-fixture)
     (atomic-box-set! patched-fixture-list
                      (cons new-fixture
                            (atomic-box-ref patched-fixture-list)))
@@ -337,21 +313,32 @@
                 (value->number b time))))
 
 
+;; If "state" is a procedure, call it to get the real state
+;; Otherwise, pass through
+(define (expand-state state)
+  (if (procedure? state)
+      (state)
+      state))
+
+
 (define (merge-rule-ltp a b)
   b)
 
 (define (merge-rule-htp a b)
   (max a b))
 
+(define (merge-states-htp list-of-states)
+  (merge-states merge-rule-htp
+                list-of-states))
 
 ;; Combine states
-(define (merge-states merge-rule list-of-workspaces)
+(define (merge-states merge-rule list-of-states)
   (let ((combined-state (make <starlet-state>)))
-    (for-each (lambda (workspace)
+    (for-each (lambda (state)
                 (add-state-to-state merge-rule
-                                    workspace
+                                    (expand-state state)
                                     combined-state))
-              list-of-workspaces)
+              list-of-states)
     combined-state))
 
 
@@ -427,9 +414,9 @@
                                      (value->number value (hirestime))
                                      set-dmx)))
 
-                          (merge-states merge-rule-htp
-                                        (atomic-box-ref
-                                         workspace-list)))
+                          (merge-states-htp
+                           (reverse
+                            (atomic-box-ref state-list))))
 
           ;; Send everything to OLA
           (for-each (lambda (a)
