@@ -291,7 +291,7 @@
                           (set-in-state! combined-state
                                          fix
                                          attr
-                                         (wrap-merge merge-rule current-value value))
+                                         (merge-rule attr current-value value))
                           (set-in-state! combined-state
                                          fix
                                          attr
@@ -305,12 +305,6 @@
       val))
 
 
-(define (wrap-merge merge-rule a b)
-  (lambda (time)
-    (merge-rule (value->number a time)
-                (value->number b time))))
-
-
 ;; If "state" is a procedure, call it to get the real state
 ;; Otherwise, pass through
 (define (expand-state state)
@@ -319,11 +313,21 @@
       state))
 
 
-(define (merge-rule-ltp a b)
-  b)
+(define (merge-rule-ltp attr a b)
+  (lambda (time)
+    (value->number b time)))
 
-(define (merge-rule-htp a b)
-  (max a b))
+(define (merge-rule-htp attr a b)
+  (if (eq? 'intensity (get-attr-name attr))
+
+      ;; HTP only for intensity attributes
+      (lambda (time)
+        (max (value->number a time)
+             (value->number b time)))
+
+      ;; LTP for all non-intensity attributes
+      (lambda (time)
+        (value->number b time))))
 
 (define (merge-states-htp list-of-states)
   (merge-states merge-rule-htp
