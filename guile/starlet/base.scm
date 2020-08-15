@@ -171,22 +171,22 @@
 
     ;; Flush everything out and just set the state
     (set-active-fade-list! pb
-                            (list (make-fade
-                                   state
-                                   1.0 0.0 0.0 (hirestime))))))
+                           (list (make-fade
+                                  state
+                                  1.0 0.0 0.0 (hirestime))))))
 
 
 ;; List of fixtures
 (define patched-fixture-list (make-atomic-box '()))
 
-;; Basic workspace which holds everything at "home" unless
+;; Basic state which holds everything at "home" unless
 ;; commanded otherwise
 (define home-state (make <starlet-state>))
 
 (define (make-empty-state)
   (make <starlet-state>))
 
-;; List of workspaces
+;; List of states being scanned out
 (define state-list (make-atomic-box (list home-state)))
 
 
@@ -199,16 +199,16 @@
 
 
 ;; Set all attributes of a fixture to home position
-(define (home-all! workspace fix)
+(define (home-all! state fix)
   (for-each (lambda (attr)
-              (home-attr! workspace fix attr))
+              (home-attr! state fix attr))
             (slot-ref fix 'attributes)))
 
 
 ;; Set the intensity of all patched fixtures to zero
-(define (blackout workspace)
+(define (blackout state)
   (for-each (lambda (fix)
-              (set-attr! workspace fix 'intensity 0))
+              (set-attr! state fix 'intensity 0))
             (atomic-box-ref patched-fixture-list)))
 
 
@@ -224,9 +224,9 @@
                          (atomic-box-ref state-list))))
 
 ;; Set an attribute by name
-(define (set-attr! workspace fix attr-name value)
+(define (set-attr! state fix attr-name value)
   (let ((attr (find-attr fix attr-name)))
-    (when attr (set-in-state! workspace fix attr value))))
+    (when attr (set-in-state! state fix attr value))))
 
 
 (define (fade-frac fade-time start-time time-now)
@@ -405,7 +405,7 @@
                            (- addr 1)                   ; u8vector-set indexing starts from zero
                            (round-dmx value)))
 
-          ;; Scan out all attributes of the combined workspace
+          ;; Scan out all attributes of the combined state
           (state-for-each (lambda (fix attr value)
 
                             ;; Scan out one attribute assignment
