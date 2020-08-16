@@ -93,4 +93,6 @@
 
 (register-state! pb)
 
-(cut-to-cue pb 1)
+(cut-to-cue! pb 1)
+
+(run-cue! pb 2)

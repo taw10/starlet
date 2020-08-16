@@ -10,7 +10,7 @@
              start-ola-output patch-fixture
              set-attr! home-attr! home-all! blackout
              scanout-freq make-empty-state register-state!
-             make-playback cue cut-to-cue
+             make-playback cue cut-to-cue! run-cue!
              percent->dmxval msb lsb chan))
 
 (use-modules (srfi srfi-1))
@@ -89,8 +89,8 @@
    #:allocation #:virtual
    #:getter get-state-hash-table
    #:slot-ref (lambda (instance)
-                (merge-active-fades
-                 (get-active-fade-list instance)))
+                (merge-active-fades (hirestime)
+                                    (get-active-fade-list instance)))
    #:slot-set! (lambda (instance new-val)
                  (error "Can't set hash table on playback"))))
 
@@ -105,13 +105,14 @@
 
 
 (define-record-type <fade>
-  (make-fade state target-frac fade-time fade-delay start-time)
+  (make-fade state start-frac target-frac fade-time fade-delay start-time)
   fade?
-  (state        get-fade-state)
+  (start-frac   get-fade-start-frac)
   (target-frac  get-fade-target-frac)
   (fade-time    get-fade-time)
-  (fade-delay   get-fade-delay)
-  (start-time   get-fade-start-time))
+  (state        get-fade-state)
+  (start-time   get-fade-start-time)
+  (fade-delay   get-fade-delay-time))
 
 
 (define-record-type <cue>
@@ -125,13 +126,56 @@
   (down-delay  down-delay))
 
 
-(define (merge-active-fades list-of-fades)
+(define (wrap-scale scale-factor a)
+  (lambda (time)
+    (* (value->number a time)
+       scale-factor)))
+
+
+(define (get-current-fraction fade current-time)
+  (let ((elapsed-fade-time (- current-time
+                              (get-fade-start-time fade)
+                              (get-fade-delay-time fade))))
+    (cond
+
+     ;; Before start of fade
+     ((< elapsed-fade-time 0)
+      (get-fade-start-frac fade))
+
+     ;; After end of fade
+     ((> elapsed-fade-time
+         (get-fade-time fade))
+      (get-fade-target-frac fade))
+
+     ;; During the fade
+     (else
+      (+ (get-fade-start-frac fade)
+         (* (- (get-fade-target-frac fade)
+               (get-fade-start-frac fade))
+
+          ;; Fraction of fade time elapsed
+            (/ elapsed-fade-time
+               (get-fade-time fade))))))))
+
+
+(define (scale-fade fade current-time)
+  (let ((state (make-empty-state))
+        (scale-factor (get-current-fraction fade current-time)))
+    (state-for-each (lambda (fix attr value)
+                      (if (eq? 'intensity (get-attr-name attr))
+                          (set-in-state! state
+                                         fix
+                                         attr
+                                         (wrap-scale scale-factor value))
+                          (set-in-state! state fix attr value)))
+                    (get-fade-state fade))
+    state))
+
+
+(define (merge-active-fades current-time list-of-fades)
   (get-state-hash-table
    (merge-states-htp
-    (map (lambda (fade)
-           ;; Scale a fade according to the current time
-           ;; and return a new state
-           (get-fade-state fade))
+    (map (lambda (fade) (scale-fade fade current-time))
          list-of-fades))))
 
 
@@ -163,7 +207,7 @@
         cue-list))
 
 
-(define (cut-to-cue pb cue-number)
+(define (cut-to-cue! pb cue-number)
   (let* ((state (expand-state
                  (get-cue-state
                   (find-cue (get-playback-cue-list pb)
@@ -173,7 +217,63 @@
     (set-active-fade-list! pb
                            (list (make-fade
                                   state
-                                  1.0 0.0 0.0 (hirestime))))))
+                                  0.0 1.0 0.0 0.0 (hirestime))))))
+
+
+(define (add-fade! pb fade)
+  (set-active-fade-list! pb
+                         (cons fade
+                               (get-active-fade-list pb))))
+
+
+(define (make-fade-from-cue cue time)
+  (make-fade
+   (expand-state (get-cue-state cue))
+   0.0
+   1.0
+   (up-time cue)
+   (up-delay cue)
+   time))
+
+
+(define (retire-old-fades! pb tnow)
+  (set-active-fade-list!
+   pb
+   (filter (lambda (a)
+             (or
+              (< tnow
+                 (+ (get-fade-start-time a)
+                    (get-fade-delay-time a)
+                    (get-fade-time a)))
+              (> (get-fade-target-frac a)
+                 0.0)))
+           (get-active-fade-list pb))))
+
+
+(define (fade-down-all-active-states! pb tnow down-time down-delay)
+  (set-active-fade-list!
+   pb
+   (map (lambda (a)
+          (make-fade
+           (get-fade-state a)
+           (get-current-fraction a tnow)
+           0.0
+           down-time
+           down-delay
+           tnow))
+        (get-active-fade-list pb))))
+
+
+(define (run-cue! pb cue-number)
+  (let ((tnow (hirestime))
+        (cue (find-cue (get-playback-cue-list pb)
+                       cue-number)))
+    (retire-old-fades! pb tnow)
+    (fade-down-all-active-states! pb
+                                  tnow
+                                  (down-time cue)
+                                  (down-delay cue))
+    (add-fade! pb (make-fade-from-cue cue tnow))))
 
 
 ;; List of fixtures
