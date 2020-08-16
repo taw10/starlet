@@ -3,6 +3,7 @@
 
 (use-modules
   (starlet base)
+  (starlet playback)
   (starlet effects)
   (venues demo-venue)
   (guile-midi control))
