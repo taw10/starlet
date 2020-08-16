@@ -81,7 +81,11 @@
 
 
 (define cue-list
-  (list (cue 1 example-state-1
+  (list (cue 0 (make-empty-state)
+             #:fade-up 1
+             #:fade-down 1)
+
+        (cue 1 example-state-1
              #:fade-up 3
              #:fade-down 5)
 
@@ -89,11 +93,14 @@
              #:fade-up 3
              #:fade-down 5)))
 
+
+;; Create a playback for the cue list, and register it for output
 (define pb
   (make-playback cue-list))
-
 (register-state! pb)
 
-(cut-to-cue! pb 1)
+;; Jump to zero (blackout) cue
+(cut-to-cue! pb 0)
 
-(run-cue! pb 2)
+;; Run the first cue
+(run-cue! pb 1)
