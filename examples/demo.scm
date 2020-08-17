@@ -100,7 +100,3 @@
 (register-state! pb)
 
 ;; Jump to zero (blackout) cue
-(cut-to-cue! pb 0)
-
-;; Run the first cue
-(run-cue! pb 1)

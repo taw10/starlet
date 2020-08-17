@@ -3,7 +3,8 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (starlet base)
-  #:export (make-playback cue cut-to-cue! run-cue!))
+  #:export (make-playback cue load-cue!
+            cut-to-cue-number! run-cue-number! go!))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -17,6 +18,11 @@
   (cue-list
    #:init-keyword #:cue-list
    #:getter get-playback-cue-list)
+
+  (rest-of-cue-list
+   #:init-value '()
+   #:getter get-rest-of-cue-list
+   #:setter set-rest-of-cue-list!)
 
   (hash-table
    #:allocation #:virtual
@@ -124,24 +130,41 @@
     new-playback))
 
 
+(define (find-cue-tail cue-list cue-number)
+  (find-tail (lambda (a)
+               (eqv? (get-cue-number a)
+                     cue-number))
+             cue-list))
+
+
 (define (find-cue cue-list cue-number)
-  (find (lambda (a)
-          (eqv? (get-cue-number a)
-                cue-number))
-        cue-list))
+  (car
+   (find-cue-tail cue-list
+                  cue-number)))
 
 
-(define (cut-to-cue! pb cue-number)
-  (let* ((state (expand-state
-                 (get-cue-state
-                  (find-cue (get-playback-cue-list pb)
-                            cue-number)))))
+(define (cut-to-cue-number! pb cue-number)
+  (let ((cue-tail (find-cue-tail (get-playback-cue-list pb)
+                                 cue-number)))
+    (cut-to-cue! pb (car cue-tail))
+    (set-rest-of-cue-list! pb (cdr cue-tail))))
 
+
+(define (cut-to-cue! pb cue)
+  (let* ((state (expand-state (get-cue-state cue))))
     ;; Flush everything out and just set the state
     (set-active-fade-list! pb
                            (list (make-fade
                                   state
                                   0.0 1.0 0.0 0.0 (hirestime))))))
+
+
+(define (go! pb)
+  (let ((cue-tail (get-rest-of-cue-list pb)))
+    (unless (eq? '() cue-tail)
+      (run-cue! pb (car cue-tail))
+      (set-rest-of-cue-list! pb (cdr cue-tail)))))
+      ;; else at the end of the cue list
 
 
 (define (add-fade! pb fade)
@@ -188,10 +211,15 @@
         (get-active-fade-list pb))))
 
 
-(define (run-cue! pb cue-number)
-  (let ((tnow (hirestime))
-        (cue (find-cue (get-playback-cue-list pb)
-                       cue-number)))
+(define (run-cue-number! pb cue-number)
+  (let ((cue-tail (find-cue-tail (get-playback-cue-list pb)
+                                 cue-number)))
+    (run-cue! pb (car cue-tail))
+    (set-rest-of-cue-list! pb (cdr cue-tail))))
+
+
+(define (run-cue! pb cue)
+  (let ((tnow (hirestime)))
     (retire-old-fades! pb tnow)
     (fade-down-all-active-states! pb
                                   tnow
