@@ -100,3 +100,10 @@
 (register-state! pb)
 
 ;; Jump to zero (blackout) cue
+(cut-to-cue-number! pb 0)
+
+;; Set up a "go" button
+(register-midi-note-callback!
+ #:channel 14
+ #:note-number #xc
+ #:func (lambda () (go! pb)))

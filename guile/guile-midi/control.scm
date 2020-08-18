@@ -8,10 +8,12 @@
             make-midi-controller
             get-controller-value
             make-midi-led
-            set-midi-led!))
+            set-midi-led!
+            register-midi-note-callback!))
 
 
 (define cc-list (make-atomic-box '()))
+(define callback-list (make-atomic-box '()))
 (define send-queue (make-atomic-box '()))
 
 
@@ -24,6 +26,21 @@
   (note-number
    #:init-keyword #:note-number
    #:getter get-note-number))
+
+
+(define-class <midi-note-callback> (<object>)
+
+  (channel
+   #:init-keyword #:channel
+   #:getter get-channel)
+
+  (note-number
+   #:init-keyword #:note-number
+   #:getter get-note-number)
+
+  (callback
+   #:init-keyword #:func
+   #:getter get-callback-func))
 
 
 (define-class <midi-control> (<object>)
@@ -64,6 +81,18 @@
     new-led))
 
 
+(define* (register-midi-note-callback!
+          #:key (channel 1) (note-number 1) (func #f))
+  (let ((new-callback (make <midi-note-callback>
+                        #:channel channel
+                        #:note-number note-number
+                        #:func func)))
+    (atomic-box-set! callback-list
+                     (cons new-callback
+                           (atomic-box-ref callback-list)))
+    new-callback))
+
+
 (define enqueue-midi-bytes
   (lambda bytes
     (unless (eq? (atomic-box-compare-and-swap! send-queue '() bytes)
@@ -94,6 +123,14 @@
                     (atomic-box-ref cc-list))))
 
 
+(define (check-note-callbacks channel note-number)
+  (for-each (lambda (a) ((get-callback-func a)))
+            (filter (lambda (a)
+                      (and (eq? note-number (get-note-number a))
+                           (eq? channel (get-channel a))))
+                    (atomic-box-ref callback-list))))
+
+
 (define (scale-127-100 n)
   (/ (* n 100) 127))
 
@@ -114,11 +151,7 @@
            ;; Note on
            ((9) (let* ((note (get-u8 midi-port))
                        (vel (get-u8 midi-port)))
-                  (display "Note = ")
-                  (display (number->string note 16))
-                  (display " velocity = ")
-                  (display vel)
-                  (newline)))
+                  (check-note-callbacks channel note)))
 
            ;; Control value
            ((11) (let* ((cc-number (get-u8 midi-port))
