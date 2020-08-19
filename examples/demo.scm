@@ -10,7 +10,7 @@
 
 (start-ola-output)
 (start-midi-control "/dev/snd/midiC1D0")
-
+(all-notes-off! 14)
 
 ;; Light up some LEDs on the MIDI controller
 (define led1

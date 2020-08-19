@@ -9,6 +9,7 @@
             get-controller-value
             make-midi-led
             set-midi-led!
+            all-notes-off!
             register-midi-note-callback!))
 
 
@@ -112,6 +113,13 @@
       (enqueue-midi-bytes! (+ #b10000000 (get-channel led))
                            (get-note-number led)
                            0)))
+
+
+(define (all-notes-off! channel)
+  (let again ((l 0))
+    (enqueue-midi-bytes! (+ #b10000000 channel) l 0)
+    (unless (= l 127)
+      (again (+ l 1)))))
 
 
 (define (handle-cc-change! channel cc-number value)
