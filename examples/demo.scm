@@ -27,8 +27,8 @@
 
 ;; Set up working lights on a MIDI fader
 (define working-light-fader
-  (make-midi-controller #:channel 14
-                        #:cc-number 19))
+  (make-midi-controller! #:channel 14
+                         #:cc-number 19))
 
 (define (worklight)
   (let ((state (make-empty-state))
@@ -42,8 +42,8 @@
 
 
 (define pot1
-  (make-midi-controller #:channel 14
-                        #:cc-number 7))
+  (make-midi-controller! #:channel 14
+                         #:cc-number 7))
 
 (define (example-state-1)
 

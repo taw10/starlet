@@ -5,7 +5,7 @@
   #:use-module (ice-9 binary-ports)
   #:use-module (srfi srfi-1)
   #:export (start-midi-control
-            make-midi-controller
+            make-midi-controller!
             get-controller-value
             make-midi-led
             set-midi-led!
@@ -62,7 +62,7 @@
   (atomic-box-ref (get-value-box a)))
 
 
-(define* (make-midi-controller
+(define* (make-midi-controller!
           #:key (channel 1) (cc-number 1))
   (let ((new-controller (make <midi-control>
                           #:channel channel
@@ -93,28 +93,28 @@
     new-callback))
 
 
-(define enqueue-midi-bytes
+(define enqueue-midi-bytes!
   (lambda bytes
     (unless (eq? (atomic-box-compare-and-swap! send-queue '() bytes)
                  '())
-      (apply enqueue-midi-bytes bytes))))
+      (apply enqueue-midi-bytes! bytes))))
 
 
 (define (set-midi-led! led val)
   (if val
 
       ;; Note on
-      (enqueue-midi-bytes (+ #b10010000 (get-channel led))
-                          (get-note-number led)
-                          127)
+      (enqueue-midi-bytes! (+ #b10010000 (get-channel led))
+                           (get-note-number led)
+                           127)
 
       ;; Note off
-      (enqueue-midi-bytes (+ #b10000000 (get-channel led))
-                          (get-note-number led)
-                          0)))
+      (enqueue-midi-bytes! (+ #b10000000 (get-channel led))
+                           (get-note-number led)
+                           0)))
 
 
-(define (handle-cc-change channel cc-number value)
+(define (handle-cc-change! channel cc-number value)
   (for-each (lambda (a)
               (atomic-box-set! (get-value-box a) value))
             (filter (lambda (a)
@@ -156,9 +156,9 @@
            ;; Control value
            ((11) (let* ((cc-number (get-u8 midi-port))
                         (value (get-u8 midi-port)))
-                   (handle-cc-change channel
-                                     cc-number
-                                     (scale-127-100 value)))))
+                   (handle-cc-change! channel
+                                      cc-number
+                                      (scale-127-100 value)))))
 
          (yield)
          (again))))

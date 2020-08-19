@@ -8,7 +8,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:export (<fixture> <fixture-attribute> <starlet-state>
-             start-ola-output patch-fixture
+             start-ola-output patch-fixture!
              set-attr! home-attr! home-all! blackout
              scanout-freq make-empty-state register-state!
              percent->dmxval msb lsb chan
@@ -143,9 +143,9 @@
 
 
 ;; Patch a new fixture
-(define* (patch-fixture class
-                        start-addr
-                        #:key (universe 1) (friendly-name "Fixture"))
+(define* (patch-fixture! class
+                         start-addr
+                         #:key (universe 1) (friendly-name "Fixture"))
   (let ((new-fixture (make class
                        #:sa start-addr
                        #:uni universe
@@ -189,7 +189,7 @@
 
 
 ;; Add the contents of state "new" to "combined-state"
-(define (add-state-to-state merge-rule new combined-state)
+(define (add-state-to-state! merge-rule new combined-state)
   (state-for-each (lambda (fix attr value)
                     (let ((current-value (state-find fix
                                                      attr
@@ -244,9 +244,9 @@
 (define (merge-states merge-rule list-of-states)
   (let ((combined-state (make <starlet-state>)))
     (for-each (lambda (state)
-                (add-state-to-state merge-rule
-                                    (expand-state state)
-                                    combined-state))
+                (add-state-to-state! merge-rule
+                                     (expand-state state)
+                                     combined-state))
               list-of-states)
     combined-state))
 
