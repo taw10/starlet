@@ -4,16 +4,9 @@
   #:export (<generic-dimmer>))
 
 (define-class <generic-dimmer> (<fixture>)
-
   (attributes
-   #:init-form
-   (list
-
-    (make <fixture-attribute>
-      #:name 'intensity
-      #:range '(0 100)
-      #:type 'continuous
-      #:home-value 0))))
+   #:init-form (list
+                (attr-continuous 'intensity '(0 100) 0))))
 
 
 (define-method (scanout-fixture (fixture <generic-dimmer>)

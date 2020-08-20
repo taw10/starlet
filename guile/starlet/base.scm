@@ -11,11 +11,12 @@
              start-ola-output patch-fixture!
              set-attr! home-attr! home-all! blackout
              scanout-freq make-empty-state register-state!
-             percent->dmxval msb lsb chan
+             percent->dmxval msb lsb
              hirestime expand-state set-in-state! state-for-each
              merge-states-htp value->number get-attr-name
              get-state-hash-table scanout-fixture
-             get-fixture-universe get-fixture-addr))
+             get-fixture-universe get-fixture-addr
+             attr-continuous attr-boolean attr-list))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -177,9 +178,6 @@
 
 (define (lsb val)
   (round-dmx (logand (round val) #b11111111)))
-
-(define (chan channel start-addr)
-  (- (+ channel start-addr) 1))
 
 
 (define (state-for-each func state)
@@ -354,3 +352,32 @@
               (set! start-time (hirestime))
               (scanout-loop 0))
             (scanout-loop (+ count 1)))))))
+
+
+(define-syntax attr-continuous
+  (syntax-rules ()
+    ((_ attr-name attr-range attr-home-value)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:range attr-range
+       #:type 'continuous
+       #:home-value attr-home-value))))
+
+
+(define-syntax attr-boolean
+  (syntax-rules ()
+    ((_ attr-name attr-home-value)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:type 'boolean
+       #:home-value attr-home-value))))
+
+
+(define-syntax attr-list
+  (syntax-rules ()
+    ((_ attr-name attr-allowed-values attr-home-value)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:range attr-allowed-values
+       #:type 'list
+       #:home-value attr-home-value))))
