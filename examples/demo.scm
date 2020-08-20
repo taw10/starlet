@@ -79,7 +79,12 @@
 
         (cue 2 example-state-2
              #:fade-up 3
-             #:fade-down 5)))
+             #:fade-down 1
+             #:down-delay 3)
+
+        (cue 3 (make-empty-state)
+             #:fade-up 0
+             #:fade-down 2)))
 
 
 ;; Create a playback for the cue list, and register it for output
