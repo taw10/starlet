@@ -14,7 +14,8 @@
              percent->dmxval msb lsb chan
              hirestime expand-state set-in-state! state-for-each
              merge-states-htp value->number get-attr-name
-             get-state-hash-table))
+             get-state-hash-table scanout-fixture
+             get-fixture-universe get-fixture-addr))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -61,7 +62,12 @@
     #:init-value "Fixture"
     #:init-keyword #:friendly-name
     #:getter get-fixture-friendly-name
-    #:setter set-fixture-friendly-name!))
+    #:setter set-fixture-friendly-name!)
+
+  (scanout-func
+    #:init-value (lambda (universe start-addr value set-dmx) #f)
+    #:init-keyword #:scanout-func
+    #:getter get-scanout-func))
 
 
 ;; A "state" is just a thin wrapper around a hash table
@@ -283,6 +289,8 @@
 
 (define scanout-freq 0)
 
+(define-generic scanout-fixture)
+
 (define (start-ola-output)
   (let* ((ola-uri (build-uri 'http
                              #:host "127.0.0.1"
@@ -297,8 +305,7 @@
         (let ((universes '()))
 
 
-          ;; Helper function called by attribute translators
-          ;; to set individual DMX values
+          ;; Helper function for scanout functions to set individual DMX values
           (define (set-dmx universe addr value)
 
             ;; Create DMX array for universe if it doesn't exist already
@@ -312,27 +319,26 @@
                            (- addr 1)                   ; u8vector-set indexing starts from zero
                            (round-dmx value)))
 
-          ;; Scan out all attributes of the combined state
-          (state-for-each (lambda (fix attr value)
+          ;; Make a combined state
+          (let* ((combined-state (merge-states-htp
+                                   (reverse   ;; Put "home" state last
+                                    (atomic-box-ref state-list)))))
 
-                            ;; Scan out one attribute assignment
-                            (let ((trans (get-attr-translator attr)))
-                              (trans (get-fixture-universe fix)
-                                     (get-fixture-addr fix)
+            ;; Request all fixtures to output their DMX values
+            (for-each (lambda (fix)
 
-                                     ;; This function call triggers evaluation of
-                                     ;; the whole chain of attribute functions,
-                                     ;; right down to a real number
-                                     (value->number value (hirestime))
+                        ;; Helper function to get a value for this
+                        ;; fixture in the current state
+                        (define (get-attr attr-name)
+                          (value->number (state-find fix
+                                                     (find-attr fix attr-name)
+                                                     combined-state)
+                                         (hirestime)))
 
-                                     ;; Pass a helper function to set DMX values
-                                     set-dmx)))
+                        (scanout-fixture fix get-attr set-dmx))
 
-                          (merge-states-htp
+                      (atomic-box-ref patched-fixture-list)))
 
-                           ;; Reverse in order to put "home" state last
-                           (reverse
-                            (atomic-box-ref state-list))))
 
           ;; Send everything to OLA
           (for-each (lambda (a)

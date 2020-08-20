@@ -13,7 +13,14 @@
       #:name 'intensity
       #:range '(0 100)
       #:type 'continuous
-      #:home-value 0
-      #:translator (lambda (universe start-addr value set-dmx)
-                     (set-dmx universe start-addr
-                              (percent->dmxval value)))))))
+      #:home-value 0))))
+
+
+(define-method (scanout-fixture (fixture <generic-dimmer>)
+                                get-attr
+                                set-dmx)
+
+    ;; Set DMX value for intensity
+    (set-dmx (get-fixture-universe fixture)
+             (get-fixture-addr fixture)
+             (percent->dmxval (get-attr 'intensity))))
