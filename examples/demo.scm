@@ -12,18 +12,6 @@
 (start-midi-control "/dev/snd/midiC1D0")
 (all-notes-off! 14)
 
-;; Light up some LEDs on the MIDI controller
-(define led1
-  (make-midi-led #:channel 14
-                 #:note-number 23))
-
-(define led2
-  (make-midi-led #:channel 14
-                 #:note-number 20))
-
-(set-midi-led! led1 #t)
-(set-midi-led! led2 #t)
-
 
 ;; Set up working lights on a MIDI fader
 (define working-light-fader
@@ -102,8 +90,30 @@
 ;; Jump to zero (blackout) cue
 (cut-to-cue-number! pb 0)
 
-;; Set up a "go" button
+;; Left-hand playback buttons
+(define go1 (make-midi-led #:channel 14 #:note-number 20))
+(set-midi-led! go1 #t)
+(define stop1 (make-midi-led #:channel 14 #:note-number 24))
+(set-midi-led! stop1 #t)
 (register-midi-note-callback!
  #:channel 14
- #:note-number #xc
+ #:note-number 12
  #:func (lambda () (go! pb)))
+(register-midi-note-callback!
+ #:channel 14
+ #:note-number 24
+ #:func (lambda () (display "Stop/back!\n")))
+
+;; Right-hand playback buttons
+(define go2 (make-midi-led #:channel 14 #:note-number 23))
+(set-midi-led! go2 #t)
+(define stop2 (make-midi-led #:channel 14 #:note-number 27))
+(set-midi-led! stop2 #t)
+(register-midi-note-callback!
+ #:channel 14
+ #:note-number 15
+ #:func (lambda () (go! pb)))
+(register-midi-note-callback!
+ #:channel 14
+ #:note-number 27
+ #:func (lambda () (display "Stop/back!\n")))
