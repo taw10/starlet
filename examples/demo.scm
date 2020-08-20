@@ -29,6 +29,19 @@
 (register-state! worklight)
 
 
+(define movers-fader
+  (make-midi-controller! #:channel 14
+                         #:cc-number 18))
+(define (movers)
+  (let ((state (make-empty-state))
+        (fader-pos (get-controller-value movers-fader)))
+    (set-attr! state mh1 'intensity fader-pos)
+    (set-attr! state mh2 'intensity fader-pos)
+    state))
+
+(register-state! movers)
+
+
 (define pot1
   (make-midi-controller! #:channel 14
                          #:cc-number 7))

@@ -1,6 +1,7 @@
 (define-module (venues demo-venue)
   #:use-module (starlet base)
-  #:use-module (starlet fixture-library generic))
+  #:use-module (starlet fixture-library generic)
+  #:use-module (starlet fixture-library robe))
 
 ;; Conventional dimmers (1-48)
 (define-public dim1 (patch-fixture! <generic-dimmer> 1))
@@ -55,3 +56,7 @@
 (define-public dim46 (patch-fixture! <generic-dimmer> 46))
 (define-public dim47 (patch-fixture! <generic-dimmer> 47))
 (define-public dim48 (patch-fixture! <generic-dimmer> 48))
+
+
+(define-public mh1 (patch-fixture! <robe-dl7s-mode1> 59))
+(define-public mh2 (patch-fixture! <robe-dl7s-mode1> 146))
