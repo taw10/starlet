@@ -19,11 +19,11 @@
                          #:cc-number 19))
 
 (define-state worklight
-  (let ((fader-pos (lambda ()
+  (let ((fader-pos (lambda (time)
                      (get-controller-value working-light-fader))))
-    (at dim11 'intensity (fader-pos))
-    (at dim12 'intensity (fader-pos))
-    (at dim13 'intensity (fader-pos))))
+    (at dim11 'intensity fader-pos)
+    (at dim12 'intensity fader-pos)
+    (at dim13 'intensity fader-pos)))
 
 (register-state! worklight)
 
@@ -35,10 +35,10 @@
                          #:cc-number 18))
 
 (define-state movers
-  (let ((fader-pos (lambda ()
+  (let ((fader-pos (lambda (time)
                      (get-controller-value movers-fader))))
-    (at mh1 'intensity (fader-pos))
-    (at mh2 'intensity (fader-pos))))
+    (at mh1 'intensity fader-pos)
+    (at mh2 'intensity fader-pos)))
 
 (register-state! movers)
 
