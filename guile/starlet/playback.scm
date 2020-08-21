@@ -151,7 +151,7 @@
 
 
 (define (cut-to-cue! pb cue)
-  (let* ((state (expand-state (get-cue-state cue))))
+  (let ((state ((get-cue-state cue))))
     ;; Flush everything out and just set the state
     (set-active-fade-list! pb
                            (list (make-fade
@@ -175,7 +175,7 @@
 
 (define (make-fade-from-cue cue time)
   (make-fade
-   (expand-state (get-cue-state cue))
+   ((get-cue-state cue))
    0.0
    1.0
    (up-time cue)

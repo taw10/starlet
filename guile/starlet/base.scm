@@ -12,7 +12,7 @@
              home-attr! home-all! blackout
              scanout-freq make-empty-state register-state!
              percent->dmxval msb lsb
-             hirestime expand-state set-in-state! state-for-each
+             hirestime set-in-state! state-for-each
              merge-states-htp value->number get-attr-name
              get-state-hash-table scanout-fixture
              get-fixture-universe get-fixture-addr
@@ -217,14 +217,6 @@
       val))
 
 
-;; If "state" is a procedure, call it to get the real state
-;; Otherwise, pass through
-(define (expand-state state)
-  (if (procedure? state)
-      (state)
-      state))
-
-
 (define (merge-rule-ltp attr a b)
   (lambda (time)
     (value->number b time)))
@@ -250,7 +242,7 @@
   (let ((combined-state (make <starlet-state>)))
     (for-each (lambda (state)
                 (add-state-to-state! merge-rule
-                                     (expand-state state)
+                                     state
                                      combined-state))
               list-of-states)
     combined-state))
@@ -392,10 +384,9 @@
   (syntax-rules ()
     ((_ state-name body ...)
      (define state-name
-       (lambda ()
-         (parameterize ((current-state (make-empty-state)))
-           body ...
-           (current-state)))))))
+       (parameterize ((current-state (make-empty-state)))
+         body ...
+         (current-state))))))
 
 
 (define-syntax at
