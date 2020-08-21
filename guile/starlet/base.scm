@@ -16,7 +16,8 @@
              merge-states-htp value->number get-attr-name
              get-state-hash-table scanout-fixture
              get-fixture-universe get-fixture-addr
-             attr-continuous attr-boolean attr-list))
+             attr-continuous attr-boolean attr-list
+             current-state define-state))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -381,3 +382,17 @@
        #:range attr-allowed-values
        #:type 'list
        #:home-value attr-home-value))))
+
+
+(define current-state (make-parameter (make-empty-state)))
+(register-state! (current-state))
+
+
+(define-syntax define-state
+  (syntax-rules ()
+    ((_ state-name body ...)
+     (define state-name
+       (lambda ()
+         (parameterize ((current-state (make-empty-state)))
+           body ...
+           (current-state)))))))

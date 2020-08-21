@@ -18,26 +18,27 @@
   (make-midi-controller! #:channel 14
                          #:cc-number 19))
 
-(define (worklight)
-  (let ((state (make-empty-state))
-        (fader-pos (get-controller-value working-light-fader)))
-    (set-attr! state dim11 'intensity fader-pos)
-    (set-attr! state dim12 'intensity fader-pos)
-    (set-attr! state dim13 'intensity fader-pos)
-    state))
+(define-state worklight
+  (let ((fader-pos (lambda ()
+                     (get-controller-value working-light-fader))))
+    (set-attr! (current-state) dim11 'intensity (fader-pos))
+    (set-attr! (current-state) dim12 'intensity (fader-pos))
+    (set-attr! (current-state) dim13 'intensity (fader-pos))))
 
 (register-state! worklight)
 
 
+;; Same, for some different fixtures
+
 (define movers-fader
   (make-midi-controller! #:channel 14
                          #:cc-number 18))
-(define (movers)
-  (let ((state (make-empty-state))
-        (fader-pos (get-controller-value movers-fader)))
-    (set-attr! state mh1 'intensity fader-pos)
-    (set-attr! state mh2 'intensity fader-pos)
-    state))
+
+(define-state movers
+  (let ((fader-pos (lambda ()
+                     (get-controller-value movers-fader))))
+    (set-attr! (current-state) mh1 'intensity (fader-pos))
+    (set-attr! (current-state) mh2 'intensity (fader-pos))))
 
 (register-state! movers)
 
@@ -46,39 +47,31 @@
   (make-midi-controller! #:channel 14
                          #:cc-number 7))
 
-(define (example-state-1)
+(define-state example-state-1
 
-  (let ((state (make-empty-state)))
+  ;; Front wash
+  (set-attr! (current-state) dim11 'intensity 50)
+  (set-attr! (current-state) dim12 'intensity 50)
+  (set-attr! (current-state) dim13 'intensity 50)
 
-    ;; Front wash
-    (set-attr! state dim11 'intensity 50)
-    (set-attr! state dim12 'intensity 50)
-    (set-attr! state dim13 'intensity 50)
+  ;; Sidelight
+  (set-attr! (current-state) dim7 'intensity (flash 2))
+  (set-attr! (current-state) dim8 'intensity 50)
 
-    ;; Sidelight
-    (set-attr! state dim7 'intensity (flash 2))
-    (set-attr! state dim8 'intensity 50)
-
-    (set-attr! state dim48 'intensity
-               (lambda (a)
-                 (get-controller-value pot1)))
-
-    state))
+  (set-attr! (current-state) dim48 'intensity
+             (lambda (a)
+               (get-controller-value pot1))))
 
 
-(define (example-state-2)
+(define-state example-state-2
 
-  (let ((state (make-empty-state)))
+  ;; Front wash
+  (set-attr! (current-state) dim1 'intensity 10)
+  (set-attr! (current-state) dim2 'intensity 10)
+  (set-attr! (current-state) dim3 'intensity 10)
 
-    ;; Front wash
-    (set-attr! state dim1 'intensity 10)
-    (set-attr! state dim2 'intensity 10)
-    (set-attr! state dim3 'intensity 10)
-
-    ;; Sidelight
-    (set-attr! state dim7 'intensity (flash 5))
-
-    state))
+  ;; Sidelight
+  (set-attr! (current-state) dim7 'intensity (flash 5)))
 
 
 (define cue-list
