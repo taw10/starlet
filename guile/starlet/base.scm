@@ -9,7 +9,7 @@
   #:use-module (srfi srfi-9)
   #:export (<fixture> <fixture-attribute> <starlet-state>
              start-ola-output patch-fixture!
-             set-attr! home-attr! home-all! blackout
+             home-attr! home-all! blackout
              scanout-freq make-empty-state register-state!
              percent->dmxval msb lsb
              hirestime expand-state set-in-state! state-for-each
@@ -17,7 +17,7 @@
              get-state-hash-table scanout-fixture
              get-fixture-universe get-fixture-addr
              attr-continuous attr-boolean attr-list
-             current-state define-state))
+             current-state define-state at))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -396,3 +396,15 @@
          (parameterize ((current-state (make-empty-state)))
            body ...
            (current-state)))))))
+
+
+(define-syntax at
+  (syntax-rules ()
+
+    ;; No attribute named -> set intensity
+    ((_ fixture value)
+     (set-attr! (current-state) fixture 'intensity value))
+
+    ;; Set specified attribute
+    ((_ fixture attr-name value)
+     (set-attr! (current-state) fixture attr-name value))))

@@ -21,9 +21,9 @@
 (define-state worklight
   (let ((fader-pos (lambda ()
                      (get-controller-value working-light-fader))))
-    (set-attr! (current-state) dim11 'intensity (fader-pos))
-    (set-attr! (current-state) dim12 'intensity (fader-pos))
-    (set-attr! (current-state) dim13 'intensity (fader-pos))))
+    (at dim11 'intensity (fader-pos))
+    (at dim12 'intensity (fader-pos))
+    (at dim13 'intensity (fader-pos))))
 
 (register-state! worklight)
 
@@ -37,8 +37,8 @@
 (define-state movers
   (let ((fader-pos (lambda ()
                      (get-controller-value movers-fader))))
-    (set-attr! (current-state) mh1 'intensity (fader-pos))
-    (set-attr! (current-state) mh2 'intensity (fader-pos))))
+    (at mh1 'intensity (fader-pos))
+    (at mh2 'intensity (fader-pos))))
 
 (register-state! movers)
 
@@ -50,15 +50,15 @@
 (define-state example-state-1
 
   ;; Front wash
-  (set-attr! (current-state) dim11 'intensity 50)
-  (set-attr! (current-state) dim12 'intensity 50)
-  (set-attr! (current-state) dim13 'intensity 50)
+  (at dim11 'intensity 50)
+  (at dim12 'intensity 50)
+  (at dim13 'intensity 50)
 
   ;; Sidelight
-  (set-attr! (current-state) dim7 'intensity (flash 2))
-  (set-attr! (current-state) dim8 'intensity 50)
+  (at dim7 'intensity (flash 2))
+  (at dim8 'intensity 50)
 
-  (set-attr! (current-state) dim48 'intensity
+  (at dim48 'intensity
              (lambda (a)
                (get-controller-value pot1))))
 
@@ -66,12 +66,12 @@
 (define-state example-state-2
 
   ;; Front wash
-  (set-attr! (current-state) dim1 'intensity 10)
-  (set-attr! (current-state) dim2 'intensity 10)
-  (set-attr! (current-state) dim3 'intensity 10)
+  (at dim1 'intensity 10)
+  (at dim2 'intensity 10)
+  (at dim3 'intensity 10)
 
   ;; Sidelight
-  (set-attr! (current-state) dim7 'intensity (flash 5)))
+  (at dim7 'intensity (flash 5)))
 
 
 (define cue-list
