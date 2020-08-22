@@ -10,10 +10,7 @@
 
 
 (define-method (scanout-fixture (fixture <generic-dimmer>)
-                                get-attr
-                                set-dmx)
+                                get-attr set-chan set-chan-16bit)
 
     ;; Set DMX value for intensity
-    (set-dmx (get-fixture-universe fixture)
-             (get-fixture-addr fixture)
-             (percent->dmxval (get-attr 'intensity))))
+    (set-chan 1 (percent->dmxval (get-attr 'intensity))))

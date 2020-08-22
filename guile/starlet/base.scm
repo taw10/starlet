@@ -326,7 +326,20 @@
                                                      combined-state)
                                          (hirestime)))
 
-                        (scanout-fixture fix get-attr set-dmx))
+                        ;; Helper function to set 8-bit DMX value
+                        (define (set-chan relative-channel-number value)
+                          (set-dmx (get-fixture-universe fix)
+                                   (+ (get-fixture-addr fix)
+                                      (- relative-channel-number 1))
+                                   value))
+
+                        ;; Helper function to set 16-bit DMX value
+                        (define (set-chan-16bit relative-channel-number value max-value)
+                          (let ((val16 (* value (/ 65535 max-value))))
+                            (set-chan relative-channel-number (msb val16))
+                            (set-chan (+ relative-channel-number 1) (lsb val16))))
+
+                        (scanout-fixture fix get-attr set-chan set-chan-16bit))
 
                       (atomic-box-ref patched-fixture-list)))
 

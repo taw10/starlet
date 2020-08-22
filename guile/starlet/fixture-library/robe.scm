@@ -21,19 +21,7 @@
 
 
 (define-method (scanout-fixture (fixture <robe-dl7s-mode1>)
-                                get-attr
-                                set-dmx)
-
-  (define (set-chan relative-channel-number value)
-    (set-dmx (get-fixture-universe fixture)
-             (+ (get-fixture-addr fixture)
-                (- relative-channel-number 1))
-             value))
-
-  (define (set-chan-16bit relative-channel-number value max-value)
-    (let ((val16 (* value (/ 65535 max-value))))
-      (set-chan relative-channel-number (msb val16))
-      (set-chan (+ relative-channel-number 1) (lsb val16))))
+                                get-attr set-chan set-chan-16bit)
 
   (set-chan-16bit 50 (get-attr 'intensity) 100)
 
