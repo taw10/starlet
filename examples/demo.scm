@@ -101,30 +101,25 @@
 ;; Jump to zero (blackout) cue
 (cut-to-cue-number! pb 0)
 
-;; Left-hand playback buttons
-(define go1 (make-midi-led #:channel 14 #:note-number 20))
-(set-midi-led! go1 #t)
-(define stop1 (make-midi-led #:channel 14 #:note-number 24))
-(set-midi-led! stop1 #t)
-(register-midi-note-callback!
- #:channel 14
- #:note-number 12
- #:func (lambda () (go! pb)))
-(register-midi-note-callback!
- #:channel 14
- #:note-number 24
- #:func (lambda () (display "Stop/back!\n")))
+(define (make-playback-buttons chan
+                               go-led-note
+                               go-button-note
+                               stop-led-note
+                               stop-button-note)
+  (let ((go-led (make-midi-led #:channel chan
+                               #:note-number go-led-note))
+        (stop-led (make-midi-led #:channel chan
+                                 #:note-number stop-led-note)))
+    (set-midi-led! go-led #t)
+    (set-midi-led! stop-led #t)
+    (register-midi-note-callback!
+     #:channel chan
+     #:note-number go-button-note
+     #:func (lambda () (go! pb)))
+    (register-midi-note-callback!
+     #:channel chan
+     #:note-number stop-button-note
+     #:func (lambda () (display "Stop/back!\n")))))
 
-;; Right-hand playback buttons
-(define go2 (make-midi-led #:channel 14 #:note-number 23))
-(set-midi-led! go2 #t)
-(define stop2 (make-midi-led #:channel 14 #:note-number 27))
-(set-midi-led! stop2 #t)
-(register-midi-note-callback!
- #:channel 14
- #:note-number 15
- #:func (lambda () (go! pb)))
-(register-midi-note-callback!
- #:channel 14
- #:note-number 27
- #:func (lambda () (display "Stop/back!\n")))
+(make-playback-buttons 14 20 12 24 24)
+(make-playback-buttons 14 23 15 27 27)
