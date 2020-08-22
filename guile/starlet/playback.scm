@@ -3,8 +3,11 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (starlet base)
-  #:export (make-playback cue load-cue!
-            cut-to-cue-number! run-cue-number! go!))
+  #:export (make-playback
+            cue
+            cut-to-cue-number!
+            run-cue-number!
+            go!))
 
 
 ;; A "playback" is a state which knows how to run cues

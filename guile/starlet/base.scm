@@ -7,17 +7,29 @@
   #:use-module (web uri)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
-  #:export (<fixture> <fixture-attribute> <starlet-state>
-             start-ola-output patch-fixture!
-             home-attr! home-all! blackout
-             scanout-freq make-empty-state register-state!
-             percent->dmxval msb lsb
-             hirestime set-in-state! state-for-each
-             merge-states-htp value->number get-attr-name
-             get-state-hash-table scanout-fixture
-             get-fixture-universe get-fixture-addr
-             attr-continuous attr-boolean attr-list
-             current-state define-state at))
+  #:export (<fixture>
+            <fixture-attribute>
+            <starlet-state>
+            start-ola-output
+            patch-fixture!
+            scanout-freq
+            make-empty-state
+            register-state!
+            percent->dmxval
+            hirestime
+            state-for-each
+            set-in-state!
+            get-attr-name
+            value->number
+            merge-states-htp
+            get-state-hash-table
+            scanout-fixture
+            attr-continuous
+            attr-boolean
+            attr-list
+            current-state
+            define-state
+            at))
 
 (define-class <fixture-attribute> (<object>)
   (name
