@@ -76,8 +76,7 @@
       (get-fade-start-frac fade))
 
      ;; After end of fade
-     ((> elapsed-fade-time
-         (get-fade-time fade))
+     ((> elapsed-fade-time (get-fade-time fade))
       (get-fade-target-frac fade))
 
      ;; During the fade
@@ -86,7 +85,7 @@
          (* (- (get-fade-target-frac fade)
                (get-fade-start-frac fade))
 
-          ;; Fraction of fade time elapsed
+            ;; Fraction of fade time elapsed
             (/ elapsed-fade-time
                (get-fade-time fade))))))))
 
