@@ -29,6 +29,8 @@
             attr-list
             current-state
             lighting-state
+            cue-state
+            apply-state
             at))
 
 (define-class <fixture-attribute> (<object>)
@@ -223,6 +225,10 @@
                  new))
 
 
+(define (apply-state state)
+  (add-state-to-state! merge-rule-ltp state (current-state)))
+
+
 (define (value->number val time)
   (if (procedure? val)
       (val time)
@@ -411,6 +417,19 @@
      (parameterize ((current-state (make-empty-state)))
        body ...
        (current-state)))))
+
+
+(define-syntax cue-state
+  (syntax-rules ()
+
+    ((_)
+     make-empty-state)
+
+    ((_ body ...)
+     (lambda ()
+       (parameterize ((current-state (make-empty-state)))
+         body ...
+         (current-state))))))
 
 
 (define-syntax at
