@@ -28,7 +28,7 @@
             attr-boolean
             attr-list
             current-state
-            define-state
+            lighting-state
             at))
 
 (define-class <fixture-attribute> (<object>)
@@ -405,13 +405,12 @@
 (register-state! (current-state))
 
 
-(define-syntax define-state
+(define-syntax lighting-state
   (syntax-rules ()
-    ((_ state-name body ...)
-     (define state-name
-       (parameterize ((current-state (make-empty-state)))
-         body ...
-         (current-state))))))
+    ((_ body ...)
+     (parameterize ((current-state (make-empty-state)))
+       body ...
+       (current-state)))))
 
 
 (define-syntax at

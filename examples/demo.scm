@@ -18,14 +18,14 @@
   (make-midi-controller! #:channel 14
                          #:cc-number 19))
 
-(define-state worklight
+(register-state!
+ (lighting-state
   (let ((fader-pos (lambda (time)
                      (get-controller-value working-light-fader))))
     (at dim11 'intensity fader-pos)
     (at dim12 'intensity fader-pos)
-    (at dim13 'intensity fader-pos)))
+    (at dim13 'intensity fader-pos))))
 
-(register-state! worklight)
 
 
 ;; Same, for some different fixtures
@@ -34,44 +34,46 @@
   (make-midi-controller! #:channel 14
                          #:cc-number 18))
 
-(define-state movers
+(register-state!
+ (lighting-state
   (let ((fader-pos (lambda (time)
                      (get-controller-value movers-fader))))
     (at mh1 'intensity fader-pos)
-    (at mh2 'intensity fader-pos)))
-
-(register-state! movers)
+    (at mh2 'intensity fader-pos))))
 
 
 (define pot1
   (make-midi-controller! #:channel 14
                          #:cc-number 7))
 
-(define-state example-state-1
 
-  ;; Front wash
-  (at dim11 'intensity 50)
-  (at dim12 'intensity 50)
-  (at dim13 'intensity 50)
+(define example-state-1
+  (lighting-state
 
-  ;; Sidelight
-  (at dim7 'intensity (flash 2))
-  (at dim8 'intensity 50)
+   ;; Front wash
+   (at dim11 'intensity 50)
+   (at dim12 'intensity 50)
+   (at dim13 'intensity 50)
 
-  (at dim48 'intensity
-             (lambda (a)
-               (get-controller-value pot1))))
+   ;; Sidelight
+   (at dim7 'intensity (flash 2))
+   (at dim8 'intensity 50)
+
+   (at dim48 'intensity
+       (lambda (a)
+         (get-controller-value pot1)))))
 
 
-(define-state example-state-2
+(define example-state-2
+  (lighting-state
 
-  ;; Front wash
-  (at dim1 'intensity 10)
-  (at dim2 'intensity 10)
-  (at dim3 'intensity 10)
+   ;; Front wash
+   (at dim1 'intensity 10)
+   (at dim2 'intensity 10)
+   (at dim3 'intensity 10)
 
-  ;; Sidelight
-  (at dim7 'intensity (flash 5)))
+   ;; Sidelight
+   (at dim7 'intensity (flash 5))))
 
 
 (define cue-list
