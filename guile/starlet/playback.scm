@@ -149,7 +149,8 @@
   (let ((cue-tail (find-cue-tail (get-playback-cue-list pb)
                                  cue-number)))
     (cut-to-cue! pb (car cue-tail))
-    (set-rest-of-cue-list! pb (cdr cue-tail))))
+    (set-rest-of-cue-list! pb (cdr cue-tail)))
+  (return-unspecified))
 
 
 (define (cut-to-cue! pb cue)
@@ -160,13 +161,17 @@
                                   state
                                   0.0 1.0 0.0 0.0 (hirestime))))))
 
+(define (return-unspecified)
+  (if #f 1))
+
 
 (define (go! pb)
   (let ((cue-tail (get-rest-of-cue-list pb)))
     (unless (eq? '() cue-tail)
       (run-cue! pb (car cue-tail))
-      (set-rest-of-cue-list! pb (cdr cue-tail)))))
+      (set-rest-of-cue-list! pb (cdr cue-tail))))
       ;; else at the end of the cue list
+  (return-unspecified))
 
 
 (define (add-fade! pb fade)
