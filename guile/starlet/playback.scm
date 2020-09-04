@@ -7,7 +7,10 @@
             cue
             cut-to-cue-number!
             run-cue-number!
-            go!))
+            go!
+            cue-list
+            cue-state
+            track-state))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -233,3 +236,24 @@
                                   (down-time cue)
                                   (down-delay cue))
     (add-fade! pb (make-fade-from-cue cue tnow))))
+
+
+(define-syntax cue-state
+  (syntax-rules ()
+
+    ((_)
+     make-empty-state)
+
+    ((_ body ...)
+     (lambda ()
+       (parameterize ((current-state (make-empty-state)))
+         body ...
+         (current-state))))))
+
+
+(define-syntax cue-list
+  (identifier-syntax list))
+
+
+(define-syntax track-state
+  (identifier-syntax cue-state))

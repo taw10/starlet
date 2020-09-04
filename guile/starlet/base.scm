@@ -29,7 +29,6 @@
             attr-list
             current-state
             lighting-state
-            cue-state
             apply-state
             at))
 
@@ -417,19 +416,6 @@
      (parameterize ((current-state (make-empty-state)))
        body ...
        (current-state)))))
-
-
-(define-syntax cue-state
-  (syntax-rules ()
-
-    ((_)
-     make-empty-state)
-
-    ((_ body ...)
-     (lambda ()
-       (parameterize ((current-state (make-empty-state)))
-         body ...
-         (current-state))))))
 
 
 (define-syntax at

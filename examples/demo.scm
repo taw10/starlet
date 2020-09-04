@@ -76,37 +76,38 @@
    (at dim7 'intensity (flash 5))))
 
 
-(define cue-list
-  (list (cue 0
-             (cue-state)
-             #:fade-up 1
-             #:fade-down 1)
+(define my-cue-list
+  (cue-list
+   (cue 0
+        (cue-state)
+        #:fade-up 1
+        #:fade-down 1)
 
-        (cue 1
-             (cue-state (apply-state example-state-1))
-             #:fade-up 3
-             #:fade-down 5)
+   (cue 1
+        (cue-state (apply-state example-state-1))
+        #:fade-up 3
+        #:fade-down 5)
 
-        (cue 2
-             (cue-state (apply-state example-state-2))
-             #:fade-up 3
-             #:fade-down 1
-             #:down-delay 3)
+   (cue 2
+        (cue-state (apply-state example-state-2))
+        #:fade-up 3
+        #:fade-down 1
+        #:down-delay 3)
 
-        (cue 2.5
-             (cue-state (apply-state example-state-2)
-                        (at dim1 'intensity 100))
-             #:fade-up 1
-             #:fade-down 1)
+   (cue 2.5
+        (track-state (at dim1 'intensity 100))
+        #:fade-up 1
+        #:fade-down 1)
 
-        (cue 3 (cue-state)
-             #:fade-up 0
-             #:fade-down 2)))
+   (cue 3
+        (cue-state)
+        #:fade-up 0
+        #:fade-down 2)))
 
 
 ;; Create a playback for the cue list, and register it for output
 (define pb
-  (make-playback cue-list))
+  (make-playback my-cue-list))
 (register-state! pb)
 
 ;; Jump to zero (blackout) cue
