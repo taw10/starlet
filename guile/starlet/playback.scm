@@ -2,6 +2,7 @@
   #:use-module (oop goops)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-43)
   #:use-module (starlet base)
   #:export (make-playback
             cue
@@ -25,10 +26,10 @@
    #:init-keyword #:cue-list
    #:getter get-playback-cue-list)
 
-  (rest-of-cue-list
-   #:init-value '()
-   #:getter get-rest-of-cue-list
-   #:setter set-rest-of-cue-list!)
+  (next-cue-index
+   #:init-value 0
+   #:getter get-next-cue-index
+   #:setter set-next-cue-index!)
 
   (hash-table
    #:allocation #:virtual
@@ -129,24 +130,20 @@
     new-playback))
 
 
-(define (find-cue-tail cue-list cue-number)
-  (find-tail (lambda (a)
-               (eqv? (get-cue-number a)
-                     cue-number))
-             cue-list))
-
-
 (define (find-cue cue-list cue-number)
-  (car
-   (find-cue-tail cue-list
-                  cue-number)))
+  (vector-index (lambda (a)
+                  (eqv? (get-cue-number a)
+                        cue-number))
+                cue-list))
 
 
 (define (cut-to-cue-number! pb cue-number)
-  (let ((cue-tail (find-cue-tail (get-playback-cue-list pb)
-                                 cue-number)))
-    (cut-to-cue! pb (car cue-tail))
-    (set-rest-of-cue-list! pb (cdr cue-tail)))
+  (let ((cue-index (find-cue (get-playback-cue-list pb)
+                             cue-number)))
+    (cut-to-cue! pb
+                 (vector-ref (get-playback-cue-list pb)
+                             cue-index))
+    (set-next-cue-index! pb (+ cue-index 1)))
   (return-unspecified))
 
 
@@ -163,10 +160,12 @@
 
 
 (define (go! pb)
-  (let ((cue-tail (get-rest-of-cue-list pb)))
-    (unless (eq? '() cue-tail)
-      (run-cue! pb (car cue-tail))
-      (set-rest-of-cue-list! pb (cdr cue-tail))))
+  (let ((cue-index (get-next-cue-index pb)))
+    (unless (>= cue-index (vector-length (get-playback-cue-list pb)))
+      (run-cue! pb
+                (vector-ref (get-playback-cue-list pb)
+                            cue-index))
+      (set-next-cue-index! pb (+ cue-index 1))))
       ;; else at the end of the cue list
   (return-unspecified))
 
@@ -216,10 +215,12 @@
 
 
 (define (run-cue-number! pb cue-number)
-  (let ((cue-tail (find-cue-tail (get-playback-cue-list pb)
-                                 cue-number)))
-    (run-cue! pb (car cue-tail))
-    (set-rest-of-cue-list! pb (cdr cue-tail))))
+  (let ((cue-index (find-cue (get-playback-cue-list pb)
+                             cue-number)))
+    (run-cue! pb (vector-ref (get-playback-cue-list pb)
+                             cue-index))
+    (set-next-cue-index! pb (+ cue-index 1)))
+  (return-unspecified))
 
 
 (define (run-cue! pb cue)
@@ -263,7 +264,7 @@
 
 
 (define-syntax cue-list
-  (identifier-syntax list))
+  (identifier-syntax vector))
 
 
 (define-syntax track-state
