@@ -62,6 +62,11 @@
   (down-delay  down-delay))
 
 
+;; Get the state for a cue, taking into account tracking etc
+(define (evaluate-cue-state cue)
+  ((get-cue-state cue)))
+
+
 (define (wrap-scale scale-factor a)
   (lambda (time)
     (* (value->number a time)
@@ -118,17 +123,6 @@
   (/ (inexact->exact (* a 1000)) 1000))
 
 
-(define* (cue number
-              state
-              #:key (fade-up 5) (fade-down 5) (up-delay 0) (down-delay 0))
-  (make-cue (qnum number)
-            state
-            fade-up
-            fade-down
-            up-delay
-            down-delay))
-
-
 (define (make-playback cue-list)
   (let ((new-playback (make <starlet-playback>
                         #:cue-list cue-list)))
@@ -157,7 +151,7 @@
 
 
 (define (cut-to-cue! pb cue)
-  (let ((state ((get-cue-state cue))))
+  (let ((state (evaluate-cue-state cue)))
     ;; Flush everything out and just set the state
     (set-active-fade-list! pb
                            (list (make-fade
@@ -185,7 +179,7 @@
 
 (define (make-fade-from-cue cue time)
   (make-fade
-   ((get-cue-state cue))
+   (evaluate-cue-state cue)
    0.0
    1.0
    (up-time cue)
@@ -238,6 +232,8 @@
     (add-fade! pb (make-fade-from-cue cue tnow))))
 
 
+;;; ******************** Cue lists ********************
+
 (define-syntax cue-state
   (syntax-rules ()
 
@@ -251,9 +247,29 @@
          (current-state))))))
 
 
+(define* (cue number
+              state
+              #:key (fade-up 5) (fade-down 5) (up-delay 0) (down-delay 0))
+  (make-cue (qnum number)
+            state
+            fade-up
+            fade-down
+            up-delay
+            down-delay))
+
+
+(define (add-to-cue-list the-cue cue-list-so-far)
+  cue-list-so-far)
+
+
 (define-syntax cue-list
   (identifier-syntax list))
 
 
 (define-syntax track-state
-  (identifier-syntax cue-state))
+  (syntax-rules ()
+    ((_ body ...)
+     (lambda ()
+       (parameterize ((current-state (clone-previous-state)))
+         body ...
+         (current-state))))))
