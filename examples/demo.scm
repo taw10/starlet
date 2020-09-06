@@ -78,10 +78,6 @@
 
 (define my-cue-list
   (cue-list
-   (cue 0
-        (cue-state (apply-state home-state))
-        #:fade-up 1
-        #:fade-down 1)
 
    (cue 1
         (cue-state (apply-state example-state-1))

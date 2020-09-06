@@ -265,4 +265,10 @@
 
 
 (define-syntax cue-list
-  (identifier-syntax vector))
+  (syntax-rules ()
+    ((_ body ...)
+     (vector (cue 0
+                  (cue-state (apply-state home-state))
+                  #:fade-up 1
+                  #:fade-down 1)
+             body ...))))
