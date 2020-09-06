@@ -30,7 +30,8 @@
             current-state
             lighting-state
             apply-state
-            at))
+            at
+            home-state))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -133,13 +134,6 @@
             (slot-ref fix 'attributes)))
 
 
-;; Set the intensity of all patched fixtures to zero
-(define (blackout state)
-  (for-each (lambda (fix)
-              (set-attr! state fix 'intensity 0))
-            (atomic-box-ref patched-fixture-list)))
-
-
 (define (find-attr fix attr-name)
   (find (lambda (a)
           (eq? (get-attr-name a)
@@ -191,7 +185,8 @@
   (round-dmx (/ val 256)))
 
 (define (lsb val)
-  (round-dmx (logand (round val) #b11111111)))
+  (round-dmx (logand (inexact->exact (round val))
+                     #b11111111)))
 
 
 (define (state-for-each func state)

@@ -53,19 +53,15 @@
 
 
 (define-record-type <cue>
-  (make-cue number state up-time down-time up-delay down-delay)
+  (make-cue number state up-time down-time up-delay down-delay track-intensities)
   cue?
   (number      get-cue-number)
   (state       get-cue-state)
   (up-time     up-time)
   (up-delay    up-delay)
   (down-time   down-time)
-  (down-delay  down-delay))
-
-
-;; Get the state for a cue, taking into account tracking etc
-(define (evaluate-cue-state cue)
-  ((get-cue-state cue)))
+  (down-delay  down-delay)
+  (track-intensities  track-intensities))
 
 
 (define (wrap-scale scale-factor a)
@@ -130,7 +126,7 @@
     new-playback))
 
 
-(define (find-cue cue-list cue-number)
+(define (cue-number-to-index cue-list cue-number)
   (vector-index (lambda (a)
                   (eqv? (get-cue-number a)
                         cue-number))
@@ -138,33 +134,42 @@
 
 
 (define (cut-to-cue-number! pb cue-number)
-  (let ((cue-index (find-cue (get-playback-cue-list pb)
-                             cue-number)))
-    (cut-to-cue! pb
-                 (vector-ref (get-playback-cue-list pb)
-                             cue-index))
+  (let* ((cue-list (get-playback-cue-list pb))
+         (cue-index (cue-number-to-index cue-list cue-number)))
+    (set-active-fade-list! pb
+                           (list (make-fade
+                                  (evaluate-cue-state cue-list cue-index)
+                                  0.0 1.0 0.0 0.0 (hirestime))))
     (set-next-cue-index! pb (+ cue-index 1)))
   (return-unspecified))
 
 
-(define (cut-to-cue! pb cue)
-  (let ((state (evaluate-cue-state cue)))
-    ;; Flush everything out and just set the state
-    (set-active-fade-list! pb
-                           (list (make-fade
-                                  state
-                                  0.0 1.0 0.0 0.0 (hirestime))))))
+(define (go! pb)
+  (let ((cue-index (get-next-cue-index pb)))
+    (run-cue! pb cue-index))
+  (return-unspecified))
 
 (define (return-unspecified)
   (if #f 1))
 
+(define (run-cue-number! pb cue-number)
+  (let ((cue-index (cue-number-to-index (get-playback-cue-list pb)
+                                        cue-number)))
+    (run-cue! pb cue-index))
+  (return-unspecified))
 
-(define (go! pb)
-  (let ((cue-index (get-next-cue-index pb)))
-    (unless (>= cue-index (vector-length (get-playback-cue-list pb)))
-      (run-cue! pb
-                (vector-ref (get-playback-cue-list pb)
-                            cue-index))
+
+(define (run-cue! pb cue-index)
+  (let* ((cue-list (get-playback-cue-list pb)))
+    (unless (>= cue-index (vector-length cue-list))
+      (let ((the-cue (vector-ref cue-list cue-index))
+            (tnow (hirestime)))
+        (retire-old-fades! pb tnow)
+        (fade-down-all-active-states! pb
+                                      tnow
+                                      (down-time the-cue)
+                                      (down-delay the-cue))
+        (add-fade! pb (make-fade-from-cue cue-list cue-index tnow)))
       (set-next-cue-index! pb (+ cue-index 1))))
       ;; else at the end of the cue list
   (return-unspecified))
@@ -176,14 +181,15 @@
                                (get-active-fade-list pb))))
 
 
-(define (make-fade-from-cue cue time)
-  (make-fade
-   (evaluate-cue-state cue)
-   0.0
-   1.0
-   (up-time cue)
-   (up-delay cue)
-   time))
+(define (make-fade-from-cue cue-list cue-index time)
+  (let ((the-cue (vector-ref cue-list cue-index)))
+    (make-fade
+     (evaluate-cue-state cue-list cue-index)
+     0.0
+     1.0
+     (up-time the-cue)
+     (up-delay the-cue)
+     time)))
 
 
 (define (retire-old-fades! pb tnow)
@@ -214,63 +220,50 @@
         (get-active-fade-list pb))))
 
 
-(define (run-cue-number! pb cue-number)
-  (let ((cue-index (find-cue (get-playback-cue-list pb)
-                             cue-number)))
-    (run-cue! pb (vector-ref (get-playback-cue-list pb)
-                             cue-index))
-    (set-next-cue-index! pb (+ cue-index 1)))
-  (return-unspecified))
-
-
-(define (run-cue! pb cue)
-  (let ((tnow (hirestime)))
-    (retire-old-fades! pb tnow)
-    (fade-down-all-active-states! pb
-                                  tnow
-                                  (down-time cue)
-                                  (down-delay cue))
-    (add-fade! pb (make-fade-from-cue cue tnow))))
-
-
 ;;; ******************** Cue lists ********************
 
 (define-syntax cue-state
   (syntax-rules ()
 
-    ((_)
-     make-empty-state)
-
     ((_ body ...)
      (lambda ()
-       (parameterize ((current-state (make-empty-state)))
-         body ...
-         (current-state))))))
+       body ...
+       (current-state)))))
 
 
 (define* (cue number
               state
-              #:key (fade-up 5) (fade-down 5) (up-delay 0) (down-delay 0))
+              #:key
+              (fade-up 5)
+              (fade-down 5)
+              (up-delay 0)
+              (down-delay 0)
+              (track-intensities #f))
   (make-cue (qnum number)
             state
             fade-up
             fade-down
             up-delay
-            down-delay))
+            down-delay
+            track-intensities))
 
 
-(define (add-to-cue-list the-cue cue-list-so-far)
-  cue-list-so-far)
+;; Return a state containing the values which should be
+;; tracked through from previous cues up to cue-index
+;; If cue-list[cue-index] has track-intensities set,
+;; then intensities should be tracked through as well.
+;; Non-intensity parameters are always tracked through.
+(define (collate-tracking cue-list cue-index)
+  (let ((state (make-empty-state)))
+    state))
+
+
+;; Get the state for a cue, taking into account tracking etc
+(define (evaluate-cue-state cue-list cue-index)
+  (parameterize ((current-state (make-empty-state)))
+    (let ((the-cue (vector-ref cue-list cue-index)))
+      ((get-cue-state the-cue)))))
 
 
 (define-syntax cue-list
   (identifier-syntax vector))
-
-
-(define-syntax track-state
-  (syntax-rules ()
-    ((_ body ...)
-     (lambda ()
-       (parameterize ((current-state (clone-previous-state)))
-         body ...
-         (current-state))))))

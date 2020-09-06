@@ -79,7 +79,7 @@
 (define my-cue-list
   (cue-list
    (cue 0
-        (cue-state)
+        (cue-state (apply-state home-state))
         #:fade-up 1
         #:fade-down 1)
 
@@ -95,7 +95,8 @@
         #:down-delay 3)
 
    (cue 2.5
-        (track-state (at dim1 'intensity 100))
+        (cue-state (at dim1 'intensity 100))
+        #:track-intensities #t
         #:fade-up 1
         #:fade-down 1)
 
