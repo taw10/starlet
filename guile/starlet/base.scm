@@ -31,7 +31,8 @@
             lighting-state
             apply-state
             at
-            home-state))
+            home-state
+            blackout-state))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -112,6 +113,9 @@
 ;; commanded otherwise
 (define home-state (make <starlet-state>))
 
+;; Basic state which sets all intensities to zero
+(define blackout-state (make <starlet-state>))
+
 (define (make-empty-state)
   (make <starlet-state>))
 
@@ -166,6 +170,10 @@
                        #:uni universe
                        #:friendly-name friendly-name)))
     (home-all! home-state new-fixture)
+    (set-in-state! blackout-state
+                   new-fixture
+                   (find-attr new-fixture 'intensity)
+                   0.0)
     (atomic-box-set! patched-fixture-list
                      (cons new-fixture
                            (atomic-box-ref patched-fixture-list)))
