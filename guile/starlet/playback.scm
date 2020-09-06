@@ -4,6 +4,7 @@
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-43)
   #:use-module (starlet base)
+  #:use-module (starlet utils)
   #:export (make-playback
             cue
             cut-to-cue-number!
@@ -149,8 +150,6 @@
     (run-cue! pb cue-index))
   (return-unspecified))
 
-(define (return-unspecified)
-  (if #f 1))
 
 (define (run-cue-number! pb cue-number)
   (let ((cue-index (cue-number-to-index (get-playback-cue-list pb)
