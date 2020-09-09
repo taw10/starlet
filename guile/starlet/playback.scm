@@ -54,14 +54,22 @@
 
 
 (define-record-type <cue>
-  (make-cue number state up-time down-time up-delay down-delay track-intensities)
+  (make-cue number
+            state-function
+            realized-state
+            up-time
+            down-time
+            up-delay
+            down-delay
+            track-intensities)
   cue?
-  (number      get-cue-number)
-  (state       get-cue-state)
-  (up-time     up-time)
-  (up-delay    up-delay)
-  (down-time   down-time)
-  (down-delay  down-delay)
+  (number             get-cue-number)
+  (state-function     get-cue-state-function)
+  (realized-state     get-realized-state set-realized-state!)
+  (up-time            up-time)
+  (up-delay           up-delay)
+  (down-time          down-time)
+  (down-delay         down-delay)
   (track-intensities  track-intensities))
 
 
@@ -139,7 +147,7 @@
          (cue-index (cue-number-to-index cue-list cue-number)))
     (set-active-fade-list! pb
                            (list (make-fade
-                                  (evaluate-cue-state cue-list cue-index)
+                                  (realize-state cue-list cue-index)
                                   0.0 1.0 0.0 0.0 (hirestime))))
     (set-next-cue-index! pb (+ cue-index 1)))
   (return-unspecified))
@@ -183,7 +191,7 @@
 (define (make-fade-from-cue cue-list cue-index time)
   (let ((the-cue (vector-ref cue-list cue-index)))
     (make-fade
-     (evaluate-cue-state cue-list cue-index)
+     (realize-state cue-list cue-index)
      0.0
      1.0
      (up-time the-cue)
@@ -223,15 +231,13 @@
 
 (define-syntax cue-state
   (syntax-rules ()
-
     ((_ body ...)
      (lambda ()
-       body ...
-       (current-state)))))
+       body ...))))
 
 
 (define* (cue number
-              state
+              state-function
               #:key
               (fade-up 5)
               (fade-down 5)
@@ -239,36 +245,43 @@
               (down-delay 0)
               (track-intensities #f))
   (make-cue (qnum number)
-            state
+            state-function
+            #f
             fade-up
             fade-down
             up-delay
             down-delay
             track-intensities))
 
-
-;; Return a state containing the values which should be
-;; tracked through from previous cues up to cue-index
-;; If cue-list[cue-index] has track-intensities set,
-;; then intensities should be tracked through as well.
-;; Non-intensity parameters are always tracked through.
-(define (collate-tracking cue-list cue-index)
-  (let ((state (make-empty-state)))
-    state))
+(define (ensure-cue-zero-realized cue-list)
+  (unless (get-realized-state (vector-ref cue-list 0))
+    (set-realized-state! (vector-ref cue-list 0)
+                         home-state)))
 
 
 ;; Get the state for a cue, taking into account tracking etc
-(define (evaluate-cue-state cue-list cue-index)
-  (parameterize ((current-state (make-empty-state)))
-    (let ((the-cue (vector-ref cue-list cue-index)))
-      ((get-cue-state the-cue)))))
+(define (realize-state cue-list cue-index)
+
+  (ensure-cue-zero-realized cue-list)
+
+  (let* ((the-cue (vector-ref cue-list cue-index))
+         (rstate (get-realized-state the-cue)))
+    (or rstate
+        (let ((previous-state (realize-state cue-list (- cue-index 1))))
+          (parameterize ((current-state (make-empty-state)))
+            (apply-state previous-state)
+            (unless (track-intensities the-cue)
+              (apply-state blackout-state))
+            ((get-cue-state-function the-cue))
+            (set-realized-state! the-cue (current-state))
+            (current-state))))))
 
 
 (define-syntax cue-list
   (syntax-rules ()
     ((_ body ...)
      (vector (cue 0
-                  (cue-state (apply-state home-state))
-                  #:fade-up 1
-                  #:fade-down 1)
+                  (lambda () #f)   ;; The real base state is in ensure-cue-zero-realized
+                  #:fade-up 0
+                  #:fade-down 0)
              body ...))))
