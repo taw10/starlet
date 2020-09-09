@@ -80,7 +80,8 @@
   (cue-list
 
    (cue 1
-        (cue-state (apply-state example-state-1))
+        (cue-state (apply-state example-state-1)
+                   (at mh1 'pan 25))
         #:fade-up 3
         #:fade-down 5)
 
