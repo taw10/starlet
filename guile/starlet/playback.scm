@@ -108,7 +108,7 @@
   (let ((state (make-empty-state))
         (scale-factor (get-current-fraction fade current-time)))
     (state-for-each (lambda (fix attr value)
-                      (if (eq? 'intensity (get-attr-name attr))
+                      (if (intensity? attr)
                           (set-in-state! state
                                          fix
                                          attr

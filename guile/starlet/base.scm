@@ -32,7 +32,8 @@
             apply-state
             at
             home-state
-            blackout-state))
+            blackout-state
+            intensity?))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -136,6 +137,10 @@
   (for-each (lambda (attr)
               (home-attr! state fix attr))
             (slot-ref fix 'attributes)))
+
+
+(define (intensity? a)
+  (eq? 'intensity (get-attr-name a)))
 
 
 (define (find-attr fix attr-name)
@@ -242,7 +247,7 @@
     (value->number b time)))
 
 (define (merge-rule-htp attr a b)
-  (if (eq? 'intensity (get-attr-name attr))
+  (if (intensity? attr)
 
       ;; HTP only for intensity attributes
       (lambda (time)
