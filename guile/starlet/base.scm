@@ -46,11 +46,6 @@
     #:init-keyword #:range
     #:getter get-attr-range)
 
-  (translator
-    #:init-value (lambda (universe start-addr value set-dmx) #f)
-    #:init-keyword #:translator
-    #:getter get-attr-translator)
-
   (type
     #:init-value 'continuous
     #:init-keyword #:type
@@ -186,7 +181,7 @@
 
 
 
-;; Helper functions for attribute translators
+;; Helper functions for scanout functions
 (define (round-dmx a)
   (inexact->exact
    (min 255 (max 0 (round a)))))
