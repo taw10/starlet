@@ -11,18 +11,12 @@
             run-cue-number!
             go!
             cue-list
-            cue-state
-            qnum))
+            cue-state))
 
 
 ;; A "playback" is a state which knows how to run cues
 ;; from a cue list
 (define-class <starlet-playback> (<starlet-state>)
-  (active-fade-list
-   #:init-value '()
-   #:getter get-active-fade-list
-   #:setter set-active-fade-list!)
-
   (cue-list
    #:init-keyword #:cue-list
    #:getter get-playback-cue-list)
@@ -32,25 +26,28 @@
    #:getter get-next-cue-index
    #:setter set-next-cue-index!)
 
-  (hash-table
-   #:allocation #:virtual
-   #:getter get-state-hash-table
-   #:slot-ref (lambda (instance)
-                (merge-active-fades (hirestime)
-                                    (get-active-fade-list instance)))
-   #:slot-set! (lambda (instance new-val)
-                 (error "Can't set hash table on playback"))))
+  (fade-params
+   #:init-form (make-hash-table)
+   #:getter get-fade-params
+   #:setter set-fade-params!))
 
 
-(define-record-type <fade>
-  (make-fade state start-frac target-frac fade-time fade-delay start-time)
-  fade?
-  (start-frac   get-fade-start-frac)
-  (target-frac  get-fade-target-frac)
-  (fade-time    get-fade-time)
-  (state        get-fade-state)
-  (start-time   get-fade-start-time)
-  (fade-delay   get-fade-delay-time))
+(define-record-type <fade-params>
+  (make-fade-params start-time
+                    up-time
+                    down-time
+                    up-delay
+                    down-delay
+                    previous
+                    target)
+  fade-params?
+  (start-time         fade-start-time)
+  (up-time            fade-up-time)
+  (down-time          fade-down-time)
+  (up-delay           fade-up-delay)
+  (down-delay         fade-down-delay)
+  (previous           fade-previous)
+  (target             fade-target))
 
 
 (define-record-type <cue>
@@ -73,58 +70,6 @@
   (track-intensities  track-intensities))
 
 
-(define (wrap-scale scale-factor a)
-  (lambda (time)
-    (* (value->number a time)
-       scale-factor)))
-
-
-(define (get-current-fraction fade current-time)
-  (let ((elapsed-fade-time (- current-time
-                              (get-fade-start-time fade)
-                              (get-fade-delay-time fade))))
-    (cond
-
-     ;; Before start of fade
-     ((< elapsed-fade-time 0)
-      (get-fade-start-frac fade))
-
-     ;; After end of fade
-     ((> elapsed-fade-time (get-fade-time fade))
-      (get-fade-target-frac fade))
-
-     ;; During the fade
-     (else
-      (+ (get-fade-start-frac fade)
-         (* (- (get-fade-target-frac fade)
-               (get-fade-start-frac fade))
-
-            ;; Fraction of fade time elapsed
-            (/ elapsed-fade-time
-               (get-fade-time fade))))))))
-
-
-(define (scale-fade fade current-time)
-  (let ((state (make-empty-state))
-        (scale-factor (get-current-fraction fade current-time)))
-    (state-for-each (lambda (fix attr value)
-                      (if (intensity? attr)
-                          (set-in-state! state
-                                         fix
-                                         attr
-                                         (wrap-scale scale-factor value))
-                          (set-in-state! state fix attr value)))
-                    (get-fade-state fade))
-    state))
-
-
-(define (merge-active-fades current-time list-of-fades)
-  (get-state-hash-table
-   (merge-states-htp
-    (map (lambda (fade) (scale-fade fade current-time))
-         list-of-fades))))
-
-
 (define (qnum a)
   (/ (inexact->exact (* a 1000)) 1000))
 
@@ -144,12 +89,29 @@
 
 (define (cut-to-cue-number! pb cue-number)
   (let* ((cue-list (get-playback-cue-list pb))
-         (cue-index (cue-number-to-index cue-list cue-number)))
-    (set-active-fade-list! pb
-                           (list (make-fade
-                                  (realize-state cue-list cue-index)
-                                  0.0 1.0 0.0 0.0 (hirestime))))
-    (set-next-cue-index! pb (+ cue-index 1)))
+         (cue-index (cue-number-to-index cue-list (qnum cue-number))))
+    (set-state-hash-table! pb (get-state-hash-table
+                               (realize-state cue-list
+                                              cue-index)))
+    (set-next-cue-index! pb (+ cue-index 1))
+
+    ;; Wipe out the old fade params
+    (set-fade-params! pb (make-hash-table))
+
+    ;; Record fade params
+    (state-for-each
+     (lambda (fix attr val)
+             (hash-set! (get-fade-params pb)
+                        (cons fix attr)
+                        (make-fade-params (hirestime)
+                                          0.0
+                                          0.0
+                                          0.0
+                                          0.0
+                                          0.0
+                                          val)))
+     pb))
+
   (return-unspecified))
 
 
@@ -169,62 +131,174 @@
 (define (run-cue! pb cue-index)
   (let* ((cue-list (get-playback-cue-list pb)))
     (unless (>= cue-index (vector-length cue-list))
-      (let ((the-cue (vector-ref cue-list cue-index))
-            (tnow (hirestime)))
-        (retire-old-fades! pb tnow)
-        (fade-down-all-active-states! pb
-                                      tnow
-                                      (down-time the-cue)
-                                      (down-delay the-cue))
-        (add-fade! pb (make-fade-from-cue cue-list cue-index tnow)))
+      (run-cue-index! pb cue-list cue-index (hirestime))
       (set-next-cue-index! pb (+ cue-index 1))))
       ;; else at the end of the cue list
   (return-unspecified))
 
 
-(define (add-fade! pb fade)
-  (set-active-fade-list! pb
-                         (cons fade
-                               (get-active-fade-list pb))))
+(define (fade-func start-val end-val fade-time delay-time start-time current-time)
+  (let ((elapsed-fade-time (- current-time start-time delay-time)))
+    (cond
+
+     ;; Before start of fade
+     ((< elapsed-fade-time 0)
+      start-val)
+
+     ;; After end of fade
+     ((> elapsed-fade-time fade-time)
+      end-val)
+
+     ;; During the fade
+     (else
+      (+ start-val
+         (* (- end-val start-val)
+            ;; Fraction of fade time elapsed
+            (/ elapsed-fade-time fade-time)))))))
 
 
-(define (make-fade-from-cue cue-list cue-index time)
-  (let ((the-cue (vector-ref cue-list cue-index)))
-    (make-fade
-     (realize-state cue-list cue-index)
-     0.0
-     1.0
-     (up-time the-cue)
-     (up-delay the-cue)
-     time)))
+;; Return a function to fade from start-val to end-val using the
+;; specified fade time and delay, starting at tnow
+(define (wrap-fade start-val
+                   end-val
+                   fade-time
+                   delay-time
+                   tnow)
+  (lambda (time)
+    (fade-func (value->number start-val time)
+               (value->number end-val time)
+               fade-time
+               delay-time
+               tnow
+               time)))
 
 
-(define (retire-old-fades! pb tnow)
-  (set-active-fade-list!
-   pb
-   (filter (lambda (a)
-             (or
-              (< tnow
-                 (+ (get-fade-start-time a)
-                    (get-fade-delay-time a)
-                    (get-fade-time a)))
-              (> (get-fade-target-frac a)
-                 0.0)))
-           (get-active-fade-list pb))))
+;; Return a function for HTP mix of:
+;;    start-val fading down in down-time/down-delay
+;;    end-val fading up in up-time/up-delay
+(define (wrap-xf start-val
+                 end-val
+                 up-time
+                 down-time
+                 up-delay
+                 down-delay
+                 tnow)
+  (lambda (time)
+    (max
+     (fade-func (value->number start-val time)
+                0
+                down-time
+                down-delay
+                tnow
+                time)
+     (fade-func 0
+                (value->number end-val time)
+                up-time
+                up-delay
+                tnow
+                time))))
 
 
-(define (fade-down-all-active-states! pb tnow down-time down-delay)
-  (set-active-fade-list!
-   pb
-   (map (lambda (a)
-          (make-fade
-           (get-fade-state a)
-           (get-current-fraction a tnow)
-           0.0
-           down-time
-           down-delay
-           tnow))
-        (get-active-fade-list pb))))
+(define (fade-start-val tnow pb old-fade-record fix attr val)
+  (cond
+
+   ;; Attr not seen before in this playback: start fading from home
+   ((eq? old-fade-record #f)
+    (home-val fix attr))
+
+   ;; Attr seen in a finished fade
+   ((fade-finished? tnow old-fade-record)
+    (fade-target old-fade-record))
+
+   ;; Attr is currently fading: get the current state
+   ;; (NB it might be a function/effect)
+   (else
+    (let ((func (state-find fix attr pb)))
+      (func tnow)))))
+
+
+(define (set-fade pb fix attr fade-record)
+
+  (let ((prev-val (fade-previous fade-record))
+        (target (fade-target fade-record)))
+
+    (cond
+
+     ;; Number to number, fading up
+     ((and (number? target) (number? prev-val) (> target prev-val))
+      (set-in-state! pb fix attr (wrap-fade prev-val
+                                            target
+                                            (fade-up-time fade-record)
+                                            (fade-up-delay fade-record)
+                                            (fade-start-time fade-record))))
+
+     ;; Number to number, fading down
+     ((and (number? target) (number? prev-val) (< target prev-val))
+      (set-in-state! pb fix attr (wrap-fade prev-val
+                                            target
+                                            (fade-down-time fade-record)
+                                            (fade-down-delay fade-record)
+                                            (fade-start-time fade-record))))
+
+     ;; Number to number, staying the same
+     ((and (number? target) (number? prev-val))
+      (set-in-state! pb fix attr (wrap-fade prev-val
+                                            target
+                                            0.0
+                                            0.0
+                                            (fade-start-time fade-record))))
+
+     ;; Everything else, e.g. number to effect
+     (else
+      (set-in-state! pb fix attr (wrap-xf (fade-previous fade-record)
+                                          (fade-target fade-record)
+                                          (fade-up-time fade-record)
+                                          (fade-down-time fade-record)
+                                          (fade-up-delay fade-record)
+                                          (fade-down-delay fade-record)
+                                          (fade-start-time fade-record)))))))
+
+
+(define (fade-finished? tnow fade-params)
+  (and
+   (> tnow
+      (+ (fade-start-time fade-params)
+         (fade-up-delay fade-params)
+         (fade-up-time fade-params)))
+   (> tnow
+      (+ (fade-start-time fade-params)
+         (fade-down-delay fade-params)
+         (fade-down-time fade-params)))))
+
+
+(define (run-cue-index! pb cue-list cue-number tnow)
+
+  (let ((the-cue-state (realize-state cue-list cue-number))
+        (the-cue (vector-ref cue-list cue-number)))
+
+    (state-for-each
+     (lambda (fix attr val)
+
+       (let ((fade-record (hash-ref (get-fade-params pb)
+                                    (cons fix attr))))
+         (let ((new-record (make-fade-params tnow
+                                             (up-time the-cue)
+                                             (down-time the-cue)
+                                             (up-delay the-cue)
+                                             (down-delay the-cue)
+                                             (fade-start-val tnow
+                                                             pb
+                                                             fade-record
+                                                             fix
+                                                             attr
+                                                             val)
+                                             val)))
+           (hash-set! (get-fade-params pb)
+                      (cons fix attr)
+                      new-record)
+           (set-fade pb fix attr new-record))))
+
+     the-cue-state)))
 
 
 ;;; ******************** Cue lists ********************
@@ -256,7 +330,7 @@
 (define (ensure-cue-zero-realized cue-list)
   (unless (get-realized-state (vector-ref cue-list 0))
     (set-realized-state! (vector-ref cue-list 0)
-                         home-state)))
+                         (make <starlet-state>))))
 
 
 ;; Get the state for a cue, taking into account tracking etc
@@ -271,7 +345,7 @@
           (parameterize ((current-state (make-empty-state)))
             (apply-state previous-state)
             (unless (track-intensities the-cue)
-              (apply-state blackout-state))
+              (blackout (current-state)))
             ((get-cue-state-function the-cue))
             (set-realized-state! the-cue (current-state))
             (current-state))))))

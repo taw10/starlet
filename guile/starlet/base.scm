@@ -23,6 +23,7 @@
             value->number
             merge-states-htp
             get-state-hash-table
+            set-state-hash-table!
             scanout-fixture
             attr-continuous
             attr-boolean
@@ -31,9 +32,11 @@
             lighting-state
             apply-state
             at
-            home-state
-            blackout-state
-            intensity?))
+            blackout
+            home-val
+            intensity?
+            state-find
+            get-attr-type))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -101,7 +104,6 @@
              value))
 
 
-
 ;; List of fixtures
 (define patched-fixture-list (make-atomic-box '()))
 
@@ -109,8 +111,12 @@
 ;; commanded otherwise
 (define home-state (make <starlet-state>))
 
-;; Basic state which sets all intensities to zero
-(define blackout-state (make <starlet-state>))
+(define (blackout state)
+  (state-for-each
+   (lambda (fix attr val)
+     (when (intensity? attr)
+       (set-in-state! state fix attr 0.0)))
+   state))
 
 (define (make-empty-state)
   (make <starlet-state>))
@@ -133,6 +139,10 @@
               (home-attr! state fix attr))
             (slot-ref fix 'attributes)))
 
+(define (home-val fix attr)
+  (state-find fix
+              attr
+              home-state))
 
 (define (intensity? a)
   (eq? 'intensity (get-attr-name a)))
@@ -155,12 +165,6 @@
     (when attr (set-in-state! state fix attr value))))
 
 
-(define (fade-frac fade-time start-time time-now)
-  (min (/ (- time-now start-time)
-          fade-time)
-       1.0))
-
-
 ;; Patch a new fixture
 (define* (patch-fixture! class
                          start-addr
@@ -170,10 +174,6 @@
                        #:uni universe
                        #:friendly-name friendly-name)))
     (home-all! home-state new-fixture)
-    (set-in-state! blackout-state
-                   new-fixture
-                   (find-attr new-fixture 'intensity)
-                   0.0)
     (atomic-box-set! patched-fixture-list
                      (cons new-fixture
                            (atomic-box-ref patched-fixture-list)))

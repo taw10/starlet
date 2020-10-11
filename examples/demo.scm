@@ -98,7 +98,7 @@
         #:fade-down 1)
 
    (cue 3
-        (cue-state (apply-state blackout-state))
+        (cue-state (blackout (current-state)))
         #:fade-up 0
         #:fade-down 2)))
 
