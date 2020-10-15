@@ -26,21 +26,21 @@
    #:getter get-next-cue-index
    #:setter set-next-cue-index!)
 
-  (fade-params
+  (fade-records
    #:init-form (make-hash-table)
-   #:getter get-fade-params
-   #:setter set-fade-params!))
+   #:getter get-fade-records
+   #:setter set-fade-records!))
 
 
-(define-record-type <fade-params>
-  (make-fade-params start-time
+(define-record-type <fade-record>
+  (make-fade-record start-time
                     up-time
                     down-time
                     up-delay
                     down-delay
                     previous
                     target)
-  fade-params?
+  fade-record?
   (start-time         fade-start-time)
   (up-time            fade-up-time)
   (down-time          fade-down-time)
@@ -96,14 +96,14 @@
     (set-next-cue-index! pb (+ cue-index 1))
 
     ;; Wipe out the old fade params
-    (set-fade-params! pb (make-hash-table))
+    (set-fade-records! pb (make-hash-table))
 
     ;; Record fade params
     (state-for-each
      (lambda (fix attr val)
-             (hash-set! (get-fade-params pb)
+             (hash-set! (get-fade-records pb)
                         (cons fix attr)
-                        (make-fade-params (hirestime)
+                        (make-fade-record (hirestime)
                                           0.0
                                           0.0
                                           0.0
@@ -259,16 +259,16 @@
                                           (fade-start-time fade-record)))))))
 
 
-(define (fade-finished? tnow fade-params)
+(define (fade-finished? tnow fade-record)
   (and
    (> tnow
-      (+ (fade-start-time fade-params)
-         (fade-up-delay fade-params)
-         (fade-up-time fade-params)))
+      (+ (fade-start-time fade-record)
+         (fade-up-delay fade-record)
+         (fade-up-time fade-record)))
    (> tnow
-      (+ (fade-start-time fade-params)
-         (fade-down-delay fade-params)
-         (fade-down-time fade-params)))))
+      (+ (fade-start-time fade-record)
+         (fade-down-delay fade-record)
+         (fade-down-time fade-record)))))
 
 
 (define (run-cue-index! pb cue-list cue-number tnow)
@@ -279,9 +279,9 @@
     (state-for-each
      (lambda (fix attr val)
 
-       (let ((fade-record (hash-ref (get-fade-params pb)
+       (let ((fade-record (hash-ref (get-fade-records pb)
                                     (cons fix attr))))
-         (let ((new-record (make-fade-params tnow
+         (let ((new-record (make-fade-record tnow
                                              (up-time the-cue)
                                              (down-time the-cue)
                                              (up-delay the-cue)
@@ -293,7 +293,7 @@
                                                              attr
                                                              val)
                                              val)))
-           (hash-set! (get-fade-params pb)
+           (hash-set! (get-fade-records pb)
                       (cons fix attr)
                       new-record)
            (set-fade pb fix attr new-record))))
