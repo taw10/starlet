@@ -32,20 +32,26 @@
    #:setter set-fade-records!))
 
 
+(define-record-type <fade-times>
+  (make-fade-times up-time
+                   down-time
+                   up-delay
+                   down-delay)
+  fade-times?
+  (up-time      get-fade-up-time)
+  (down-time    get-fade-down-time)
+  (up-delay     get-fade-up-delay)
+  (down-delay   get-fade-down-delay))
+
+
 (define-record-type <fade-record>
   (make-fade-record start-time
-                    up-time
-                    down-time
-                    up-delay
-                    down-delay
+                    fade-times
                     previous
                     target)
   fade-record?
   (start-time         fade-start-time)
-  (up-time            fade-up-time)
-  (down-time          fade-down-time)
-  (up-delay           fade-up-delay)
-  (down-delay         fade-down-delay)
+  (fade-times         get-fade-record-fade-times)
   (previous           fade-previous)
   (target             fade-target))
 
@@ -54,19 +60,13 @@
   (make-cue number
             state-function
             realized-state
-            up-time
-            down-time
-            up-delay
-            down-delay
+            fade-times
             track-intensities)
   cue?
   (number             get-cue-number)
   (state-function     get-cue-state-function)
   (realized-state     get-realized-state set-realized-state!)
-  (up-time            up-time)
-  (up-delay           up-delay)
-  (down-time          down-time)
-  (down-delay         down-delay)
+  (fade-times         get-cue-fade-times)
   (track-intensities  track-intensities))
 
 
@@ -104,10 +104,11 @@
              (hash-set! (get-fade-records pb)
                         (cons fix attr)
                         (make-fade-record (hirestime)
-                                          0.0
-                                          0.0
-                                          0.0
-                                          0.0
+                                          (make-fade-times
+                                           0.0
+                                           0.0
+                                           0.0
+                                           0.0)
                                           0.0
                                           val)))
      pb))
@@ -178,23 +179,20 @@
 ;;    end-val fading up in up-time/up-delay
 (define (wrap-xf start-val
                  end-val
-                 up-time
-                 down-time
-                 up-delay
-                 down-delay
+                 fade-times
                  tnow)
   (lambda (time)
     (max
      (fade-func (value->number start-val time)
                 0
-                down-time
-                down-delay
+                (get-fade-down-time fade-times)
+                (get-fade-down-delay fade-times)
                 tnow
                 time)
      (fade-func 0
                 (value->number end-val time)
-                up-time
-                up-delay
+                (get-fade-up-time fade-times)
+                (get-fade-up-delay fade-times)
                 tnow
                 time))))
 
@@ -228,16 +226,16 @@
      ((and (number? target) (number? prev-val) (> target prev-val))
       (set-in-state! pb fix attr (wrap-fade prev-val
                                             target
-                                            (fade-up-time fade-record)
-                                            (fade-up-delay fade-record)
+                                            (get-fade-up-time (get-fade-record-fade-times fade-record))
+                                            (get-fade-up-delay (get-fade-record-fade-times fade-record))
                                             (fade-start-time fade-record))))
 
      ;; Number to number, fading down
      ((and (number? target) (number? prev-val) (< target prev-val))
       (set-in-state! pb fix attr (wrap-fade prev-val
                                             target
-                                            (fade-down-time fade-record)
-                                            (fade-down-delay fade-record)
+                                            (get-fade-down-time (get-fade-record-fade-times fade-record))
+                                            (get-fade-down-delay (get-fade-record-fade-times fade-record))
                                             (fade-start-time fade-record))))
 
      ;; Number to number, staying the same
@@ -252,23 +250,21 @@
      (else
       (set-in-state! pb fix attr (wrap-xf (fade-previous fade-record)
                                           (fade-target fade-record)
-                                          (fade-up-time fade-record)
-                                          (fade-down-time fade-record)
-                                          (fade-up-delay fade-record)
-                                          (fade-down-delay fade-record)
+                                          (get-fade-record-fade-times fade-record)
                                           (fade-start-time fade-record)))))))
 
 
 (define (fade-finished? tnow fade-record)
-  (and
-   (> tnow
-      (+ (fade-start-time fade-record)
-         (fade-up-delay fade-record)
-         (fade-up-time fade-record)))
-   (> tnow
-      (+ (fade-start-time fade-record)
-         (fade-down-delay fade-record)
-         (fade-down-time fade-record)))))
+  (let ((fade-times (get-fade-record-fade-times fade-record)))
+    (and
+     (> tnow
+        (+ (fade-start-time fade-record)
+           (get-fade-up-delay fade-times)
+           (get-fade-up-time fade-times)))
+     (> tnow
+        (+ (fade-start-time fade-record)
+           (get-fade-down-delay fade-times)
+           (get-fade-down-time fade-times))))))
 
 
 (define (run-cue-index! pb cue-list cue-number tnow)
@@ -282,10 +278,7 @@
        (let ((fade-record (hash-ref (get-fade-records pb)
                                     (cons fix attr))))
          (let ((new-record (make-fade-record tnow
-                                             (up-time the-cue)
-                                             (down-time the-cue)
-                                             (up-delay the-cue)
-                                             (down-delay the-cue)
+                                             (get-cue-fade-times the-cue)
                                              (fade-start-val tnow
                                                              pb
                                                              fade-record
@@ -321,10 +314,11 @@
   (make-cue (qnum number)
             state-function
             #f
-            fade-up
-            fade-down
-            up-delay
-            down-delay
+            (make-fade-times
+             fade-up
+             fade-down
+             up-delay
+             down-delay)
             track-intensities))
 
 (define (ensure-cue-zero-realized cue-list)
