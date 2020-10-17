@@ -57,8 +57,8 @@ You can use pre-prepared states in cues, even if some minor modifications are ne
 
 ```
 (cue 57
-     (cue-state (apply-state spooky-dungeon))
-     (at follow-spot 100)
+     (cue-state (apply-state spooky-dungeon)
+                (at follow-spot 100))
      #:fade-up 3
      #:fade-down 3)
 ```
