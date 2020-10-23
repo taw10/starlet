@@ -1,5 +1,7 @@
 (define-module (starlet playback)
   #:use-module (oop goops)
+  #:use-module (ice-9 optargs)
+  #:use-module (ice-9 receive)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-43)
@@ -7,6 +9,7 @@
   #:use-module (starlet utils)
   #:export (make-playback
             cue
+            cue-part
             cut-to-cue-number!
             run-cue-number!
             go!
@@ -30,6 +33,14 @@
    #:init-form (make-hash-table)
    #:getter get-fade-records
    #:setter set-fade-records!))
+
+
+(define-record-type <cue-part>
+  (make-cue-part attr-list
+                 fade-times)
+  cue-part?
+  (attr-list    get-cue-part-attr-list)
+  (fade-times   get-cue-part-fade-times))
 
 
 (define-record-type <fade-times>
@@ -77,13 +88,15 @@
             state-function
             realized-state
             fade-times
-            track-intensities)
+            track-intensities
+            cue-parts)
   cue?
   (number             get-cue-number)
   (state-function     get-cue-state-function)
   (realized-state     get-realized-state set-realized-state!)
   (fade-times         get-cue-fade-times)
-  (track-intensities  track-intensities))
+  (track-intensities  track-intensities)
+  (cue-parts          cue-parts))
 
 
 (define (qnum a)
@@ -324,23 +337,43 @@
        body ...))))
 
 
-(define* (cue number
-              state-function
-              #:key
-              (fade-up 5)
-              (fade-down 5)
-              (up-delay 0)
-              (down-delay 0)
-              (track-intensities #f))
-  (make-cue (qnum number)
-            state-function
-            #f
-            (make-fade-times
-             fade-up
-             fade-down
-             up-delay
-             down-delay)
-            track-intensities))
+(define* (cue-part attr-list
+                   #:key
+                   (fade-up 5)
+                   (fade-down 5)
+                   (up-delay 0)
+                   (down-delay 0))
+
+  (make-cue-part attr-list
+                 (make-fade-times
+                  fade-up
+                  fade-down
+                  up-delay
+                  down-delay)))
+
+
+(define cue
+  (lambda (number state-function . rest)
+    (receive (cue-parts rest-minus-cue-parts)
+        (partition cue-part? rest)
+      (let-keywords rest-minus-cue-parts #f
+                    ((fade-up 5)
+                     (fade-down 5)
+                     (up-delay 0)
+                     (down-delay 0)
+                     (track-intensities #f))
+
+                    (make-cue (qnum number)
+                              state-function
+                              #f
+                              (make-fade-times
+                               fade-up
+                               fade-down
+                               up-delay
+                               down-delay)
+                              track-intensities
+                              cue-parts)))))
+
 
 (define (ensure-cue-zero-realized cue-list)
   (unless (get-realized-state (vector-ref cue-list 0))

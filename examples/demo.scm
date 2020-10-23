@@ -100,7 +100,11 @@
    (cue 3
         (cue-state (blackout (current-state)))
         #:fade-up 0
-        #:fade-down 2)))
+        #:fade-down 2
+
+        (cue-part (list dim11 dim13)
+                  #:fade-down 2
+                  #:down-delay 2))))
 
 
 ;; Create a playback for the cue list, and register it for output
