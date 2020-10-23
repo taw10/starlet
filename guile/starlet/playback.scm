@@ -339,15 +339,15 @@
 
 (define* (cue-part attr-list
                    #:key
-                   (fade-up 5)
-                   (fade-down 5)
+                   (up-time 5)
+                   (down-time 5)
                    (up-delay 0)
                    (down-delay 0))
 
   (make-cue-part attr-list
                  (make-fade-times
-                  fade-up
-                  fade-down
+                  up-time
+                  down-time
                   up-delay
                   down-delay)))
 
@@ -357,8 +357,8 @@
     (receive (cue-parts rest-minus-cue-parts)
         (partition cue-part? rest)
       (let-keywords rest-minus-cue-parts #f
-                    ((fade-up 5)
-                     (fade-down 5)
+                    ((up-time 5)
+                     (down-time 5)
                      (up-delay 0)
                      (down-delay 0)
                      (track-intensities #f))
@@ -367,8 +367,8 @@
                               state-function
                               #f
                               (make-fade-times
-                               fade-up
-                               fade-down
+                               up-time
+                               down-time
                                up-delay
                                down-delay)
                               track-intensities
@@ -404,6 +404,6 @@
     ((_ body ...)
      (vector (cue 0
                   (lambda () #f)   ;; The real base state is in ensure-cue-zero-realized
-                  #:fade-up 0
-                  #:fade-down 0)
+                  #:up-time 0
+                  #:down-time 0)
              body ...))))

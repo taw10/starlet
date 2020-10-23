@@ -82,28 +82,28 @@
    (cue 1
         (cue-state (apply-state example-state-1)
                    (at mh1 'pan 25))
-        #:fade-up 3
-        #:fade-down 5)
+        #:up-time 3
+        #:down-time 5)
 
    (cue 2
         (cue-state (apply-state example-state-2))
-        #:fade-up 3
-        #:fade-down 1
+        #:up-time 3
+        #:down-time 1
         #:down-delay 3)
 
    (cue 2.5
         (cue-state (at dim1 'intensity 100))
         #:track-intensities #t
-        #:fade-up 1
-        #:fade-down 1)
+        #:up-time 1
+        #:down-time 1)
 
    (cue 3
         (cue-state (blackout (current-state)))
-        #:fade-up 0
-        #:fade-down 2
+        #:up-time 0
+        #:down-time 2
 
         (cue-part (list dim11 dim13)
-                  #:fade-down 2
+                  #:down-time 2
                   #:down-delay 2))))
 
 
