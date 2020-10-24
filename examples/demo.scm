@@ -102,9 +102,9 @@
         #:up-time 0
         #:down-time 2
 
-        (cue-part (list dim11 dim13)
+        (cue-part (list dim3)
                   #:down-time 2
-                  #:down-delay 2))))
+                  #:down-delay 1))))
 
 
 ;; Create a playback for the cue list, and register it for output
