@@ -37,7 +37,8 @@
             intensity?
             state-find
             get-attr-type
-            fixture?))
+            fixture?
+            fixture-attribute?))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -89,6 +90,10 @@
 
 (define (fixture? f)
   (is-a? f <fixture>))
+
+
+(define (fixture-attribute? f)
+  (is-a? f <fixture-attribute>))
 
 
 ;; A "state" is just a thin wrapper around a hash table

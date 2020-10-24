@@ -302,9 +302,24 @@
 
 
 (define (match-fix-attr attr-el fix attr)
-  (if (fixture? attr-el)
-      (eq? attr-el fix)
-      (eqv? attr-el (cons fix attr))))
+  (cond
+
+   ((fixture? attr-el)
+    (eq? attr-el fix))
+
+   ((and (pair? attr-el)
+         (fixture? (car attr-el))
+         (fixture-attribute? (cdr attr-el)))
+    (and (eq? (car attr-el) fix)
+         (eq? (cdr attr-el) attr)))
+
+   ((and (pair? attr-el)
+         (fixture? (car attr-el))
+         (symbol? (cdr attr-el)))
+    (and (eq? (car attr-el) fix)
+         (eq? (cdr attr-el) (get-attr-name attr))))
+
+   (else #f)))
 
 
 (define (in-cue-part? cue-part fix attr)
