@@ -36,7 +36,8 @@
             home-val
             intensity?
             state-find
-            get-attr-type))
+            get-attr-type
+            fixture?))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -84,6 +85,10 @@
     #:init-value (lambda (universe start-addr value set-dmx) #f)
     #:init-keyword #:scanout-func
     #:getter get-scanout-func))
+
+
+(define (fixture? f)
+  (is-a? f <fixture>))
 
 
 ;; A "state" is just a thin wrapper around a hash table

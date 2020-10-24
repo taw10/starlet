@@ -96,7 +96,7 @@
   (realized-state     get-realized-state set-realized-state!)
   (fade-times         get-cue-fade-times)
   (track-intensities  track-intensities)
-  (cue-parts          cue-parts))
+  (cue-parts          get-cue-parts))
 
 
 (define (qnum a)
@@ -301,6 +301,28 @@
           down-time)))))
 
 
+(define (match-fix-attr attr-el fix attr)
+  (if (fixture? attr-el)
+      (eq? attr-el fix)
+      (eqv? attr-el (cons fix attr))))
+
+
+(define (in-cue-part? cue-part fix attr)
+  (find (lambda (p) (match-fix-attr p fix attr))
+        (get-cue-part-attr-list cue-part)))
+
+
+(define (cue-part-fade-times the-cue fix attr)
+
+  (let ((the-cue-part
+         (find (lambda (p) (in-cue-part? p fix attr))
+               (get-cue-parts the-cue))))
+
+    (if (cue-part? the-cue-part)
+      (get-cue-part-fade-times the-cue-part)
+      (get-cue-fade-times the-cue))))
+
+
 (define (run-cue-index! pb cue-list cue-number tnow)
 
   (let ((the-cue-state (realize-state cue-list cue-number))
@@ -312,7 +334,7 @@
        (let ((fade-record (hash-ref (get-fade-records pb)
                                     (cons fix attr))))
          (let ((new-record (make-fade-record tnow
-                                             (get-cue-fade-times the-cue)
+                                             (cue-part-fade-times the-cue fix attr)
                                              (fade-start-val tnow
                                                              pb
                                                              fade-record
