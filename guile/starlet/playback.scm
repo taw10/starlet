@@ -11,10 +11,12 @@
             cue
             cue-part
             cut-to-cue-number!
+            get-playback-cue-number
             run-cue-number!
             go!
             cue-list
-            cue-state))
+            cue-state
+            set-playback-cue-list!))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -22,7 +24,8 @@
 (define-class <starlet-playback> (<starlet-state>)
   (cue-list
    #:init-keyword #:cue-list
-   #:getter get-playback-cue-list)
+   #:getter get-playback-cue-list
+   #:setter set-playback-cue-list!)
 
   (next-cue-index
    #:init-value 0
@@ -99,6 +102,10 @@
   (cue-parts          get-cue-parts))
 
 
+(define (get-playback-cue-number pb)
+  (cue-index-to-number (get-playback-cue-list pb)
+                       (max 0 (- (get-next-cue-index pb) 1))))
+
 (define (qnum a)
   (/ (inexact->exact (* a 1000)) 1000))
 
@@ -107,6 +114,10 @@
   (let ((new-playback (make <starlet-playback>
                         #:cue-list cue-list)))
     new-playback))
+
+
+(define (cue-index-to-number cue-list cue-index)
+  (get-cue-number (vector-ref cue-list cue-index)))
 
 
 (define (cue-number-to-index cue-list cue-number)
