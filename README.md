@@ -87,3 +87,16 @@ Getting started
 6. Patch a fixture with `(define fix (patch-fixture! <generic-dimmer> 1 #:universe 2))` - replace 1 and 2 with the DMX address and universe (respectively) of a real dimmer.
 7. Turn the dimmer on with `(at fix 100)`
 8. Look in the _examples_ folder for more advanced ideas.
+
+
+Related projects
+----------------
+
+There are many stage lighting software projects, but most of them seem to concentrate on "disco style" effects and chases whereas Starlet is aimed more towards theatre shows.  Here are some that I found especially interesting:
+
+
+* [Fivetwelve-CSS](https://github.com/beyondscreen/fivetwelve-css) DMX lighting control using CSS. [Watch this video](https://www.youtube.com/watch?v=ani_MOZt5_c)
+* [Afterglow](https://github.com/Deep-Symmetry/afterglow) Clojure live coding environment using OLA
+* [QLC+](https://qlcplus.org/) the most popular open-source lighting control program
+
+It's also worth taking a look at the [stage-lighting topic](https://github.com/topics/stage-lighting) on Github.
