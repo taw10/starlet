@@ -102,7 +102,7 @@
         #:up-time 0
         #:down-time 2
 
-        (cue-part (list dim3)
+        (cue-part (list (cons dim3 'intensity))
                   #:down-time 2
                   #:down-delay 1))))
 

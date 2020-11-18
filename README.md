@@ -63,6 +63,23 @@ You can use pre-prepared states in cues, even if some minor modifications are ne
      #:fade-down 3)
 ```
 
+Mult-part cues are supported.  Simply specify the fade parameters and which fixtures should be in the part:
+
+```
+(cue 64
+     (cue-state (apply-state indoor-act1-general)
+     #:fade-up 3
+     #:fade-down 3
+
+     (cue-part (dim3
+                dim4
+                dim8
+                (list moving-light 'pan 'tilt))
+               #:down-time 2
+               #:down-delay 1))
+```
+
+
 Everything from a simple dimmers to wacky multi-parameter fixtures are supported.  New fixture classes can be defined using some simple Scheme code.  Patching fixtures looks like this:
 
 ```

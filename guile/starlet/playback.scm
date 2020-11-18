@@ -330,6 +330,11 @@
     (and (eq? (car attr-el) fix)
          (eq? (cdr attr-el) (get-attr-name attr))))
 
+   ((list? attr-el)
+    (and (memq fix attr-el)
+         (or (memq attr attr-el)
+             (memq (get-attr-name attr) attr-el))))
+
    (else #f)))
 
 
@@ -385,13 +390,19 @@
        body ...))))
 
 
-(define* (cue-part attr-list
-                   #:key
-                   (up-time 5)
-                   (down-time 5)
-                   (up-delay 0)
-                   (down-delay 0))
+(define-syntax cue-part
+  (syntax-rules ()
+    ((_ (fixtures ...) params ...)
+     (make-cue-part-obj (list fixtures ...)
+                        params ...))))
 
+
+(define* (make-cue-part-obj attr-list
+                            #:key
+                            (up-time 5)
+                            (down-time 5)
+                            (up-delay 0)
+                            (down-delay 0))
   (make-cue-part attr-list
                  (make-fade-times
                   up-time
