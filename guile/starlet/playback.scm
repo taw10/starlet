@@ -130,9 +130,9 @@
 (define (cut-to-cue-number! pb cue-number)
   (let* ((cue-list (get-playback-cue-list pb))
          (cue-index (cue-number-to-index cue-list (qnum cue-number))))
-    (set-state-hash-table! pb (get-state-hash-table
-                               (realize-state cue-list
-                                              cue-index)))
+    (set-state-hash-table! pb (copy-hash-table
+                               (get-state-hash-table
+                                (realize-state cue-list cue-index))))
     (set-next-cue-index! pb (+ cue-index 1))
 
     ;; Wipe out the old fade params
