@@ -435,9 +435,9 @@
 
 
 (define (ensure-cue-zero-realized cue-list)
-  (unless (get-realized-state (vector-ref cue-list 0))
-    (set-realized-state! (vector-ref cue-list 0)
-                         (make <starlet-state>))))
+  (let ((cue-zero (vector-ref cue-list 0)))
+    (unless (get-realized-state cue-zero)
+      (set-realized-state! cue-zero (make <starlet-state>)))))
 
 
 ;; Get the state for a cue, taking into account tracking etc
