@@ -49,13 +49,17 @@
 (define-record-type <fade-times>
   (make-fade-times up-time
                    down-time
+                   attr-time
                    up-delay
-                   down-delay)
+                   down-delay
+                   attr-delay)
   fade-times?
   (up-time      get-fade-up-time)
   (down-time    get-fade-down-time)
+  (attr-time    get-fade-attr-time)
   (up-delay     get-fade-up-delay)
-  (down-delay   get-fade-down-delay))
+  (down-delay   get-fade-down-delay)
+  (attr-delay   get-fade-attr-delay))
 
 
 ;; Macro to avoid a profusion of (get-fade-xxx-time fade-times)
@@ -65,12 +69,16 @@
       ((_ fade-times body ...)
        (with-syntax ((up-time (datum->syntax x 'up-time))
                      (down-time (datum->syntax x 'down-time))
+                     (attr-time (datum->syntax x 'attr-time))
                      (up-delay (datum->syntax x 'up-delay))
-                     (down-delay (datum->syntax x 'down-delay)))
+                     (down-delay (datum->syntax x 'down-delay))
+                     (attr-delay (datum->syntax x 'attr-delay)))
          #'(let ((up-time (get-fade-up-time fade-times))
                  (down-time (get-fade-down-time fade-times))
+                 (attr-time (get-fade-attr-time fade-times))
                  (up-delay (get-fade-up-delay fade-times))
-                 (down-delay (get-fade-down-delay fade-times)))
+                 (down-delay (get-fade-down-delay fade-times))
+                 (attr-delay (get-fade-attr-delay fade-times)))
              body ...))))))
 
 
@@ -145,6 +153,8 @@
                         (cons fix attr)
                         (make-fade-record (hirestime)
                                           (make-fade-times
+                                           0.0
+                                           0.0
                                            0.0
                                            0.0
                                            0.0
@@ -266,6 +276,14 @@
 
      (cond
 
+      ;; Non-intensity attribute
+      ((not (intensity? attr))
+       (set-in-state! pb fix attr (wrap-fade (fade-previous fade-record)
+                                             (fade-target fade-record)
+                                             attr-time
+                                             attr-delay
+                                             (fade-start-time fade-record))))
+
       ;; Number to number, fading up
       ((and (number? target) (number? prev-val) (> target prev-val))
        (set-in-state! pb fix attr (wrap-fade prev-val
@@ -309,7 +327,11 @@
     (> tnow
        (+ (fade-start-time fade-record)
           down-delay
-          down-time)))))
+          down-time))
+    (> tnow
+       (+ (fade-start-time fade-record)
+          attr-delay
+          attr-time)))))
 
 
 (define (match-fix-attr attr-el fix attr)
@@ -401,14 +423,18 @@
                             #:key
                             (up-time 5)
                             (down-time 5)
+                            (attr-time 3)
                             (up-delay 0)
-                            (down-delay 0))
+                            (down-delay 0)
+                            (attr-delay 0))
   (make-cue-part attr-list
                  (make-fade-times
                   up-time
                   down-time
+                  attr-time
                   up-delay
-                  down-delay)))
+                  down-delay
+                  attr-delay)))
 
 
 (define cue
@@ -418,8 +444,10 @@
       (let-keywords rest-minus-cue-parts #f
                     ((up-time 5)
                      (down-time 5)
+                     (attr-time 5)
                      (up-delay 0)
                      (down-delay 0)
+                     (attr-delay 0)
                      (track-intensities #f))
 
                     (make-cue (qnum number)
@@ -428,8 +456,10 @@
                               (make-fade-times
                                up-time
                                down-time
+                               attr-time
                                up-delay
-                               down-delay)
+                               down-delay
+                               attr-delay)
                               track-intensities
                               cue-parts)))))
 
@@ -464,5 +494,6 @@
      (vector (cue 0
                   (lambda () #f)   ;; The real base state is in ensure-cue-zero-realized
                   #:up-time 0
-                  #:down-time 0)
+                  #:down-time 0
+                  #:attr-time 0)
              body ...))))
