@@ -1,4 +1,4 @@
-(define-module (guile-midi control)
+(define-module (starlet midi-control base)
   #:use-module (oop goops)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 threads)
