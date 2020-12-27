@@ -171,8 +171,12 @@
 
 ;; Set an attribute by name
 (define (set-attr! state fix attr-name value)
-  (let ((attr (find-attr fix attr-name)))
-    (when attr (set-in-state! state fix attr value))))
+  (cond
+   ((symbol? attr-name)
+    (let ((attr (find-attr fix attr-name)))
+      (when attr (set-in-state! state fix attr value))))
+   ((fixture-attribute? attr-name)
+    (set-in-state! state fix attr-name value))))
 
 
 ;; Patch a new fixture
