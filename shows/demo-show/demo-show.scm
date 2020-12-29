@@ -46,5 +46,3 @@
   (while #t
     (sleep 1)
     (reload-cue-list)))
-
-(start-ola-output)
