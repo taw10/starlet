@@ -21,13 +21,27 @@
 (register-state! pb)
 (cut-to-cue-number! pb 0)
 
+;; Start readout to OLA
 (start-ola-output)
 
-(start-midi-control "/dev/snd/midiC1D0")
-(all-notes-off! 14)
-(make-midi-playback-buttons pb 14 20 12 24 24)
-(make-midi-playback-buttons pb 14 23 15 27 27)
-(on-fader 14 19
+;; Start MIDI control
+(start-midi-control "/dev/snd/midiC1D0"
+                    #:channel 14)
+
+;;;; Set up cue list go/stop buttons, and light up LEDs to show
+(make-go-button pb 12)
+(make-stop-button pb 24)
+(send-note-on 20)
+(send-note-on 24)
+
+;; A second set of go/stop buttons
+(make-go-button pb 15)
+(make-stop-button pb 27)
+(send-note-on 23)
+(send-note-on 27)
+
+;; Set up a fader for quick access to some working light
+(on-fader 19
           (lighting-state
            (at dim1 100)
            (at dim2 100)

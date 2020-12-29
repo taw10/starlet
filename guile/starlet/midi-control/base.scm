@@ -5,28 +5,16 @@
   #:use-module (ice-9 binary-ports)
   #:use-module (srfi srfi-1)
   #:export (start-midi-control
-            make-midi-controller!
-            get-controller-value
-            make-midi-led
-            set-midi-led!
-            all-notes-off!
+            get-cc-value
+            scale-127-100
+            send-note-on
+            send-note-off
             register-midi-note-callback!))
 
 
-(define cc-list (make-atomic-box '()))
+(define cc-arrays (make-atomic-box '()))
 (define callback-list (make-atomic-box '()))
 (define send-queue (make-atomic-box '()))
-
-
-(define-class <midi-led> (<object>)
-
-  (channel
-   #:init-keyword #:channel
-   #:getter get-channel)
-
-  (note-number
-   #:init-keyword #:note-number
-   #:getter get-note-number))
 
 
 (define-class <midi-note-callback> (<object>)
@@ -44,48 +32,10 @@
    #:getter get-callback-func))
 
 
-(define-class <midi-control> (<object>)
-
-  (channel
-   #:init-keyword #:channel
-   #:getter get-channel)
-
-  (cc-number
-   #:init-keyword #:cc-number
-   #:getter get-cc-number)
-
-  (value-box
-   #:init-form (make-atomic-box 0)
-   #:getter get-value-box))
-
-
-(define (get-controller-value a)
-  (atomic-box-ref (get-value-box a)))
-
-
-(define* (make-midi-controller!
-          #:key (channel 1) (cc-number 1))
-  (let ((new-controller (make <midi-control>
-                          #:channel channel
-                          #:cc-number cc-number)))
-    (atomic-box-set! cc-list
-                     (cons new-controller
-                           (atomic-box-ref cc-list)))
-    new-controller))
-
-
-(define* (make-midi-led
-          #:key (channel 1) (note-number 1))
-  (let ((new-led (make <midi-led>
-                   #:channel channel
-                   #:note-number note-number)))
-    new-led))
-
-
 (define* (register-midi-note-callback!
-          #:key (channel 1) (note-number 1) (func #f))
+          #:key (channel #f) (note-number 1) (func #f))
   (let ((new-callback (make <midi-note-callback>
-                        #:channel channel
+                        #:channel (if channel channel default-channel)
                         #:note-number note-number
                         #:func func)))
     (atomic-box-set! callback-list
@@ -101,18 +51,20 @@
       (apply enqueue-midi-bytes! bytes))))
 
 
-(define (set-midi-led! led val)
-  (if val
+(define* (send-note-on note
+                       #:key (channel #f))
+  (enqueue-midi-bytes! (+ #b10010000
+                          (if channel channel default-channel))
+                       note
+                       127))
 
-      ;; Note on
-      (enqueue-midi-bytes! (+ #b10010000 (get-channel led))
-                           (get-note-number led)
-                           127)
 
-      ;; Note off
-      (enqueue-midi-bytes! (+ #b10000000 (get-channel led))
-                           (get-note-number led)
-                           0)))
+(define* (send-note-off note
+                        #:key (channel #f))
+  (enqueue-midi-bytes! (+ #b10000000
+                          (if channel channel default-channel))
+                       note
+                       0))
 
 
 (define (all-notes-off! channel)
@@ -122,13 +74,35 @@
       (again (+ l 1)))))
 
 
+(define (ensure-cc-array channel)
+  (let ((old-list (atomic-box-ref cc-arrays)))
+    (unless (assq channel old-list)
+      (unless (eq?
+               old-list
+               (atomic-box-compare-and-swap! cc-arrays
+                                             old-list
+                                             (acons channel
+                                                    (make-vector 128 #f)
+                                                    old-list)))
+        ;; CAS failed - try again
+        (ensure-cc-array channel)))))
+
+
 (define (handle-cc-change! channel cc-number value)
-  (for-each (lambda (a)
-              (atomic-box-set! (get-value-box a) value))
-            (filter (lambda (a)
-                      (and (eq? cc-number (get-cc-number a))
-                           (eq? channel (get-channel a))))
-                    (atomic-box-ref cc-list))))
+  (ensure-cc-array channel)
+  (vector-set! (assq-ref (atomic-box-ref cc-arrays) channel)
+               cc-number
+               value))
+
+
+(define* (get-cc-value cc-number
+                       #:key (channel #f))
+  (let ((cc-arrays (atomic-box-ref cc-arrays)))
+    (let ((ccs (assq-ref cc-arrays
+                         (if channel channel default-channel))))
+      (if ccs
+          (vector-ref ccs cc-number)
+          0))))
 
 
 (define (check-note-callbacks channel note-number)
@@ -143,7 +117,14 @@
   (/ (* n 100) 127))
 
 
-(define (start-midi-control device-name)
+(define default-channel 0)
+
+(define* (start-midi-control device-name
+                             #:key (channel #f))
+
+  (when channel
+    (set! default-channel channel))
+
   (let ((midi-port (open-file device-name "r+0b")))
 
     ;; Read thread
@@ -166,7 +147,7 @@
                         (value (get-u8 midi-port)))
                    (handle-cc-change! channel
                                       cc-number
-                                      (scale-127-100 value)))))
+                                      value))))
 
          (yield)
          (again))))
