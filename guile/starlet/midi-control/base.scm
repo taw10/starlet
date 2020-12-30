@@ -9,7 +9,8 @@
             scale-127-100
             send-note-on
             send-note-off
-            register-midi-note-callback!))
+            register-midi-note-callback!
+            register-midi-cc-callback!))
 
 
 (define cc-arrays (make-atomic-box '()))
@@ -17,31 +18,48 @@
 (define send-queue (make-atomic-box '()))
 
 
-(define-class <midi-note-callback> (<object>)
+(define-class <midi-callback> (<object>)
+
+  (type
+   #:init-keyword #:type
+   #:getter get-type)
 
   (channel
    #:init-keyword #:channel
    #:getter get-channel)
 
-  (note-number
-   #:init-keyword #:note-number
-   #:getter get-note-number)
+  (note-or-cc-number
+   #:init-keyword #:note-or-cc-number
+   #:getter get-note-or-cc-number)
 
   (callback
    #:init-keyword #:func
    #:getter get-callback-func))
 
 
-(define* (register-midi-note-callback!
-          #:key (channel #f) (note-number 1) (func #f))
-  (let ((new-callback (make <midi-note-callback>
+(define (register-midi-callback! type
+                                 channel
+                                 note-or-cc-number
+                                 func)
+  (let ((new-callback (make <midi-callback>
+                        #:type type
                         #:channel (if channel channel default-channel)
-                        #:note-number note-number
+                        #:note-or-cc-number note-or-cc-number
                         #:func func)))
     (atomic-box-set! callback-list
                      (cons new-callback
                            (atomic-box-ref callback-list)))
     new-callback))
+
+
+(define* (register-midi-note-callback!
+          #:key (channel #f) (note-number 1) (func #f))
+  (register-midi-callback! 'note channel note-number func))
+
+
+(define* (register-midi-cc-callback!
+          #:key (channel #f) (cc-number 1) (func #f))
+  (register-midi-callback! 'cc channel cc-number func))
 
 
 (define enqueue-midi-bytes!
@@ -88,28 +106,41 @@
         (ensure-cc-array channel)))))
 
 
+(define (check-cc-callbacks channel cc-number old-val new-val)
+  (for-each (lambda (a) ((get-callback-func a) old-val new-val))
+            (filter (lambda (a)
+                      (and (eq? cc-number (get-note-or-cc-number a))
+                           (eq? channel (get-channel a))
+                           (eq? 'cc (get-type a))))
+                    (atomic-box-ref callback-list))))
+
+
 (define (handle-cc-change! channel cc-number value)
   (ensure-cc-array channel)
-  (vector-set! (assq-ref (atomic-box-ref cc-arrays) channel)
-               cc-number
-               value))
+  (let* ((cc-array (assq-ref (atomic-box-ref cc-arrays) channel))
+         (old-value (vector-ref cc-array cc-number)))
+    (vector-set! cc-array cc-number value)
+    (check-cc-callbacks channel cc-number old-value value)))
 
 
 (define* (get-cc-value cc-number
-                       #:key (channel #f))
+                       #:key (channel #f)
+                       (unknown-val 0))
   (let ((cc-arrays (atomic-box-ref cc-arrays)))
     (let ((ccs (assq-ref cc-arrays
                          (if channel channel default-channel))))
       (if ccs
-          (vector-ref ccs cc-number)
-          0))))
+          (let ((val (vector-ref ccs cc-number)))
+            (if val val unknown-val))
+          unknown-val))))
 
 
 (define (check-note-callbacks channel note-number)
   (for-each (lambda (a) ((get-callback-func a)))
             (filter (lambda (a)
-                      (and (eq? note-number (get-note-number a))
-                           (eq? channel (get-channel a))))
+                      (and (eq? note-number (get-note-or-cc-number a))
+                           (eq? channel (get-channel a))
+                           (eq? 'note (get-type a))))
                     (atomic-box-ref callback-list))))
 
 
