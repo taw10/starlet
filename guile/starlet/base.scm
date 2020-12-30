@@ -38,7 +38,10 @@
             state-find
             get-attr-type
             fixture?
-            fixture-attribute?))
+            fixture-attribute?
+            programmer-state
+            selection-state
+            current-value))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -120,6 +123,12 @@
 ;; Basic state which holds everything at "home" unless
 ;; commanded otherwise
 (define home-state (make <starlet-state>))
+
+;; The state used to build a new scene for recording
+(define programmer-state (make <starlet-state>))
+
+;; The state which holds the fixtures being altered right now
+(define selection-state (make <starlet-state>))
 
 (define (blackout state)
   (state-for-each
@@ -271,6 +280,10 @@
   (merge-states merge-rule-htp
                 list-of-states))
 
+(define (merge-states-ltp list-of-states)
+  (merge-states merge-rule-ltp
+                list-of-states))
+
 ;; Combine states
 (define (merge-states merge-rule list-of-states)
   (let ((combined-state (make <starlet-state>)))
@@ -316,6 +329,79 @@
 
 (define-generic scanout-fixture)
 
+(define (scanout-loop ola-uri ola-socket start-time count)
+
+  (let ((universes '()))
+
+    ;; Helper function for scanout functions to set individual DMX values
+    (define (set-dmx universe addr value)
+
+      ;; Create DMX array for universe if it doesn't exist already
+      (unless (assq universe universes)
+        (set! universes (acons universe
+                               (make-u8vector 512 0)
+                               universes)))
+
+      ;; Set the value in the DMX array
+      (u8vector-set! (assq-ref universes universe)
+                     (- addr 1)                   ; u8vector-set indexing starts from zero
+                     (round-dmx value)))
+
+    ;; Make a combined state
+    (let* ((combined-state (merge-states-ltp
+                            (list
+                             (merge-states-htp
+                              (reverse   ;; Put "home" state last
+                               (atomic-box-ref state-list)))
+                             programmer-state
+                             selection-state))))
+
+      ;; Request all fixtures to output their DMX values
+      (for-each (lambda (fix)
+
+                  ;; Helper function to get a value for this
+                  ;; fixture in the current state
+                  (define (get-attr attr-name)
+                    (value->number (state-find fix
+                                               (find-attr fix attr-name)
+                                               combined-state)
+                                   (hirestime)))
+
+                  ;; Helper function to set 8-bit DMX value
+                  (define (set-chan relative-channel-number value)
+                    (set-dmx (get-fixture-universe fix)
+                             (+ (get-fixture-addr fix)
+                                (- relative-channel-number 1))
+                             value))
+
+                  ;; Helper function to set 16-bit DMX value
+                  (define (set-chan-16bit relative-channel-number value max-value)
+                    (let ((val16 (* value (/ 65535 max-value))))
+                      (set-chan relative-channel-number (msb val16))
+                      (set-chan (+ relative-channel-number 1) (lsb val16))))
+
+                  (scanout-fixture fix get-attr set-chan set-chan-16bit))
+
+                (atomic-box-ref patched-fixture-list))
+
+
+      ;; Send everything to OLA
+      (for-each (lambda (a)
+                  (send-to-ola ola-uri ola-socket a))
+                universes))
+
+    (usleep 10000)
+
+    ;; Update scanout rate every 1000 cycles
+    (if (eq? count 100)
+        (begin
+          (set! scanout-freq
+            (exact->inexact (/ 100
+                               (- (hirestime) start-time))))
+          (scanout-loop ola-uri ola-socket (hirestime) 0))
+        (scanout-loop ola-uri ola-socket start-time (+ count 1)))))
+
+
 (define (start-ola-output)
   (let* ((ola-uri (build-uri 'http
                              #:host "127.0.0.1"
@@ -325,73 +411,13 @@
          (start-time (hirestime)))
 
     (begin-thread
-     (let scanout-loop ((count 0))
-
-        (let ((universes '()))
-
-
-          ;; Helper function for scanout functions to set individual DMX values
-          (define (set-dmx universe addr value)
-
-            ;; Create DMX array for universe if it doesn't exist already
-            (unless (assq universe universes)
-              (set! universes (acons universe
-                                     (make-u8vector 512 0)
-                                     universes)))
-
-            ;; Set the value in the DMX array
-            (u8vector-set! (assq-ref universes universe)
-                           (- addr 1)                   ; u8vector-set indexing starts from zero
-                           (round-dmx value)))
-
-          ;; Make a combined state
-          (let* ((combined-state (merge-states-htp
-                                   (reverse   ;; Put "home" state last
-                                    (atomic-box-ref state-list)))))
-
-            ;; Request all fixtures to output their DMX values
-            (for-each (lambda (fix)
-
-                        ;; Helper function to get a value for this
-                        ;; fixture in the current state
-                        (define (get-attr attr-name)
-                          (value->number (state-find fix
-                                                     (find-attr fix attr-name)
-                                                     combined-state)
-                                         (hirestime)))
-
-                        ;; Helper function to set 8-bit DMX value
-                        (define (set-chan relative-channel-number value)
-                          (set-dmx (get-fixture-universe fix)
-                                   (+ (get-fixture-addr fix)
-                                      (- relative-channel-number 1))
-                                   value))
-
-                        ;; Helper function to set 16-bit DMX value
-                        (define (set-chan-16bit relative-channel-number value max-value)
-                          (let ((val16 (* value (/ 65535 max-value))))
-                            (set-chan relative-channel-number (msb val16))
-                            (set-chan (+ relative-channel-number 1) (lsb val16))))
-
-                        (scanout-fixture fix get-attr set-chan set-chan-16bit))
-
-                      (atomic-box-ref patched-fixture-list)))
-
-
-          ;; Send everything to OLA
-          (for-each (lambda (a)
-                      (send-to-ola ola-uri ola-socket a))
-                    universes))
-
-        (usleep 10000)
-        (if (eq? count 100)
-            (begin
-              (set! scanout-freq
-                (exact->inexact (/ 100
-                                   (- (hirestime) start-time))))
-              (set! start-time (hirestime))
-              (scanout-loop 0))
-            (scanout-loop (+ count 1)))))))
+     (with-exception-handler
+         (lambda (exn)
+           (backtrace)
+           (raise-exception exn))
+       (lambda ()
+         (scanout-loop ola-uri ola-socket start-time 0))
+       #:unwind? #f))))
 
 
 (define-syntax attr-continuous
