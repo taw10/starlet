@@ -278,42 +278,42 @@
 
       ;; Non-intensity attribute
       ((not (intensity? attr))
-       (set-in-state! pb fix attr (wrap-fade (fade-previous fade-record)
-                                             (fade-target fade-record)
-                                             attr-time
-                                             attr-delay
-                                             (fade-start-time fade-record))))
+       (set-attr! pb fix attr (wrap-fade (fade-previous fade-record)
+                                         (fade-target fade-record)
+                                         attr-time
+                                         attr-delay
+                                         (fade-start-time fade-record))))
 
       ;; Number to number, fading up
       ((and (number? target) (number? prev-val) (> target prev-val))
-       (set-in-state! pb fix attr (wrap-fade prev-val
-                                             target
-                                             up-time
-                                             up-delay
-                                             (fade-start-time fade-record))))
+       (set-attr! pb fix attr (wrap-fade prev-val
+                                         target
+                                         up-time
+                                         up-delay
+                                         (fade-start-time fade-record))))
 
       ;; Number to number, fading down
       ((and (number? target) (number? prev-val) (< target prev-val))
-       (set-in-state! pb fix attr (wrap-fade prev-val
-                                             target
-                                             down-time
-                                             down-delay
-                                             (fade-start-time fade-record))))
+       (set-attr! pb fix attr (wrap-fade prev-val
+                                         target
+                                         down-time
+                                         down-delay
+                                         (fade-start-time fade-record))))
 
       ;; Number to number, staying the same
       ((and (number? target) (number? prev-val))
-       (set-in-state! pb fix attr (wrap-fade prev-val
-                                             target
-                                             0.0
-                                             0.0
-                                             (fade-start-time fade-record))))
+       (set-attr! pb fix attr (wrap-fade prev-val
+                                         target
+                                         0.0
+                                         0.0
+                                         (fade-start-time fade-record))))
 
       ;; Everything else, e.g. number to effect
       (else
-       (set-in-state! pb fix attr (wrap-xf (fade-previous fade-record)
-                                           (fade-target fade-record)
-                                           (get-fade-record-fade-times fade-record)
-                                           (fade-start-time fade-record))))))))
+       (set-attr! pb fix attr (wrap-xf (fade-previous fade-record)
+                                       (fade-target fade-record)
+                                       (get-fade-record-fade-times fade-record)
+                                       (fade-start-time fade-record))))))))
 
 
 (define (fade-finished? tnow fade-record)

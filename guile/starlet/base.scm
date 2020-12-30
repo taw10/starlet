@@ -18,7 +18,7 @@
             percent->dmxval
             hirestime
             state-for-each
-            set-in-state!
+            set-attr!
             get-attr-name
             value->number
             merge-states-htp
