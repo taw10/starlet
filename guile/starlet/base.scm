@@ -24,6 +24,7 @@
             merge-states-htp
             get-state-hash-table
             set-state-hash-table!
+            add-state-to-state!
             scanout-fixture
             attr-continuous
             attr-boolean
@@ -33,6 +34,7 @@
             apply-state
             at
             blackout
+            clear-state!
             home-val
             intensity?
             state-find
@@ -260,6 +262,10 @@
       val))
 
 
+(define (clear-state! state)
+  (set-state-hash-table! state (make-hash-table)))
+
+
 (define (merge-rule-ltp attr a b)
   (lambda (time)
     (value->number b time)))
@@ -418,6 +424,20 @@
        (lambda ()
          (scanout-loop ola-uri ola-socket start-time 0))
        #:unwind? #f))))
+
+
+
+(define (current-value fix attr-name)
+  ;; FIXME: Only need to track one fixture through the state stack
+  (let ((combined-state (merge-states-ltp
+                         (list
+                          (merge-states-htp
+                           (reverse   ;; Put "home" state last
+                            (atomic-box-ref state-list)))
+                          programmer-state
+                          selection-state)))
+        (attr (find-attr fix attr-name)))
+    (value->number (state-find fix attr combined-state) 0)))
 
 
 (define-syntax attr-continuous

@@ -10,7 +10,8 @@
             send-note-on
             send-note-off
             register-midi-note-callback!
-            register-midi-cc-callback!))
+            register-midi-cc-callback!
+            remove-midi-callback!))
 
 
 (define cc-arrays (make-atomic-box '()))
@@ -60,6 +61,13 @@
 (define* (register-midi-cc-callback!
           #:key (channel #f) (cc-number 1) (func #f))
   (register-midi-callback! 'cc channel cc-number func))
+
+
+(define (remove-midi-callback! callback)
+  (atomic-box-set! callback-list
+                   (remove (lambda (a)
+                             (eq? callback a))
+                           (atomic-box-ref callback-list))))
 
 
 (define enqueue-midi-bytes!
