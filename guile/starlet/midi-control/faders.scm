@@ -54,11 +54,11 @@
 
 (define midi-callbacks '())
 
-(define (merge-rule-replace attr a b)
-  b)
-
 
 (define (sel fixture)
+
+  (define (merge-rule-replace attr a b) b)
+
   (when selection-state
     (add-state-to-state! merge-rule-replace
                          selection-state
