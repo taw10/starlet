@@ -171,28 +171,33 @@
 
     ;; Read thread
     (begin-thread
-     (let again ()
+     (with-exception-handler
+         (lambda (exn)
+           (backtrace)
+           (raise-exception exn))
+       (lambda ()
+         (let again ()
 
-       (let* ((status-byte (get-u8 midi-port))
-              (channel (bit-extract status-byte 0 4))
-              (command (bit-extract status-byte 4 8)))
+           (let* ((status-byte (get-u8 midi-port))
+                  (channel (bit-extract status-byte 0 4))
+                  (command (bit-extract status-byte 4 8)))
 
-         (case command
+             (case command
 
-           ;; Note on
-           ((9) (let* ((note (get-u8 midi-port))
-                       (vel (get-u8 midi-port)))
-                  (check-note-callbacks channel note)))
+               ;; Note on
+               ((9) (let* ((note (get-u8 midi-port))
+                           (vel (get-u8 midi-port)))
+                      (check-note-callbacks channel note)))
 
-           ;; Control value
-           ((11) (let* ((cc-number (get-u8 midi-port))
-                        (value (get-u8 midi-port)))
-                   (handle-cc-change! channel
-                                      cc-number
-                                      value))))
+               ;; Control value
+               ((11) (let* ((cc-number (get-u8 midi-port))
+                            (value (get-u8 midi-port)))
+                       (handle-cc-change! channel
+                                          cc-number
+                                          value))))
 
-         (yield)
-         (again))))
+             (yield)
+             (again))))))
 
     ;; Write thread
     (begin-thread
