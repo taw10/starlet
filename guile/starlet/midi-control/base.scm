@@ -6,7 +6,8 @@
   #:use-module (srfi srfi-1)
   #:export (start-midi-control
             get-cc-value
-            scale-127-100
+            ccval->percent
+            percent->ccval
             send-note-on
             send-note-off
             register-midi-note-callback!
@@ -132,15 +133,13 @@
 
 
 (define* (get-cc-value cc-number
-                       #:key (channel #f)
-                       (unknown-val 0))
+                       #:key (channel #f))
   (let ((cc-arrays (atomic-box-ref cc-arrays)))
     (let ((ccs (assq-ref cc-arrays
                          (if channel channel default-channel))))
       (if ccs
-          (let ((val (vector-ref ccs cc-number)))
-            (if val val unknown-val))
-          unknown-val))))
+          (vector-ref ccs cc-number)
+          #f))))
 
 
 (define (check-note-callbacks channel note-number)
@@ -152,8 +151,12 @@
                     (atomic-box-ref callback-list))))
 
 
-(define (scale-127-100 n)
+(define (ccval->percent n)
   (/ (* n 100) 127))
+
+
+(define (percent->ccval n)
+  (inexact->exact (round (/ (* n 127) 100))))
 
 
 (define default-channel 0)

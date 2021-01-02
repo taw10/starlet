@@ -12,17 +12,18 @@
    (lighting-state
     (state-for-each
      (lambda (fix attr val)
-       (if (intensity? attr)
+           (if (intensity? attr)
 
-           ;; Intensity parameters get scaled according to the fader
-           (at fix attr (lambda (time)
-                          (* 0.01
-                             val
-                             (scale-127-100 (get-cc-value cc-number
-                                                          #:channel channel)))))
+               ;; Intensity parameters get scaled according to the fader
+               (at fix attr (lambda (time)
+                              (let ((cc-val (get-cc-value cc-number
+                                                          #:channel channel)))
+                                (if cc-val
+                                  (* 0.01 val (ccval->percent cc-val))
+                                  0))))
 
-           ;; Non-intensity parameters just get set in our new state
-           (at fix attr val)))
+               ;; Non-intensity parameters just get set in our new state
+               (at fix attr val)))
 
      state))))
 
@@ -50,6 +51,51 @@
                          (+ old-val offset))))))
 
 
+(define (in-range a val1 val2)
+  (or
+   (and (>= a val1)
+        (<= a val2))
+   (and (>= a val2)
+        (<= a val1))))
+
+
+(define* (at-midi-fader fix
+                        attr
+                        cc-number
+                        #:key
+                        (led-incongruent #f)
+                        (led #f))
+
+  (let* ((congruent-val (percent->ccval (current-value fix attr)))
+
+         (cc-val (get-cc-value cc-number))
+         (congruent (and cc-val
+                         (= cc-val congruent-val))))
+
+    (if congruent
+        (send-note-on led)
+        (send-note-on led-incongruent))
+
+    (register-midi-cc-callback!
+     #:cc-number cc-number
+     #:func (lambda (prev-cc-val new-cc-value)
+
+              (when congruent
+                (set-attr! selection-state
+                           fix
+                           attr
+                           (ccval->percent new-cc-value)))
+
+              (when (or (and (not prev-cc-val)
+                             (= new-cc-value congruent-val))
+                        (and prev-cc-val new-cc-value
+                             (in-range congruent-val
+                                       prev-cc-val
+                                       new-cc-value)))
+                (set! congruent #t)
+                (send-note-on led))))))
+
+
 (define (select-fixtures fixture)
   (values
    (list 98 124 125 84 85 86 120 121 122)
@@ -59,16 +105,16 @@
     (at-midi-jogwheel fixture 'pan 0
                       #:led 124)
     (at-midi-jogwheel fixture 'tilt 1
-                      #:led 125))))
-;;    (at-midi-fader fixture 'red 4
-;;                      #:led-incongruent 84
-;;                      #:led-congruent 120)
-;;    (at-midi-fader fixture 'green 5
-;;                      #:led-incongruent 85
-;;                      #:led-congruent 121)
-;;    (at-midi-fader fixture 'blue 6
-;;                      #:led-incongruent 86
-;;                      #:led-congruent 122))))
+                      #:led 125)
+    (at-midi-fader fixture 'r 4
+                      #:led 120
+                      #:led-incongruent 84)
+    (at-midi-fader fixture 'g 5
+                      #:led 121
+                      #:led-incongruent 85)
+    (at-midi-fader fixture 'b 6
+                      #:led 122
+                      #:led-incongruent 86))))
 
 
 ;; Stuff to clear up when we're done with selected fixtures
