@@ -202,4 +202,6 @@
                      (put-u8 midi-port a))
                    bytes-to-send)
          (usleep 1000)
-         (again))))))
+         (again))))
+
+    (all-notes-off! default-channel)))
