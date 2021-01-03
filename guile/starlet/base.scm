@@ -18,6 +18,7 @@
             percent->dmxval
             hirestime
             state-for-each
+            get-attributes
             set-attr!
             get-attr-name
             value->number
@@ -91,6 +92,10 @@
     #:init-value (lambda (universe start-addr value set-dmx) #f)
     #:init-keyword #:scanout-func
     #:getter get-scanout-func))
+
+
+(define (get-attributes f)
+  (slot-ref f 'attributes))
 
 
 (define (fixture? f)

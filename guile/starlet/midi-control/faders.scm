@@ -2,6 +2,8 @@
   #:use-module (starlet midi-control base)
   #:use-module (starlet base)
   #:use-module (ice-9 receive)
+  #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-1)
   #:export (on-fader
             sel))
 
@@ -96,48 +98,87 @@
                 (send-note-on led))))))
 
 
-(define (select-fixtures fixture)
-  (values
-   (list 98 124 125 84 85 86 120 121 122)
-   (list
-    (at-midi-jogwheel fixture 'intensity 21
-                      #:led 98)
-    (at-midi-jogwheel fixture 'pan 0
-                      #:led 124)
-    (at-midi-jogwheel fixture 'tilt 1
-                      #:led 125)
-    (at-midi-fader fixture 'r 4
-                      #:led 120
-                      #:led-incongruent 84)
-    (at-midi-fader fixture 'g 5
-                      #:led 121
-                      #:led-incongruent 85)
-    (at-midi-fader fixture 'b 6
-                      #:led 122
-                      #:led-incongruent 86))))
+(define-record-type <midi-control-spec>
+  (make-midi-control-spec attr-name
+                          type
+                          cc-number
+                          leds)
+  midi-control-spec?
+  (attr-name  attr-name)
+  (type       type)
+  (cc-number  cc-number)
+  (leds       leds))
+
+
+(define control-map
+  (list
+   (make-midi-control-spec 'intensity 'jogwheel 21 98)
+   (make-midi-control-spec 'pan 'jogwheel 0 124)
+   (make-midi-control-spec 'tilt 'jogwheel 1 125)
+   (make-midi-control-spec 'r 'fader 4 '(120 84))
+   (make-midi-control-spec 'g 'fader 5 '(121 85))
+   (make-midi-control-spec 'b 'fader 6 '(122 86))))
+
+
+(define (find-control-spec control-map needle)
+  (find (lambda (a)
+          (eq? (attr-name a) needle))
+        control-map))
+
+
+(define (midi-control-attr fixture attr-name)
+  (let ((control-spec (find-control-spec
+                       control-map
+                       attr-name)))
+    (cond
+
+     ((not control-spec) #f)   ;; Fixture does not have this attribute
+
+     ((eq? (type control-spec) 'jogwheel)
+      (at-midi-jogwheel fixture
+                        attr-name
+                        (cc-number control-spec)
+                        #:led (leds control-spec)))
+
+     ((eq? (type control-spec) 'fader)
+      (at-midi-fader fixture
+                     attr-name
+                     (cc-number control-spec)
+                     #:led (car (leds control-spec))
+                     #:led-incongruent (cadr (leds control-spec)))))))
 
 
 ;; Stuff to clear up when we're done with selected fixtures
 (define midi-callbacks '())
-(define midi-leds '())
 
 
 (define (sel fixture)
 
   (define (merge-rule-replace attr a b) b)
 
-  (when selection-state
-    (add-state-to-state! merge-rule-replace
-                         selection-state
-                         programmer-state)
-    (clear-state! selection-state)
-    (for-each remove-midi-callback! midi-callbacks)
-    (for-each send-note-off midi-leds)
-    (set! midi-callbacks '())
-    (set! midi-leds '()))
+  (define (led-off leds)
+    (cond
+     ((list? leds)
+      (for-each send-note-off leds))
+     ((number? leds)
+      (send-note-off leds))))
+
+
+  (add-state-to-state! merge-rule-replace
+                       selection-state
+                       programmer-state)
+  (clear-state! selection-state)
+  (for-each remove-midi-callback! midi-callbacks)
+
+  (for-each (lambda (control-spec)
+              (led-off (leds control-spec)))
+            control-map)
+
+  (set! midi-callbacks '())
 
   (when fixture
-    (receive (leds callbacks)
-      (select-fixtures fixture)
-      (set! midi-callbacks callbacks)
-      (set! midi-leds leds))))
+    (set! midi-callbacks
+      (map (lambda (attr)
+             (midi-control-attr fixture
+                                (get-attr-name attr)))
+           (get-attributes fixture)))))
