@@ -198,7 +198,7 @@
 ;; Patch a new fixture
 (define* (patch-fixture! class
                          start-addr
-                         #:key (universe 1) (friendly-name "Fixture"))
+                         #:key (universe 0) (friendly-name "Fixture"))
   (let ((new-fixture (make class
                        #:sa start-addr
                        #:uni universe
