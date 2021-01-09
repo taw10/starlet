@@ -220,11 +220,10 @@
   (round-dmx (/ (* 256 val) 100)))
 
 (define (msb val)
-  (round-dmx (/ val 256)))
+  (round-dmx (euclidean-quotient val 256)))
 
 (define (lsb val)
-  (round-dmx (logand (inexact->exact (round val))
-                     #b11111111)))
+  (round-dmx (euclidean-remainder val 256)))
 
 
 (define (state-for-each func state)
