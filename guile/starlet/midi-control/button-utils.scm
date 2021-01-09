@@ -1,8 +1,10 @@
-(define-module (starlet midi-control playback-buttons)
+(define-module (starlet midi-control button-utils)
   #:use-module (starlet midi-control base)
+  #:use-module (starlet midi-control faders)
   #:use-module (starlet playback)
   #:export (make-go-button
-            make-stop-button))
+            make-stop-button
+            select-on-button))
 
 
 (define* (make-go-button pb button
@@ -19,3 +21,11 @@
      #:channel channel
      #:note-number button
      #:func (lambda () (display "Stop/back!\n"))))
+
+
+(define* (select-on-button button fixture
+                           #:key (channel #f))
+  (register-midi-note-callback!
+   #:channel channel
+   #:note-number button
+   #:func (lambda () (sel fixture))))

@@ -6,7 +6,7 @@
  (starlet base)
  (starlet playback)
  (starlet midi-control base)
- (starlet midi-control playback-buttons)
+ (starlet midi-control button-utils)
  (starlet midi-control faders)
  (demo-show patch))
 
@@ -39,6 +39,15 @@
 (make-stop-button pb 27)
 (send-note-on 23)
 (send-note-on 27)
+
+;; Put some fixture selections on buttons
+(select-on-button 26 #f)
+(select-on-button 36 mh1)
+(select-on-button 37 mh2)
+(select-on-button 38 ledpar)
+(send-note-on 72)
+(send-note-on 73)
+(send-note-on 74)
 
 ;; Set up a fader for quick access to some working light
 (on-fader 19
