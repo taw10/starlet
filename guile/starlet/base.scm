@@ -473,7 +473,7 @@
        #:home-value attr-home-value))))
 
 
-(define current-state (make-parameter (make-empty-state)))
+(define current-state (make-parameter programmer-state))
 (register-state! (current-state))
 
 
