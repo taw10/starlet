@@ -379,16 +379,18 @@
 
                   ;; Helper function to set 8-bit DMX value
                   (define (set-chan relative-channel-number value)
+                    (when value
                       (set-dmx (get-fixture-universe fix)
                                (+ (get-fixture-addr fix)
                                   (- relative-channel-number 1))
-                               value))
+                               value)))
 
                   ;; Helper function to set 16-bit DMX value
                   (define (set-chan-16bit relative-channel-number value max-value)
-                    (let ((val16 (* (min value max-value) (/ 65535 max-value))))
-                      (set-chan relative-channel-number (msb val16))
-                      (set-chan (+ relative-channel-number 1) (lsb val16))))
+                    (when value
+                      (let ((val16 (* (min value max-value) (/ 65535 max-value))))
+                        (set-chan relative-channel-number (msb val16))
+                        (set-chan (+ relative-channel-number 1) (lsb val16)))))
 
                   (scanout-fixture fix get-attr set-chan set-chan-16bit))
 
