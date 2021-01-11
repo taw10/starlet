@@ -15,7 +15,9 @@
             scanout-freq
             make-empty-state
             register-state!
-            percent->dmxval
+            percent->dmxval8
+            percent->dmxval16
+            scale-to-range
             hirestime
             state-for-each
             get-attributes
@@ -216,8 +218,22 @@
   (inexact->exact
    (min 255 (max 0 (round a)))))
 
-(define (percent->dmxval val)
-  (round-dmx (/ (* 256 val) 100)))
+(define (scale-to-range val orig-range dest-range)
+
+  (define (range r)
+    (- (cadr r) (car r)))
+
+  (+ (car dest-range)
+     (* (range dest-range)
+        (/ (- val (car orig-range))
+           (range orig-range)))))
+
+(define (percent->dmxval8 val)
+  (round-dmx
+   (scale-to-range val '(0 100) '(0 255))))
+
+(define (percent->dmxval16 val)
+  (scale-to-range val '(0 100) '(0 65535)))
 
 (define (msb val)
   (round-dmx (euclidean-quotient val 256)))
@@ -386,11 +402,10 @@
                                value)))
 
                   ;; Helper function to set 16-bit DMX value
-                  (define (set-chan-16bit relative-channel-number value max-value)
+                  (define (set-chan-16bit relative-channel-number value)
                     (when value
-                      (let ((val16 (* (min value max-value) (/ 65535 max-value))))
-                        (set-chan relative-channel-number (msb val16))
-                        (set-chan (+ relative-channel-number 1) (lsb val16)))))
+                      (set-chan relative-channel-number (msb value))
+                      (set-chan (+ relative-channel-number 1) (lsb value))))
 
                   (scanout-fixture fix get-attr set-chan set-chan-16bit))
 

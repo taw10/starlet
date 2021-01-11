@@ -11,10 +11,10 @@
 
 
 (define-method (scanout-fixture (fixture <generic-dimmer>)
-                                get-attr set-chan set-chan-16bit)
+                                get-attr set-chan8 set-chan16)
 
   ;; Set DMX value for intensity
-  (set-chan 1 (percent->dmxval (get-attr 'intensity))))
+  (set-chan8 1 (percent->dmxval8 (get-attr 'intensity))))
 
 
 (define (chan->attr chan)
@@ -33,7 +33,7 @@
 
     (add-method!
      scanout-fixture
-     (method ((fix new-class) get-attr set-chan set-chan-16bit)
+     (method ((fix new-class) get-attr set-chan8 set-chan16)
              (for-each
 
               (lambda (chan offset)
@@ -41,13 +41,13 @@
                 (cond
 
                  ((eq? chan '0)
-                  (set-chan offset 0))
+                  (set-chan8 offset 0))
 
                  ((eq? chan 'FL)
-                  (set-chan offset 255))
+                  (set-chan8 offset 255))
 
-                 (else (set-chan offset
-                                 (percent->dmxval
+                 (else (set-chan8 offset
+                                 (percent->dmxval8
                                   (get-attr chan))))))
 
               chans (iota (length chans) 1))))
