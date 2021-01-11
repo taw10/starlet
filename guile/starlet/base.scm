@@ -385,29 +385,31 @@
       ;; Request all fixtures to output their DMX values
       (for-each (lambda (fix)
 
-                  ;; Helper function to get a value for this
-                  ;; fixture in the current state
-                  (define (get-attr attr-name)
-                    (value->number (state-find fix
-                                               (find-attr fix attr-name)
-                                               combined-state)
-                                   (hirestime)))
+                  (let ((univ (get-fixture-universe fix))
+                        (addr (get-fixture-addr fix)))
 
-                  ;; Helper function to set 8-bit DMX value
-                  (define (set-chan relative-channel-number value)
-                    (when value
-                      (set-dmx (get-fixture-universe fix)
-                               (+ (get-fixture-addr fix)
-                                  (- relative-channel-number 1))
-                               value)))
+                    ;; Helper function to get a value for this
+                    ;; fixture in the current state
+                    (define (get-attr attr-name)
+                      (value->number (state-find fix
+                                                 (find-attr fix attr-name)
+                                                 combined-state)
+                                     (hirestime)))
 
-                  ;; Helper function to set 16-bit DMX value
-                  (define (set-chan-16bit relative-channel-number value)
-                    (when value
-                      (set-chan relative-channel-number (msb value))
-                      (set-chan (+ relative-channel-number 1) (lsb value))))
+                    ;; Helper function to set 8-bit DMX value
+                    (define (set-chan relative-channel-number value)
+                      (when value
+                        (set-dmx univ
+                                 (+ addr relative-channel-number -1)
+                                 value)))
 
-                  (scanout-fixture fix get-attr set-chan set-chan-16bit))
+                    ;; Helper function to set 16-bit DMX value
+                    (define (set-chan-16bit relative-channel-number value)
+                      (when value
+                        (set-chan relative-channel-number (msb value))
+                        (set-chan (+ relative-channel-number 1) (lsb value))))
+
+                    (scanout-fixture fix get-attr set-chan set-chan-16bit)))
 
                 (atomic-box-ref patched-fixture-list))
 
