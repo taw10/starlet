@@ -1,7 +1,9 @@
 (define-module (starlet fixture-library robe)
   #:use-module (oop goops)
   #:use-module (starlet base)
-  #:export (<robe-dl7s-mode1>))
+  #:export (<robe-dl7s-mode1>
+            <robe-mmxwashbeam-mode1>
+            <robe-mmxspot-mode1>))
 
 
 (define-class <robe-dl7s-mode1> (<fixture>)
@@ -43,3 +45,122 @@
   (set-chan16 9 (percent->dmxval16 (get-attr 'cyan)))
   (set-chan16 11 (percent->dmxval16 (get-attr 'magenta)))
   (set-chan16 13 (percent->dmxval16 (get-attr 'yellow))))
+
+
+(define-class <robe-mmxwashbeam-mode1> (<fixture>)
+  (attributes
+   #:init-form (list
+                (attr-continuous 'intensity '(0 100) 0)
+                (attr-continuous 'pan '(0 540) 270)
+                (attr-continuous 'tilt '(0 270) 135)
+                (attr-boolean 'strobe #f)
+                (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
+                (attr-list 'gobo '(#f iris gobo1 gobo2 gobo3 gobo4 gobo5 gobo6) #f)
+                (attr-list 'beamtype '(beam beamwash beamwashext) 'beam)
+                (attr-continuous 'cyan '(0 100) 0)
+                (attr-continuous 'magenta '(0 100) 0)
+                (attr-continuous 'yellow '(0 100) 0)
+                (attr-continuous 'zoom '(0 100) 0)
+                (attr-continuous 'focus '(0 100) 0)
+                (attr-continuous 'barndoor-rot '(0 180) 90)
+                (attr-continuous 'barndoor1 '(0 180) 0)
+                (attr-continuous 'barndoor2 '(0 100) 0)
+                (attr-continuous 'barndoor3 '(0 100) 0)
+                (attr-continuous 'barndoor4 '(0 100) 0))))
+
+
+(define-method (scanout-fixture (fixture <robe-mmxwashbeam-mode1>)
+                                get-attr set-chan8 set-chan16)
+
+  (set-chan16 33 (percent->dmxval16 (get-attr 'intensity)))
+
+  (set-chan16 1 (scale-to-range (get-attr 'pan) '(0 540) '(0 65535)))
+  (set-chan16 3 (scale-to-range (get-attr 'tilt) '(0 270) '(0 65535)))
+
+  (set-chan8 32 (if (get-attr 'strobe) 70 255))
+
+  (set-chan16 19 (percent->dmxval16 (get-attr 'zoom)))
+  (set-chan16 21 (percent->dmxval16 (get-attr 'focus)))
+
+  ;;(set-chan 24 (number->dmxval (get-attr 'barndoor-rot) '(0 180)))
+  (set-chan8 25 (percent->dmxval8 (get-attr 'barndoor1)))
+  (set-chan8 26 (percent->dmxval8 (get-attr 'barndoor2)))
+  (set-chan8 27 (percent->dmxval8 (get-attr 'barndoor3)))
+  (set-chan8 28 (percent->dmxval8 (get-attr 'barndoor4)))
+
+  (set-chan8 7 (assv-ref '((#f . 0)
+                           (red . 18)
+                           (blue . 37)
+                           (orange . 55)
+                           (green . 73)
+                           (amber . 91)
+                           (uv . 110))
+                         (get-attr 'colwheel)))
+
+  (set-chan8 15 (assv-ref '((#f . 0)
+                            (iris . 5)
+                            (gobo1 . 10)
+                            (gobo2 . 14)
+                            (gobo3 . 18)
+                            (gobo4 . 22)
+                            (gobo5 . 26)
+                            (gobo6 . 30))
+                          (get-attr 'gobo)))
+
+  (set-chan8 18 (assv-ref '((beam . 0)
+                            (beamwash . 35)
+                            (beamwashext . 45))
+                          (get-attr 'beamtype)))
+
+  (set-chan8 9 (percent->dmxval8 (get-attr 'cyan)))
+  (set-chan8 10 (percent->dmxval8 (get-attr 'magenta)))
+  (set-chan8 11 (percent->dmxval8 (get-attr 'yellow))))
+
+
+(define-class <robe-mmxspot-mode1> (<fixture>)
+  (attributes
+   #:init-form (list
+                (attr-continuous 'intensity '(0 100) 0)
+                (attr-continuous 'pan '(0 540) 270)
+                (attr-continuous 'tilt '(0 270) 135)
+                (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
+                (attr-boolean 'prism #f)
+                (attr-continuous 'cyan '(0 100) 0)
+                (attr-continuous 'magenta '(0 100) 0)
+                (attr-continuous 'yellow '(0 100) 0)
+                (attr-continuous 'iris '(0 100) 0)
+                (attr-continuous 'zoom '(0 100) 0)
+                (attr-continuous 'focus '(0 100) 0)
+                (attr-continuous 'cto '(3200 6900) 6900))))
+
+
+(define-method (scanout-fixture (fixture <robe-mmxspot-mode1>)
+                                get-attr set-chan8 set-chan16)
+
+  (set-chan16 37 (percent->dmxval16 (get-attr 'intensity)))
+
+  (set-chan16 1 (scale-to-range (get-attr 'pan) '(0 540) '(0 65535)))
+
+  (set-chan16 3 (scale-to-range (get-attr 'tilt) '(0 270) '(0 65535)))
+
+  (set-chan16 28 (scale-to-range (get-attr 'iris) '(0 100) '(0 45567)))
+  (set-chan16 30 (percent->dmxval16 (get-attr 'zoom)))
+  (set-chan16 32 (percent->dmxval16 (get-attr 'focus)))
+
+  (set-chan8 36 (if (get-attr 'strobe) 70 255))
+
+  (set-chan8 25 (if (get-attr 'prism) 20 0))
+
+  (set-chan8 7 (assv-ref '((#f . 0)
+                           (red . 18)
+                           (blue . 37)
+                           (orange . 55)
+                           (green . 73)
+                           (amber . 91)
+                           (uv . 110))
+                         (get-attr 'colwheel)))
+
+  (set-chan8 9 (percent->dmxval8 (get-attr 'cyan)))
+  (set-chan8 10 (percent->dmxval8 (get-attr 'magenta)))
+  (set-chan8 11 (percent->dmxval8 (get-attr 'yellow)))
+  (set-chan8 12 (scale-to-range (get-attr 'cto) '(3200 6900) '(0 255))))
