@@ -45,7 +45,6 @@
             fixture?
             fixture-attribute?
             programmer-state
-            selection-state
             current-value))
 
 (define-class <fixture-attribute> (<object>)
@@ -135,9 +134,6 @@
 
 ;; The state used to build a new scene for recording
 (define programmer-state (make <starlet-state>))
-
-;; The state which holds the fixtures being altered right now
-(define selection-state (make <starlet-state>))
 
 (define (blackout state)
   (state-for-each
@@ -379,8 +375,7 @@
                              (merge-states-htp
                               (reverse   ;; Put "home" state last
                                (atomic-box-ref state-list)))
-                             programmer-state
-                             selection-state))))
+                             programmer-state))))
 
       ;; Request all fixtures to output their DMX values
       (for-each (lambda (fix)
@@ -457,8 +452,7 @@
                           (merge-states-htp
                            (reverse   ;; Put "home" state last
                             (atomic-box-ref state-list)))
-                          programmer-state
-                          selection-state)))
+                          programmer-state)))
         (attr (find-attr fix attr-name)))
     (value->number (state-find fix attr combined-state) 0)))
 

@@ -47,7 +47,7 @@
      #:cc-number cc-number
      #:func (lambda (prev-cc-val new-cc-value)
               (set! offset (+ offset (ccval->offset new-cc-value)))
-              (set-attr! selection-state
+              (set-attr! programmer-state
                          fix
                          attr
                          (+ old-val offset))))))
@@ -83,7 +83,7 @@
      #:func (lambda (prev-cc-val new-cc-value)
 
               (when congruent
-                (set-attr! selection-state
+                (set-attr! programmer-state
                            fix
                            attr
                            (ccval->percent new-cc-value)))
@@ -164,10 +164,6 @@
       (send-note-off leds))))
 
 
-  (add-state-to-state! merge-rule-replace
-                       selection-state
-                       programmer-state)
-  (clear-state! selection-state)
   (for-each remove-midi-callback! midi-callbacks)
 
   (for-each (lambda (control-spec)
