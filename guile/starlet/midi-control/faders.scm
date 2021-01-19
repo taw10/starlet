@@ -213,6 +213,13 @@
 ;; Stuff to clear up when we're done with selected fixtures
 (define midi-callbacks '())
 
+(define (flatten-sublists l)
+  (fold (lambda (a prev)
+          (if (list? a)
+              (append a prev)
+              (cons a prev)))
+        '() l))
+
 
 (define (sel . fixture-list)
 
@@ -235,5 +242,5 @@
     (set! midi-callbacks
       (map (lambda (control-spec)
              (midi-control-attr control-spec
-                                fixture-list))
+                                (flatten-sublists fixture-list)))
            control-map))))
