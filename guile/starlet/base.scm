@@ -42,6 +42,8 @@
             intensity?
             state-find
             get-attr-type
+            get-attr-range
+            find-attr
             fixture?
             fixture-attribute?
             programmer-state
