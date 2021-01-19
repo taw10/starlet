@@ -8,8 +8,9 @@
             sel))
 
 
-(define* (on-fader cc-number state
-                   #:key (channel #f))
+(define (state-on-fader cc-number
+                        channel
+                        state)
   (register-state!
    (lighting-state
     (state-for-each
@@ -28,6 +29,17 @@
                (at fix attr val)))
 
      state))))
+
+
+(define* (on-fader cc-number state
+                   #:key (channel #f))
+  (register-midi-cc-callback!
+   #:cc-number cc-number
+   #:func (lambda (old-val new-val)
+            (when (or (eqv? old-val 0)
+                      (and (not old-val)
+                           (< new-val 10)))
+              (state-on-fader cc-number channel state)))))
 
 
 (define (current-values fixture-list attr-name)
