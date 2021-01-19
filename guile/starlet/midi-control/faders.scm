@@ -4,13 +4,13 @@
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-1)
-  #:export (on-fader
+  #:export (state-on-fader
             sel))
 
 
-(define (state-on-fader cc-number
-                        channel
-                        state)
+(define (put-state-on-fader cc-number
+                            channel
+                            state)
   (register-state!
    (lighting-state
     (state-for-each
@@ -31,15 +31,15 @@
      state))))
 
 
-(define* (on-fader cc-number state
-                   #:key (channel #f))
+(define* (state-on-fader cc-number state
+                         #:key (channel #f))
   (register-midi-cc-callback!
    #:cc-number cc-number
    #:func (lambda (old-val new-val)
             (when (or (eqv? old-val 0)
                       (and (not old-val)
                            (< new-val 10)))
-              (state-on-fader cc-number channel state)))))
+              (put-state-on-fader cc-number channel state)))))
 
 
 (define (current-values fixture-list attr-name)
