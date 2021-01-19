@@ -125,12 +125,16 @@
                 (attr-continuous 'tilt '(0 270) 135)
                 (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
                 (attr-boolean 'prism #f)
+                (attr-list 'strobe '(#f #t random zap) #f)
+                (attr-continuous 'strobe-speed '(0 100) 50)
                 (attr-continuous 'cyan '(0 100) 0)
                 (attr-continuous 'magenta '(0 100) 0)
                 (attr-continuous 'yellow '(0 100) 0)
                 (attr-continuous 'iris '(0 100) 0)
                 (attr-continuous 'zoom '(0 100) 0)
                 (attr-continuous 'focus '(0 100) 0)
+                (attr-continuous 'hotspot '(0 100) 0)
+                (attr-continuous 'frost '(0 100) 0)
                 (attr-continuous 'cto '(3200 6900) 6900))))
 
 
@@ -147,7 +151,14 @@
   (set-chan16 30 (percent->dmxval16 (get-attr 'zoom)))
   (set-chan16 32 (percent->dmxval16 (get-attr 'focus)))
 
-  (set-chan8 36 (if (get-attr 'strobe) 70 255))
+  (set-chan8 36
+             (let ((strb (get-attr 'strobe))
+                   (spd (get-attr 'strobe-speed)))
+               (cond
+                ((eq? strb #t) (scale-to-range spd '(0 100) '(64 95)))
+                ((eq? strb 'random) (scale-to-range spd '(0 100) '(192 223)))
+                ((eq? strb 'zap) (scale-to-range spd '(0 100) '(160 191)))
+                (else 255))))
 
   (set-chan8 25 (if (get-attr 'prism) 20 0))
 
@@ -163,4 +174,6 @@
   (set-chan8 9 (percent->dmxval8 (get-attr 'cyan)))
   (set-chan8 10 (percent->dmxval8 (get-attr 'magenta)))
   (set-chan8 11 (percent->dmxval8 (get-attr 'yellow)))
-  (set-chan8 12 (scale-to-range (get-attr 'cto) '(3200 6900) '(0 255))))
+  (set-chan8 35 (percent->dmxval8 (get-attr 'hotspot)))
+  (set-chan8 12 (scale-to-range (get-attr 'cto) '(3200 6900) '(0 255)))
+  (set-chan8 27 (scale-to-range (get-attr 'frost) '(0 100) '(0 179))))
