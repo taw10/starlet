@@ -12,34 +12,34 @@
                             channel
                             state)
   (register-state!
-   (lighting-state
-    (state-for-each
-     (lambda (fix attr val)
-           (if (intensity? attr)
+    (lighting-state
+      (state-for-each
+        (lambda (fix attr val)
+          (if (intensity? attr)
 
-               ;; Intensity parameters get scaled according to the fader
-               (at fix attr (lambda (time)
-                              (let ((cc-val (get-cc-value cc-number
-                                                          #:channel channel)))
-                                (if cc-val
-                                  (* 0.01 val (ccval->percent cc-val))
-                                  0))))
+              ;; Intensity parameters get scaled according to the fader
+              (at fix attr (lambda (time)
+                             (let ((cc-val (get-cc-value cc-number
+                                                         #:channel channel)))
+                               (if cc-val
+                                   (* 0.01 val (ccval->percent cc-val))
+                                   0))))
 
-               ;; Non-intensity parameters just get set in our new state
-               (at fix attr val)))
+              ;; Non-intensity parameters just get set in our new state
+              (at fix attr val)))
 
-     state))))
+        state))))
 
 
 (define* (state-on-fader cc-number state
                          #:key (channel #f))
   (register-midi-cc-callback!
-   #:cc-number cc-number
-   #:func (lambda (old-val new-val)
-            (when (or (eqv? old-val 0)
-                      (and (not old-val)
-                           (< new-val 10)))
-              (put-state-on-fader cc-number channel state)))))
+    #:cc-number cc-number
+    #:func (lambda (old-val new-val)
+             (when (or (eqv? old-val 0)
+                       (and (not old-val)
+                            (< new-val 10)))
+               (put-state-on-fader cc-number channel state)))))
 
 
 (define (current-values fixture-list attr-name)
@@ -126,9 +126,9 @@
 
 (define (fader-space->congruence r)
   (inexact->exact
-   (round
-    (* 127 (/ (space-down r)
-              (space-span r))))))
+    (round
+      (* 127 (/ (space-down r)
+                (space-span r))))))
 
 
 (define (range-scale cspace)
@@ -237,10 +237,10 @@
 
   (define (led-off leds)
     (cond
-     ((list? leds)
-      (for-each send-note-off leds))
-     ((number? leds)
-      (send-note-off leds))))
+      ((list? leds)
+       (for-each send-note-off leds))
+      ((number? leds)
+       (send-note-off leds))))
 
   (for-each remove-midi-callback! midi-callbacks)
 
