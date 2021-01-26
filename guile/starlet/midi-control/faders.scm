@@ -48,9 +48,20 @@
        fixture-list))
 
 
+(define (partial f second-val)
+  (lambda (first-val)
+    (f first-val second-val)))
+
+
 (define (fixtures-with-attr fixture-list attr-name)
-  (filter (lambda (fix) (find-attr fix attr-name))
-          fixture-list))
+  (let ((attrs (map (partial find-attr attr-name) fixture-list)))
+    (fold (lambda (fix attr old)
+            (if attr
+              (cons (cons fix (car old))
+                    (cons attr (cdr old)))
+              old))
+          (cons '() '())
+          fixture-list attrs)))
 
 
 (define* (at-midi-jogwheel fixture-list attr cc-number
@@ -61,7 +72,7 @@
         -1
         1))
 
-  (let ((fixtures (fixtures-with-attr fixture-list attr)))
+  (let ((fixtures (car (fixtures-with-attr fixture-list attr))))
     (unless (null? fixtures)
 
       (when led
@@ -89,61 +100,60 @@
         (<= a val1))))
 
 
-;; Returns a pair of (low . high), which are the amount of fader
-;; space required in the downward and upward directions respectively
-(define (fader-space fixtures attr-name)
-
-  (define (attr-max-value attr)
-    (cadr (get-attr-range attr)))
-
-  (define (attr-min-value attr)
-    (car (get-attr-range attr)))
-
-  (define (distance-above-min fix attr)
-    (- (current-value fix (get-attr-name attr))
-       (attr-min-value attr)))
-
-  (define (distance-below-max fix attr)
-    (- (attr-max-value attr)
-       (current-value fix (get-attr-name attr))))
-
-  (fold (lambda (fix prev)
-          (let ((attr (find-attr fix attr-name)))
-            (cons (max (distance-above-min fix attr)
-                       (car prev))
-                  (max (distance-below-max fix attr)
-                       (cdr prev)))))
-        (cons 0 0)
-        fixtures))
+(define (mean vals)
+  (/ (fold + 0 vals)
+     (length vals)))
 
 
-(define space-down car)
-(define space-up cdr)
-
-(define (space-span r)
-  (+ (space-down r)
-     (space-up r)))
-
-(define (fader-space->congruence r)
-  (inexact->exact
-    (round
-      (* 127 (/ (space-down r)
-                (space-span r))))))
+(define (fader-congruent vals attrs)
+  (mean (map (lambda (val attr)
+               (scale-to-range val
+                               (get-attr-range attr)
+                               '(0 127)))
+             vals attrs)))
 
 
-(define (range-scale cspace)
-  (/ (+ (space-up cspace)
-        (space-down cspace))
-     127))
+(define (fader-up-gradients initial-vals
+                            attrs
+                            congruent-val)
+  (map (lambda (initial-val attr)
+         (let ((attr-max (cadr (get-attr-range attr))))
+           (if (< congruent-val 127)
+               (/ (- attr-max initial-val)
+                  (- 127 congruent-val))
+               0)))
+       initial-vals
+       attrs))
 
 
-(define (conv-fader orig-cc
-                    new-cc
-                    initial-val
-                    control-space)
-  (+ initial-val
-     (* (range-scale control-space)
-        (- new-cc orig-cc))))
+(define (fader-down-gradients initial-vals
+                              attrs
+                              congruent-val)
+  (map (lambda (initial-val attr)
+         (let ((attr-min (car (get-attr-range attr))))
+           (if (> congruent-val 0)
+               (/ (- initial-val attr-min)
+                  congruent-val)
+               0)))
+
+       initial-vals
+       attrs))
+
+
+(define (apply-fader cc-offset
+                     attr-name
+                     gradients
+                     initial-vals
+                     fixtures)
+  (for-each (lambda (fix initial-val gradient)
+              (set-attr! programmer-state
+                         fix
+                         attr-name
+                         (+ initial-val
+                            (* gradient cc-offset))))
+            fixtures
+            initial-vals
+            gradients))
 
 
 (define* (at-midi-fader fixture-list
@@ -153,43 +163,49 @@
                         (led-incongruent #f)
                         (led #f))
 
-  (let ((fixtures (fixtures-with-attr fixture-list attr-name)))
-    (unless (null? fixtures)
-      (let* ((control-space (fader-space fixtures attr-name))
-             (congruent-val (fader-space->congruence control-space))
+  (let ((fixtures-attrs (fixtures-with-attr fixture-list attr-name)))
+    (unless (null? (car fixtures-attrs))
+      (let* ((fixtures (car fixtures-attrs))
+             (attrs (cdr fixtures-attrs))
+             (initial-vals (current-values fixtures attr-name))
+             (congruent-val (fader-congruent initial-vals attrs))
+             (up-gradients (fader-up-gradients initial-vals attrs congruent-val))
+             (dn-gradients (fader-down-gradients initial-vals attrs congruent-val))
              (cc-val (get-cc-value cc-number))
-             (congruent (and cc-val (= cc-val congruent-val)))
-             (initial-vals (current-values fixture-list attr-name)))
+             (congruent (and cc-val (= cc-val congruent-val))))
 
         (if congruent
             (send-note-on led)
             (send-note-on led-incongruent))
 
         (register-midi-cc-callback!
-         #:cc-number cc-number
-         #:func (lambda (prev-cc-val new-cc-value)
+          #:cc-number cc-number
+          #:func (lambda (prev-cc-val new-cc-value)
 
-                  (when congruent
-                    (for-each (lambda (fix initial-val)
-                                (set-attr! programmer-state
-                                           fix
-                                           attr-name
-                                           (conv-fader congruent-val
-                                                       new-cc-value
-                                                       initial-val
-                                                       control-space)))
-                              fixture-list
-                              initial-vals))
+                   (if congruent
 
+                       (cond
+                         ((> new-cc-value congruent-val)
+                          (apply-fader (- new-cc-value congruent-val)
+                                       attr-name
+                                       up-gradients
+                                       initial-vals
+                                       fixtures))
+                         ((< new-cc-value congruent-val)
+                          (apply-fader (- new-cc-value congruent-val)
+                                       attr-name
+                                       dn-gradients
+                                       initial-vals
+                                       fixtures)))
 
-                  (when (or (and (not prev-cc-val)
-                                 (= new-cc-value congruent-val))
-                            (and prev-cc-val new-cc-value
-                                 (in-range congruent-val
-                                           prev-cc-val
-                                           new-cc-value)))
-                    (set! congruent #t)
-                    (send-note-on led))))))))
+                       (when (or (and (not prev-cc-val)
+                                      (= new-cc-value congruent-val))
+                                 (and prev-cc-val new-cc-value
+                                      (in-range congruent-val
+                                                prev-cc-val
+                                                new-cc-value)))
+                         (set! congruent #t)
+                         (send-note-on led)))))))))
 
 
 (define control-map
@@ -252,7 +268,5 @@
 
   (when (car fixture-list)
     (set! midi-callbacks
-      (map (lambda (control-spec)
-             (midi-control-attr control-spec
-                                (flatten-sublists fixture-list)))
+      (map (partial midi-control-attr (flatten-sublists fixture-list))
            control-map))))
