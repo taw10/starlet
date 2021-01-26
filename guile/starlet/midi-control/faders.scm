@@ -4,8 +4,7 @@
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-1)
-  #:export (state-on-fader
-            sel))
+  #:export (state-on-fader))
 
 
 (define (put-state-on-fader cc-number
@@ -241,15 +240,8 @@
 ;; Stuff to clear up when we're done with selected fixtures
 (define midi-callbacks '())
 
-(define (flatten-sublists l)
-  (fold (lambda (a prev)
-          (if (list? a)
-              (append a prev)
-              (cons a prev)))
-        '() l))
 
-
-(define (sel . fixture-list)
+(define (select-midi fixture-list)
 
   (define (led-off leds)
     (cond
@@ -268,5 +260,8 @@
 
   (when (car fixture-list)
     (set! midi-callbacks
-      (map (partial midi-control-attr (flatten-sublists fixture-list))
+      (map (partial midi-control-attr fixture-list)
            control-map))))
+
+
+(add-hook! selection-hook select-midi)

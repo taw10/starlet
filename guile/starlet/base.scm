@@ -46,6 +46,8 @@
             find-attr
             fixture?
             fixture-attribute?
+            selection-hook
+            sel
             programmer-state
             current-value))
 
@@ -510,3 +512,22 @@
     ;; Set specified attribute
     ((_ fixture attr-name value)
      (set-attr! (current-state) fixture attr-name value))))
+
+
+(define selection-hook (make-hook 1))
+
+(define selection '())
+
+
+(define (flatten-sublists l)
+  (fold (lambda (a prev)
+          (if (list? a)
+              (append a prev)
+              (cons a prev)))
+        '() l))
+
+
+(define (sel . fixture-list)
+  (set! selection
+    (flatten-sublists fixture-list))
+  (run-hook selection-hook selection))

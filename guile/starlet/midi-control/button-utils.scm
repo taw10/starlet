@@ -1,6 +1,6 @@
 (define-module (starlet midi-control button-utils)
   #:use-module (starlet midi-control base)
-  #:use-module (starlet midi-control faders)
+  #:use-module (starlet base)
   #:use-module (starlet playback)
   #:export (make-go-button
             make-stop-button
