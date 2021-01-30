@@ -51,7 +51,8 @@
             selection-hook
             sel
             programmer-state
-            current-value))
+            current-value
+            print-state))
 
 (define-class <fixture-attribute> (<object>)
   (name
@@ -564,3 +565,7 @@
   (set! selection
     (flatten-sublists fixture-list))
   (run-hook selection-hook selection))
+
+
+(define (print-state a)
+  (print-hash-table (get-state-hash-table a)))
