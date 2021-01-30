@@ -1,6 +1,7 @@
 (define-module (starlet midi-control faders)
   #:use-module (starlet midi-control base)
   #:use-module (starlet base)
+  #:use-module (starlet utils)
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-1)
@@ -47,11 +48,6 @@
        fixture-list))
 
 
-(define (partial f second-val)
-  (lambda (first-val)
-    (f first-val second-val)))
-
-
 (define (fixtures-with-attr fixture-list attr-name)
   (let ((attrs (map (partial find-attr attr-name) fixture-list)))
     (fold (lambda (fix attr old)
@@ -90,18 +86,6 @@
                                          (+ old-val offset)))
                             fixtures old-vals)))))))
 
-
-(define (in-range a val1 val2)
-  (or
-   (and (>= a val1)
-        (<= a val2))
-   (and (>= a val2)
-        (<= a val1))))
-
-
-(define (mean vals)
-  (/ (fold + 0 vals)
-     (length vals)))
 
 
 (define (fader-congruent vals attrs)

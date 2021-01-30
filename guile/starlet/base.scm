@@ -1,4 +1,5 @@
 (define-module (starlet base)
+  #:use-module (starlet utils)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
@@ -511,12 +512,6 @@
                     (values output1 output2 others))))
 
 
-(define (more-than-one a)
-  (if (nil? a)
-      #f
-      (not (nil? (cdr a)))))
-
-
 (define (attr-or-symbol? a)
   (or (fixture-attribute? a)
       (symbol? a)))
@@ -563,18 +558,6 @@
 (define selection-hook (make-hook 1))
 
 (define selection '())
-
-
-(define (flatten-sublists l)
-
-  (define (listify a)
-    (if (list? a)
-        a
-        (list a)))
-
-  (fold (lambda (a prev)
-          (append prev (listify a)))
-        '() l))
 
 
 (define (sel . fixture-list)
