@@ -2,6 +2,7 @@
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
+  #:use-module (ice-9 receive)
   #:use-module (web client)
   #:use-module (web http)
   #:use-module (web uri)
@@ -502,16 +503,61 @@
        (current-state)))))
 
 
-(define-syntax at
-  (syntax-rules ()
+(define (partition3 pred1 pred2 input)
+  (receive (output1 others)
+           (partition pred1 input)
+           (receive (output2 others)
+                    (partition pred2 others)
+                    (values output1 output2 others))))
 
-    ;; No attribute named -> set intensity
-    ((_ fixture value)
-     (set-attr! (current-state) fixture 'intensity value))
 
-    ;; Set specified attribute
-    ((_ fixture attr-name value)
-     (set-attr! (current-state) fixture attr-name value))))
+(define (more-than-one a)
+  (if (nil? a)
+      #f
+      (not (nil? (cdr a)))))
+
+
+(define (attr-or-symbol? a)
+  (or (fixture-attribute? a)
+      (symbol? a)))
+
+
+(define (set-fixtures fixtures attr-name value)
+  (for-each (lambda (fix)
+              (set-attr! (current-state)
+                         fix
+                         (car attr-name)
+                         (car value)))
+            fixtures))
+
+
+;; (at <fixtures/groups> [<attribute>] <level> [<attribute> <level>...])
+;; (at fix1 100)                      <-- Set intensity of single fixture
+;; (at fix1 'intensity 100)           <-- Explicit attribute name
+;; (at fix1 fix2 100)                 <-- Multiple fixtures
+;; (at fix1 fix2 'pan 36)             <-- Multiple fixtures + explicit attribute
+;; (at group1 fix1 'intensity 100)    <-- Groups can be used instead of fixtures
+;; (at fix1 100 'pan 36)              <-- Set multiple attributes
+;; NB Can't set multiple fixtures and attributes: (at fix1 'pan 35 fix2 'tilt 22)
+
+(define (at . args)
+  (receive (fixtures attr-name value)
+           (partition3 fixture? attr-or-symbol? (flatten-sublists args))
+           (cond
+             ((nil? value)
+              (error "at: Value not specified"))
+             ((or (more-than-one value)
+                  (more-than-one attr-name))
+              (error "at: Only one attribute or value name"))
+             ((and (nil? fixtures)
+                   (nil? attr-name))
+              (set-fixtures selection '(intensity) value))
+             ((nil? attr-name)
+              (set-fixtures fixtures '(intensity) value))
+             ((nil? fixtures)
+              (set-fixtures selection attr-name value))
+             (else
+               (set-fixtures fixtures attr-name value)))))
 
 
 (define selection-hook (make-hook 1))
