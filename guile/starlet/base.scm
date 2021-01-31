@@ -10,51 +10,57 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:export (<fixture>
-            <fixture-attribute>
-            <starlet-state>
-            start-ola-output
             patch-fixture!
-            scanout-freq
-            make-empty-state
-            register-state!
-            percent->dmxval8
-            percent->dmxval16
-            scale-to-range
-            hirestime
-            state-for-each
-            state-map
             get-attributes
-            set-attr!
-            get-attr-name
-            value->number
-            merge-states-htp
-            get-state-hash-table
-            set-state-hash-table!
-            add-state-to-state!
+            get-fixture-name
+            find-attr
+            fixture?
             scanout-fixture
+
+            <fixture-attribute>
             attr-continuous
             attr-boolean
             attr-list
-            current-state
-            lighting-state
-            apply-state
-            at
-            blackout
-            clear-state!
-            home-val
-            intensity?
-            state-find
             get-attr-type
             get-attr-range
-            find-attr
-            fixture?
+            get-attr-name
             fixture-attribute?
-            get-fixture-name
-            selection-hook
-            sel
+            intensity?
+            home-val
+
+            <starlet-state>
+            make-empty-state
+            register-state!
+            state-for-each
+            state-map
+            get-state-hash-table
+            set-state-hash-table!
+            add-state-to-state!
+            clear-state!
+            print-state
+            set-attr!
+            state-find
+            merge-states-htp
+            current-state
+            at
+            apply-state
+            lighting-state
+            blackout
+
+            start-ola-output
+            scanout-freq
+            percent->dmxval8
+            percent->dmxval16
+            hirestime
+            value->number
+
             programmer-state
+            sel
             current-value
-            print-state))
+            selection-hook
+
+            scale-to-range))
+
 
 (define-class <fixture-attribute> (<object>)
   (name
