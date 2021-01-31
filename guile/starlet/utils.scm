@@ -1,7 +1,6 @@
 (define-module (starlet utils)
   #:use-module (srfi srfi-1)
-  #:export (return-unspecified
-            print-hash-table
+  #:export (print-hash-table
             copy-hash-table
             partial
             in-range
@@ -9,9 +8,6 @@
             flatten-sublists
             more-than-one))
 
-
-(define (return-unspecified)
-  (if #f 1))
 
 (define (print-hash-table ht)
   (hash-for-each (lambda (key value)

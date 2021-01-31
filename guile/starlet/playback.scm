@@ -163,20 +163,20 @@
                                           val)))
      pb))
 
-  (return-unspecified))
+  *unspecified*)
 
 
 (define (go! pb)
   (let ((cue-index (get-next-cue-index pb)))
     (run-cue! pb cue-index))
-  (return-unspecified))
+  *unspecified*)
 
 
 (define (run-cue-number! pb cue-number)
   (let ((cue-index (cue-number-to-index (get-playback-cue-list pb)
                                         cue-number)))
     (run-cue! pb cue-index))
-  (return-unspecified))
+  *unspecified*)
 
 
 (define (run-cue! pb cue-index)
@@ -185,7 +185,7 @@
       (run-cue-index! pb cue-list cue-index (hirestime))
       (set-next-cue-index! pb (+ cue-index 1))))
       ;; else at the end of the cue list
-  (return-unspecified))
+  *unspecified*)
 
 
 (define (fade-func start-val end-val fade-time delay-time start-time current-time)
