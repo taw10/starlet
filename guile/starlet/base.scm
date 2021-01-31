@@ -22,6 +22,7 @@
             scale-to-range
             hirestime
             state-for-each
+            state-map
             get-attributes
             set-attr!
             get-attr-name
@@ -48,6 +49,7 @@
             find-attr
             fixture?
             fixture-attribute?
+            get-fixture-name
             selection-hook
             sel
             programmer-state
@@ -267,6 +269,13 @@
 (define (state-find fix attr state)
   (hash-ref (get-state-hash-table state)
             (cons fix attr)))
+
+(define (state-map func state)
+  (hash-map->list (lambda (key value)
+                    (func (car key)
+                          (cdr key)
+                          value))
+                  (get-state-hash-table state)))
 
 
 ;; Add the contents of state "new" to "combined-state"
