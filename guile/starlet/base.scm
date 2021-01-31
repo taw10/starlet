@@ -78,6 +78,11 @@
 
 
 (define-class <fixture> (<object>)
+  (name
+    #:init-form (error "Fixture name must be specified")
+    #:init-keyword #:name
+    #:getter get-fixture-name)
+
   (universe
     #:init-value #f
     #:init-keyword #:uni
@@ -201,19 +206,26 @@
 
 
 ;; Patch a new fixture
-(define* (patch-fixture! class
-                         start-addr
-                         #:key (universe 0) (friendly-name "Fixture"))
+(define* (patch-real name
+                     class
+                     start-addr
+                     #:key (universe 0) (friendly-name "Fixture"))
   (let ((new-fixture (make class
-                       #:sa start-addr
-                       #:uni universe
-                       #:friendly-name friendly-name)))
+                           #:name name
+                           #:sa start-addr
+                           #:uni universe
+                           #:friendly-name friendly-name)))
     (home-all! home-state new-fixture)
     (atomic-box-set! patched-fixture-list
                      (cons new-fixture
                            (atomic-box-ref patched-fixture-list)))
     new-fixture))
 
+
+(define-syntax patch-fixture!
+  (syntax-rules ()
+    ((_ name stuff ...)
+     (define name (patch-real (quote name) stuff ...)))))
 
 
 ;; Helper functions for scanout functions
