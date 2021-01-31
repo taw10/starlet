@@ -56,7 +56,7 @@
 
 (define-class <fixture-attribute> (<object>)
   (name
-    #:init-value 'unnamed-attribute
+    #:init-form (error "Attribute name must be specified")
     #:init-keyword #:name
     #:getter get-attr-name)
 
