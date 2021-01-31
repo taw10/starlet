@@ -6,8 +6,8 @@
 
 (define-class <generic-dimmer> (<fixture>)
   (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0))))
+    #:init-form (list
+                  (attr-continuous 'intensity '(0 100) 0))))
 
 
 (define-method (scanout-fixture (fixture <generic-dimmer>)
