@@ -38,6 +38,7 @@
             add-state-to-state!
             clear-state!
             print-state
+            state-source
             set-attr!
             state-find
             merge-states-htp
@@ -596,3 +597,13 @@
 
 (define (print-state a)
   (print-hash-table (get-state-hash-table a)))
+
+
+(define (state-source a)
+  (cons 'begin
+        (state-map (lambda (fix attr val)
+                     (list 'at
+                           (get-fixture-name fix)
+                           (list 'quote (get-attr-name attr))
+                           val))
+                   a)))
