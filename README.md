@@ -83,12 +83,13 @@ Mult-part cues are supported.  Simply specify the fade parameters and which fixt
 Everything from a simple dimmers to wacky multi-parameter fixtures are supported.  New fixture classes can be defined using some simple Scheme code.  Patching fixtures looks like this:
 
 ```
-(define dimmer1 (patch-fixture! <generic-dimmer> 1))
-(define dimmer2 (patch-fixture! <generic-dimmer> 3))
-(define balcony-backlight1 (patch-fixture! <generic-dimmer> 18))
-(define balcony-backlight2 (patch-fixture! <generic-dimmer> 19))
-(define footlights (patch-fixture! <generic-dimmer> 23))
-(define moving-light (patch-fixture! <robe-dl7s-mode1> 59))
+(patch-fixture! dimmer1 <generic-dimmer> 1))
+(patch-fixture! dimmer2 <generic-dimmer> 3))
+(patch-fixture! balcony-backlight1 <generic-dimmer> 18))
+(patch-fixture! balcony-backlight2 <generic-dimmer> 19))
+(patch-fixture! footlights <generic-dimmer> 23))
+;; Universe numbering starts at zero, matching OLA
+(patch-fixture! moving-light <robe-dl7s-mode1> 1 #:universe 4))
 ```
 
 Note that the names of the fixtures are just normal Scheme variables.  They can be anything you like, and you're encouraged to make the names more descriptive than logical channel numbers, where appropriate.
