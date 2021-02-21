@@ -4,6 +4,7 @@
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 receive)
+  #:use-module (ice-9 pretty-print)
   #:use-module (web client)
   #:use-module (web http)
   #:use-module (web uri)
@@ -605,7 +606,7 @@ pre-existing contents."
 
 
 (define (print-state a)
-  (print-hash-table (get-state-hash-table a)))
+  (pretty-print (state-source a)))
 
 
 (define (state-source a)
