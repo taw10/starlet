@@ -45,6 +45,7 @@
             current-state
             at
             apply-state
+            show-state
             lighting-state
             blackout
 
@@ -304,6 +305,14 @@
 
 
 (define (apply-state state)
+  "Apply the contents of 'state' to the current state, on top of the \
+pre-existing contents."
+  (add-state-to-state! merge-rule-ltp state (current-state)))
+
+
+(define (show-state state)
+  "Clear the current state, and apply the contents of 'state'"
+  (clear-state! (current-state))
   (add-state-to-state! merge-rule-ltp state (current-state)))
 
 
