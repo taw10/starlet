@@ -38,6 +38,27 @@
    #:init-keyword #:func
    #:getter get-callback-func))
 
+(define (find-cc-callbacks channel cc-number)
+  (filter (lambda (a)
+            (and (eq? cc-number (get-note-or-cc-number a))
+                 (eq? channel (get-channel a))
+                 (eq? 'cc (get-type a))))
+          (atomic-box-ref callback-list)))
+
+
+(define (find-note-callbacks channel note-number)
+  (filter (lambda (a)
+            (and (eq? note-number (get-note-or-cc-number a))
+                 (eq? channel (get-channel a))
+                 (eq? 'note (get-type a))))
+          (atomic-box-ref callback-list)))
+
+
+(define (remove-midi-callback! callback)
+  (atomic-box-set! callback-list
+                   (delq callback
+                         (atomic-box-ref callback-list))))
+
 
 (define (register-midi-callback! type
                                  channel
@@ -55,20 +76,21 @@
 
 
 (define* (register-midi-note-callback!
-          #:key (channel #f) (note-number 1) (func #f))
+          #:key (channel #f) (note-number 1) (func #f) (unique #t))
+  (when unique
+    (for-each remove-midi-callback! (find-note-callbacks
+                                      (if channel channel default-channel)
+                                      note-number)))
   (register-midi-callback! 'note channel note-number func))
 
 
 (define* (register-midi-cc-callback!
-          #:key (channel #f) (cc-number 1) (func #f))
+          #:key (channel #f) (cc-number 1) (func #f) (unique #t))
+  (when unique
+    (for-each remove-midi-callback! (find-cc-callbacks
+                                      (if channel channel default-channel)
+                                      cc-number)))
   (register-midi-callback! 'cc channel cc-number func))
-
-
-(define (remove-midi-callback! callback)
-  (atomic-box-set! callback-list
-                   (remove (lambda (a)
-                             (eq? callback a))
-                           (atomic-box-ref callback-list))))
 
 
 (define enqueue-midi-bytes!
@@ -117,11 +139,7 @@
 
 (define (check-cc-callbacks channel cc-number old-val new-val)
   (for-each (lambda (a) ((get-callback-func a) old-val new-val))
-            (filter (lambda (a)
-                      (and (eq? cc-number (get-note-or-cc-number a))
-                           (eq? channel (get-channel a))
-                           (eq? 'cc (get-type a))))
-                    (atomic-box-ref callback-list))))
+            (find-cc-callbacks channel cc-number)))
 
 
 (define (handle-cc-change! channel cc-number value)
@@ -144,11 +162,7 @@
 
 (define (check-note-callbacks channel note-number)
   (for-each (lambda (a) ((get-callback-func a)))
-            (filter (lambda (a)
-                      (and (eq? note-number (get-note-or-cc-number a))
-                           (eq? channel (get-channel a))
-                           (eq? 'note (get-type a))))
-                    (atomic-box-ref callback-list))))
+            (find-note-callbacks channel note-number)))
 
 
 (define (ccval->percent n)
