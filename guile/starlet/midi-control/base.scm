@@ -2,6 +2,7 @@
   #:use-module (oop goops)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 threads)
+  #:use-module (ice-9 exceptions)
   #:use-module (ice-9 binary-ports)
   #:use-module (srfi srfi-1)
   #:export (start-midi-control
@@ -175,52 +176,74 @@
 
 (define default-channel 0)
 
+(define (start-midi-control-real device-name channel)
+  (let ((midi-port (open-file device-name "r+0b")))
+
+    ;; Read thread
+    (begin-thread
+      (with-exception-handler
+        (lambda (exn)
+          (backtrace)
+          (raise-exception exn))
+        (lambda ()
+          (let again ()
+
+            (let* ((status-byte (get-u8 midi-port))
+                   (channel (bit-extract status-byte 0 4))
+                   (command (bit-extract status-byte 4 8)))
+
+              (case command
+
+                ;; Note on
+                ((9) (let* ((note (get-u8 midi-port))
+                            (vel (get-u8 midi-port)))
+                       (check-note-callbacks channel note)))
+
+                ;; Control value
+                ((11) (let* ((cc-number (get-u8 midi-port))
+                             (value (get-u8 midi-port)))
+                        (handle-cc-change! channel
+                                           cc-number
+                                           value))))
+
+              (yield)
+              (again))))))
+
+    ;; Write thread
+    (begin-thread
+      (let again ()
+        (let ((bytes-to-send (atomic-box-swap! send-queue '())))
+          (for-each (lambda (a)
+                      (put-u8 midi-port a))
+                    bytes-to-send)
+          (usleep 1000)
+          (again))))
+
+    (all-notes-off! default-channel)))
+
+
+(define (start-dummy-midi)
+  (display "Using dummy MIDI control\n")
+  (begin-thread
+    (let again ()
+      (let ((bytes-to-send (atomic-box-swap! send-queue '())))
+        (usleep 1000)
+        (again)))))
+
 (define* (start-midi-control device-name
                              #:key (channel #f))
 
   (when channel
     (set! default-channel channel))
 
-  (let ((midi-port (open-file device-name "r+0b")))
+  (with-exception-handler
 
-    ;; Read thread
-    (begin-thread
-     (with-exception-handler
-         (lambda (exn)
-           (backtrace)
-           (raise-exception exn))
-       (lambda ()
-         (let again ()
+    (lambda (exn)
+      (format #t "Couldn't start MIDI ~a\n"
+              (exception-irritants exn))
+      (start-dummy-midi))
 
-           (let* ((status-byte (get-u8 midi-port))
-                  (channel (bit-extract status-byte 0 4))
-                  (command (bit-extract status-byte 4 8)))
+    (lambda ()
+      (start-midi-control-real device-name channel))
 
-             (case command
-
-               ;; Note on
-               ((9) (let* ((note (get-u8 midi-port))
-                           (vel (get-u8 midi-port)))
-                      (check-note-callbacks channel note)))
-
-               ;; Control value
-               ((11) (let* ((cc-number (get-u8 midi-port))
-                            (value (get-u8 midi-port)))
-                       (handle-cc-change! channel
-                                          cc-number
-                                          value))))
-
-             (yield)
-             (again))))))
-
-    ;; Write thread
-    (begin-thread
-     (let again ()
-       (let ((bytes-to-send (atomic-box-swap! send-queue '())))
-         (for-each (lambda (a)
-                     (put-u8 midi-port a))
-                   bytes-to-send)
-         (usleep 1000)
-         (again))))
-
-    (all-notes-off! default-channel)))
+    #:unwind? #t))
