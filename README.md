@@ -24,7 +24,7 @@ With Starlet, a cue list looks like this:
         #:down-delay 3)
 
    (cue 3
-        (cue-state (blackout))
+        (cue-state #f)  ; blackout
         #:fade-down 2
 ```
 
