@@ -470,23 +470,28 @@ pre-existing contents."
           (scanout-loop ola-uri ola-socket (hirestime) 0))
         (scanout-loop ola-uri ola-socket start-time (+ count 1)))))
 
+(define ola-thread #f)
 
 (define (start-ola-output)
-  (let* ((ola-uri (build-uri 'http
-                             #:host "127.0.0.1"
-                             #:port 9090
-                             #:path "/set_dmx"))
-         (ola-socket (open-socket-for-uri ola-uri))
-         (start-time (hirestime)))
+  (unless ola-thread
+    (let* ((ola-uri (build-uri 'http
+                               #:host "127.0.0.1"
+                               #:port 9090
+                               #:path "/set_dmx"))
+           (ola-socket (open-socket-for-uri ola-uri))
+           (start-time (hirestime)))
 
-    (begin-thread
-     (with-exception-handler
-         (lambda (exn)
-           (backtrace)
-           (raise-exception exn))
-       (lambda ()
-         (scanout-loop ola-uri ola-socket start-time 0))
-       #:unwind? #f))))
+      (set! ola-thread
+        (begin-thread
+          (with-exception-handler
+            (lambda (exn)
+              (display "Error in OLA output thread:\n")
+              (set! ola-thread #f)
+              (backtrace)
+              (raise-exception exn))
+            (lambda ()
+              (scanout-loop ola-uri ola-socket start-time 0))
+            #:unwind? #f))))))
 
 
 
