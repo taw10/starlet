@@ -222,28 +222,38 @@
     (all-notes-off! default-channel)))
 
 
+(define midi-running #f)
+
 (define (start-dummy-midi)
   (display "Using dummy MIDI control\n")
   (begin-thread
     (let again ()
       (let ((bytes-to-send (atomic-box-swap! send-queue '())))
         (usleep 1000)
-        (again)))))
+        (again))))
+  (set! midi-running #t))
 
 (define* (start-midi-control device-name
                              #:key (channel #f))
 
-  (when channel
-    (set! default-channel channel))
 
-  (with-exception-handler
+  (if midi-running
 
-    (lambda (exn)
-      (format #t "Couldn't start MIDI ~a\n"
-              (exception-irritants exn))
-      (start-dummy-midi))
+      (format #t "MIDI already running\n")
 
-    (lambda ()
-      (start-midi-control-real device-name channel))
+      (begin
+        (when channel
+          (set! default-channel channel))
 
-    #:unwind? #t))
+        (with-exception-handler
+
+          (lambda (exn)
+            (format #t "Couldn't start MIDI ~a\n"
+                    (exception-irritants exn))
+            (start-dummy-midi))
+
+          (lambda ()
+            (start-midi-control-real device-name channel)
+            (set! midi-running #t))
+
+          #:unwind? #t))))
