@@ -148,12 +148,21 @@
              value))
 
 
-;; List of fixtures
-(define patched-fixture-list (make-atomic-box '()))
+(define make-fixture-home-pair cons)
+(define get-fixture-list car)
+(define get-home-state cdr)
 
-;; Basic state which holds everything at "home" unless
-;; commanded otherwise
-(define home-state (make <starlet-state>))
+;; List of fixtures and home state (must remain consistent)
+(define fixtures
+  (make-atomic-box
+    (make-fixture-home-pair
+
+      ;; Actual list of fixtures
+      '()
+
+      ;; Basic state which holds everything at "home" unless commanded otherwise
+      (make <starlet-state>))))
+
 
 ;; The state used to build a new scene for recording
 (define programmer-state (make <starlet-state>))
@@ -169,7 +178,7 @@
   (make <starlet-state>))
 
 ;; List of states being scanned out
-(define state-list (make-atomic-box (list home-state)))
+(define state-list (make-atomic-box '()))
 
 
 ;; Set a single attribute to home position
@@ -180,16 +189,31 @@
                  (get-attr-home-value attr)))
 
 
-;; Set all attributes of a fixture to home position
-(define (home-all! state fix)
-  (for-each (lambda (attr)
-              (home-attr! state fix attr))
-            (slot-ref fix 'attributes)))
+(define (copy-state state)
+  (let ((new-state (make-empty-state)))
+    (state-for-each (lambda (fix attr val)
+                      (set-in-state! new-state
+                                     fix
+                                     attr
+                                     val))
+                    state)
+    new-state))
+
+
+;; Return a new state with all attributes of 'fix' set to home values
+(define (home-all state fix)
+  (let ((new-home-state (copy-state state)))
+    (for-each (lambda (attr)
+                (home-attr! new-home-state fix attr))
+              (slot-ref fix 'attributes))
+    new-home-state))
+
 
 (define (home-val fix attr)
   (state-find fix
               attr
-              home-state))
+              (get-home-state
+                (atomic-box-ref fixtures))))
 
 (define (intensity? a)
   (eq? 'intensity (get-attr-name a)))
@@ -225,11 +249,14 @@
                            #:name name
                            #:sa start-addr
                            #:uni universe
-                           #:friendly-name friendly-name)))
-    (home-all! home-state new-fixture)
-    (atomic-box-set! patched-fixture-list
-                     (cons new-fixture
-                           (atomic-box-ref patched-fixture-list)))
+                           #:friendly-name friendly-name))
+        (fixture-home-pair (atomic-box-ref fixtures)))
+    (atomic-box-set! fixtures
+                     (make-fixture-home-pair
+                       (cons new-fixture
+                             (get-fixture-list fixture-home-pair))
+                       (home-all (get-home-state fixture-home-pair)
+                                 new-fixture)))
     new-fixture))
 
 
@@ -415,12 +442,13 @@ pre-existing contents."
                      (round-dmx value)))
 
     ;; Make a combined state
-    (let* ((combined-state (merge-states-ltp
-                            (list
-                             (merge-states-htp
-                              (reverse   ;; Put "home" state last
-                               (atomic-box-ref state-list)))
-                             programmer-state))))
+    (let* ((fixture-home-pair (atomic-box-ref fixtures))
+           (combined-state (merge-states-ltp
+                             (list
+                               (get-home-state fixture-home-pair)
+                               (merge-states-htp
+                                 (atomic-box-ref state-list))
+                               programmer-state))))
 
       ;; Request all fixtures to output their DMX values
       (for-each (lambda (fix)
@@ -451,7 +479,7 @@ pre-existing contents."
 
                     (scanout-fixture fix get-attr set-chan set-chan-16bit)))
 
-                (atomic-box-ref patched-fixture-list))
+                (get-fixture-list fixture-home-pair))
 
 
       ;; Send everything to OLA
@@ -497,13 +525,14 @@ pre-existing contents."
 
 (define (current-value fix attr-name)
   ;; FIXME: Only need to track one fixture through the state stack
-  (let ((combined-state (merge-states-ltp
-                         (list
-                          (merge-states-htp
-                           (reverse   ;; Put "home" state last
-                            (atomic-box-ref state-list)))
-                          programmer-state)))
-        (attr (find-attr fix attr-name)))
+  (let* ((fixture-home-pair (atomic-box-ref fixtures))
+         (combined-state (merge-states-ltp
+                           (list
+                             (get-home-state fixture-home-pair)
+                             (merge-states-htp
+                               (atomic-box-ref state-list))
+                             programmer-state)))
+         (attr (find-attr fix attr-name)))
     (value->number (state-find fix attr combined-state) 0)))
 
 
