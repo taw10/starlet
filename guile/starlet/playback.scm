@@ -149,8 +149,8 @@
   (let* ((cue-list (get-playback-cue-list pb))
          (cue-index (cue-number-to-index cue-list (qnum cue-number))))
     (set-state-hash-table! pb (copy-hash-table
-                               (get-state-hash-table
-                                (realize-state cue-list cue-index))))
+                                (get-state-hash-table
+                                  (realize-state cue-list cue-index))))
     (set-next-cue-index! pb (+ cue-index 1))
 
     ;; Wipe out the old fade params
@@ -320,7 +320,6 @@
 
 
 (define (set-fade pb fix attr fade-record)
-
   (with-fade-times
    (get-fade-record-fade-times fade-record)
    (let ((prev-val (fade-previous fade-record))
