@@ -52,14 +52,18 @@
                    attr-time
                    up-delay
                    down-delay
-                   attr-delay)
+                   attr-delay
+                   preset-time
+                   preset-delay)
   fade-times?
   (up-time      get-fade-up-time)
   (down-time    get-fade-down-time)
   (attr-time    get-fade-attr-time)
   (up-delay     get-fade-up-delay)
   (down-delay   get-fade-down-delay)
-  (attr-delay   get-fade-attr-delay))
+  (attr-delay   get-fade-attr-delay)
+  (preset-time  get-fade-preset-time)
+  (preset-delay get-fade-preset-delay))
 
 
 ;; Macro to avoid a profusion of (get-fade-xxx-time fade-times)
@@ -72,13 +76,17 @@
                      (attr-time (datum->syntax x 'attr-time))
                      (up-delay (datum->syntax x 'up-delay))
                      (down-delay (datum->syntax x 'down-delay))
-                     (attr-delay (datum->syntax x 'attr-delay)))
+                     (attr-delay (datum->syntax x 'attr-delay))
+                     (preset-time (datum->syntax x 'preset-time))
+                     (preset-delay (datum->syntax x 'preset-delay)))
          #'(let ((up-time (get-fade-up-time fade-times))
                  (down-time (get-fade-down-time fade-times))
                  (attr-time (get-fade-attr-time fade-times))
                  (up-delay (get-fade-up-delay fade-times))
                  (down-delay (get-fade-down-delay fade-times))
-                 (attr-delay (get-fade-attr-delay fade-times)))
+                 (attr-delay (get-fade-attr-delay fade-times))
+                 (preset-time (get-fade-preset-time fade-times))
+                 (preset-delay (get-fade-preset-delay fade-times)))
              body ...))))))
 
 
@@ -86,12 +94,14 @@
   (make-fade-record start-time
                     fade-times
                     previous
-                    target)
+                    target
+                    preset)
   fade-record?
   (start-time         fade-start-time)
   (fade-times         get-fade-record-fade-times)
   (previous           fade-previous)
-  (target             fade-target))
+  (target             fade-target)
+  (preset             fade-preset))
 
 
 (define-record-type <cue>
@@ -148,20 +158,28 @@
 
     ;; Record fade params
     (state-for-each
-     (lambda (fix attr val)
-             (hash-set! (get-fade-records pb)
-                        (cons fix attr)
-                        (make-fade-record (hirestime)
-                                          (make-fade-times
-                                           0.0
-                                           0.0
-                                           0.0
-                                           0.0
-                                           0.0
-                                           0.0)
-                                          0.0
-                                          val)))
-     pb))
+      (lambda (fix attr val)
+        (let ((new-record (make-fade-record (hirestime)
+                                            (make-fade-times
+                                              0.0
+                                              0.0
+                                              0.0
+                                              0.0
+                                              0.0
+                                              0.0
+                                              0.0
+                                              0.0)
+                                            0.0
+                                            val
+                                            (preset-val cue-list
+                                                        cue-index
+                                                        fix
+                                                        attr))))
+          (hash-set! (get-fade-records pb)
+                     (cons fix attr)
+                     new-record)
+          (set-fade pb fix attr new-record)))
+      pb))
 
   *unspecified*)
 
@@ -188,38 +206,65 @@
   *unspecified*)
 
 
-(define (fade-func start-val end-val fade-time delay-time start-time current-time)
+(define (fade-func start-val
+                   end-val
+                   preset-val
+                   fade-time
+                   delay-time
+                   preset-time
+                   preset-delay
+                   start-time
+                   current-time)
   (let ((elapsed-fade-time (- current-time start-time delay-time)))
     (cond
 
-     ;; Before start of fade
-     ((< elapsed-fade-time 0)
-      start-val)
+      ;; Before start of fade
+      ((< elapsed-fade-time 0)
+       start-val)
 
-     ;; After end of fade
-     ((> elapsed-fade-time fade-time)
-      end-val)
+      ;; After both fade and preset fade
+      ((and preset-val
+            (> elapsed-fade-time (+ fade-time preset-delay preset-time)))
+       preset-val)
 
-     ;; During the fade
-     (else
-      (+ start-val
-         (* (- end-val start-val)
-            ;; Fraction of fade time elapsed
-            (/ elapsed-fade-time fade-time)))))))
+      ;; During preset fade
+      ((and preset-val
+            (> elapsed-fade-time (+ preset-delay fade-time)))
+       (+ end-val
+          (* (- preset-val end-val)
+             (/ (- elapsed-fade-time fade-time preset-delay)
+                preset-time))))
+
+      ;; After end of fade, but not long enough for auto-move
+      ((> elapsed-fade-time fade-time)
+       end-val)
+
+      ;; During the fade
+      (else
+        (+ start-val
+           (* (- end-val start-val)
+              ;; Fraction of fade time elapsed
+              (/ elapsed-fade-time fade-time)))))))
 
 
 ;; Return a function to fade from start-val to end-val using the
 ;; specified fade time and delay, starting at tnow
 (define (wrap-fade start-val
                    end-val
+                   preset-val
                    fade-time
                    delay-time
+                   preset-time
+                   preset-delay
                    tnow)
   (lambda (time)
     (fade-func (value->number start-val time)
                (value->number end-val time)
+               (value->number preset-val time)
                fade-time
                delay-time
+               preset-time
+               preset-delay
                tnow
                time)))
 
@@ -237,14 +282,20 @@
      (max
       (fade-func (value->number start-val time)
                  0
-                 down-time
+                 #f            ;; wrap-xf is only used for intensities,
+                 down-time     ;; so auto-move/preset is irrelevant
                  down-delay
+                 0
+                 0
                  tnow
                  time)
       (fade-func 0
                  (value->number end-val time)
+                 #f
                  up-time
                  up-delay
+                 0
+                 0
                  tnow
                  time)))))
 
@@ -258,7 +309,8 @@
 
    ;; Attr seen in a finished fade
    ((fade-finished? tnow old-fade-record)
-    (fade-target old-fade-record))
+    (or (fade-preset old-fade-record)
+        (fade-target old-fade-record)))
 
    ;; Attr is currently fading: get the current state
    ;; (NB it might be a function/effect)
@@ -280,30 +332,42 @@
       ((not (intensity? attr))
        (set-attr! pb fix attr (wrap-fade (fade-previous fade-record)
                                          (fade-target fade-record)
+                                         (fade-preset fade-record)
                                          attr-time
                                          attr-delay
+                                         preset-time
+                                         preset-delay
                                          (fade-start-time fade-record))))
 
       ;; Number to number, fading up
       ((and (number? target) (number? prev-val) (> target prev-val))
        (set-attr! pb fix attr (wrap-fade prev-val
                                          target
+                                         #f
                                          up-time
                                          up-delay
+                                         0.0
+                                         0.0
                                          (fade-start-time fade-record))))
 
       ;; Number to number, fading down
       ((and (number? target) (number? prev-val) (< target prev-val))
        (set-attr! pb fix attr (wrap-fade prev-val
                                          target
+                                         #f
                                          down-time
                                          down-delay
+                                         0.0
+                                         0.0
                                          (fade-start-time fade-record))))
 
       ;; Number to number, staying the same
       ((and (number? target) (number? prev-val))
        (set-attr! pb fix attr (wrap-fade prev-val
                                          target
+                                         #f
+                                         0.0
+                                         0.0
                                          0.0
                                          0.0
                                          (fade-start-time fade-record))))
@@ -331,7 +395,10 @@
     (> tnow
        (+ (fade-start-time fade-record)
           attr-delay
-          attr-time)))))
+          attr-time
+          (if (fade-preset fade-record)
+              (+ preset-time preset-delay)
+              0))))))
 
 
 (define (match-fix-attr attr-el fix attr)
@@ -376,6 +443,30 @@
       (get-cue-fade-times the-cue))))
 
 
+(define (fixture-dark? fix the-cue)
+  (let ((val (state-find fix
+                         (find-attr fix 'intensity)
+                         (get-realized-state the-cue))))
+    (or (not val)
+        (eqv? 0 val))))
+
+
+(define (next-value cue-list cue-index fix attr)
+  (if (>= cue-index (- (vector-length cue-list) 1))
+      #f
+      (let ((the-cue-state (realize-state cue-list (+ 1 cue-index))))
+        (state-find fix
+                    attr
+                    the-cue-state))))
+
+
+(define (preset-val cue-list cue-index fix attr)
+  (let ((the-cue (vector-ref cue-list cue-index)))
+    (if (fixture-dark? fix the-cue)
+        (next-value cue-list cue-index fix attr)
+        #f)))
+
+
 (define (run-cue-index! pb cue-list cue-number tnow)
 
   (let ((the-cue-state (realize-state cue-list cue-number))
@@ -394,7 +485,11 @@
                                                              fix
                                                              attr
                                                              val)
-                                             val)))
+                                             val
+                                             (preset-val cue-list
+                                                         cue-number
+                                                         fix
+                                                         attr))))
            (hash-set! (get-fade-records pb)
                       (cons fix attr)
                       new-record)
@@ -426,7 +521,9 @@
                             (attr-time 3)
                             (up-delay 0)
                             (down-delay 0)
-                            (attr-delay 0))
+                            (attr-delay 0)
+                            (preset-time 1)
+                            (preset-delay 1))
   (make-cue-part attr-list
                  (make-fade-times
                   up-time
@@ -434,7 +531,9 @@
                   attr-time
                   up-delay
                   down-delay
-                  attr-delay)))
+                  attr-delay
+                  preset-time
+                  preset-delay)))
 
 
 (define cue
@@ -448,6 +547,8 @@
                      (up-delay 0)
                      (down-delay 0)
                      (attr-delay 0)
+                     (preset-time 1)
+                     (preset-delay 1)
                      (track-intensities #f))
 
                     (make-cue (qnum number)
@@ -459,15 +560,37 @@
                                attr-time
                                up-delay
                                down-delay
-                               attr-delay)
+                               attr-delay
+                               preset-time
+                               preset-delay)
                               track-intensities
                               cue-parts)))))
+
+
+;; Put the non-intensity parameters from cue-index into the current state,
+;; at their home values, but only if they are not already in the current state.
+(define (apply-for-automove cue-list cue-index)
+  (unless (>= cue-index (vector-length cue-list))
+    (let ((the-cue (vector-ref cue-list cue-index))
+          (old-current-state (current-state)))
+      (parameterize ((current-state (make-empty-state)))
+        ((get-cue-state-function the-cue))
+        (state-for-each (lambda (fix attr val)
+                          (unless (intensity? attr)
+                            (unless (state-find fix attr old-current-state)
+                              (set-attr! old-current-state
+                                         fix
+                                         attr
+                                         (home-val fix attr)))))
+                        (current-state))))))
 
 
 (define (ensure-cue-zero-realized cue-list)
   (let ((cue-zero (vector-ref cue-list 0)))
     (unless (get-realized-state cue-zero)
-      (set-realized-state! cue-zero (make <starlet-state>)))))
+      (parameterize ((current-state (make-empty-state)))
+        (apply-for-automove cue-list 1)
+        (set-realized-state! cue-zero (current-state))))))
 
 
 ;; Get the state for a cue, taking into account tracking etc
@@ -484,6 +607,7 @@
             (unless (track-intensities the-cue)
               (blackout (current-state)))
             ((get-cue-state-function the-cue))
+            (apply-for-automove cue-list (+ cue-index 1))
             (set-realized-state! the-cue (current-state))
             (current-state))))))
 
@@ -495,5 +619,7 @@
                   (lambda () #f)   ;; The real base state is in ensure-cue-zero-realized
                   #:up-time 0
                   #:down-time 0
-                  #:attr-time 0)
+                  #:attr-time 0
+                  #:preset-time 0
+                  #:preset-delay 0)
              body ...))))
