@@ -644,7 +644,7 @@ pre-existing contents."
 
 
 (define (state-source a)
-  (cons 'begin
+  (cons 'lighting-state
         (state-map (lambda (fix attr val)
                      (list 'at
                            (get-fixture-name fix)
