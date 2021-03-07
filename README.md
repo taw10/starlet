@@ -3,6 +3,10 @@ Starlet: Stage lighting control in Lisp
 
 Starlet is an experimental Lisp-based domain-specific language (DSL) for theatrical lighting control.  It's based on [Guile](https://www.gnu.org/software/guile/) and sends its DMX output via [OLA](https://openlighting.org) to almost any type of lighting control interface - DMX, sACN, Art-Net etc.
 
+[![Video demonstration](screenshot.png)](https://vimeo.com/520547229)
+
+Click the screenshot for a video demonstration!
+
 With Starlet, a cue list looks like this:
 
 ```
