@@ -131,6 +131,7 @@
 (define (make-playback cue-list)
   (let ((new-playback (make <starlet-playback>
                         #:cue-list cue-list)))
+    (register-state! new-playback)
     new-playback))
 
 

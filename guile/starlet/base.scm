@@ -31,7 +31,6 @@
 
             <starlet-state>
             make-empty-state
-            register-state!
             state-for-each
             state-map
             get-state-hash-table
