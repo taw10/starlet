@@ -36,7 +36,6 @@ Creating a playback object and running a cue list looks like this:
 
 ```
 (define pb (make-playback my-cue-list))
-(register-state! pb)
 
 (cut-to-cue-number! pb 1)
 (go! pb)
@@ -106,7 +105,7 @@ Getting started
 3. Install [Guile](https://www.gnu.org/software/guile/), if it's not already there (there's a good chance it is).  Version 3 is preferred because it's much faster (= ability to handle more fixtures with less CPU load), but version 2.2 works as well.
 4. Run `guile -L /path/to/starlet/guile`
 5. Once in the Guile REPL, import the Starlet modules: `(use-modules (starlet base) (starlet playback) (starlet fixture-library generic))`
-6. Patch a fixture with `(define fix (patch-fixture! <generic-dimmer> 1 #:universe 2))` - replace 1 and 2 with the DMX address and universe (respectively) of a real dimmer.
+6. Patch a fixture with `(patch-fixture! fix <generic-dimmer> 1 #:universe 2)` - replace 1 and 2 with the DMX address and universe (respectively) of a real dimmer.
 7. Turn the dimmer on with `(at fix 100)`
 8. Look in the _examples_ folder for more advanced ideas.
 
