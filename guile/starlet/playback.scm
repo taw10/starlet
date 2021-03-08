@@ -306,7 +306,7 @@
 
    ;; Attr not seen before in this playback: start fading from home
    ((eq? old-fade-record #f)
-    (home-val fix attr))
+    (get-attr-home-val fix attr))
 
    ;; Attr seen in a finished fade
    ((fade-finished? tnow old-fade-record)
@@ -330,54 +330,54 @@
 
       ;; Non-intensity attribute
       ((not (intensity? attr))
-       (set-attr! pb fix attr (wrap-fade (fade-previous fade-record)
-                                         (fade-target fade-record)
-                                         (fade-preset fade-record)
-                                         attr-time
-                                         attr-delay
-                                         preset-time
-                                         preset-delay
-                                         (fade-start-time fade-record))))
+       (set-in-state! pb fix attr (wrap-fade (fade-previous fade-record)
+                                             (fade-target fade-record)
+                                             (fade-preset fade-record)
+                                             attr-time
+                                             attr-delay
+                                             preset-time
+                                             preset-delay
+                                             (fade-start-time fade-record))))
 
       ;; Number to number, fading up
       ((and (number? target) (number? prev-val) (> target prev-val))
-       (set-attr! pb fix attr (wrap-fade prev-val
-                                         target
-                                         #f
-                                         up-time
-                                         up-delay
-                                         0.0
-                                         0.0
-                                         (fade-start-time fade-record))))
+       (set-in-state! pb fix attr (wrap-fade prev-val
+                                             target
+                                             #f
+                                             up-time
+                                             up-delay
+                                             0.0
+                                             0.0
+                                             (fade-start-time fade-record))))
 
       ;; Number to number, fading down
       ((and (number? target) (number? prev-val) (< target prev-val))
-       (set-attr! pb fix attr (wrap-fade prev-val
-                                         target
-                                         #f
-                                         down-time
-                                         down-delay
-                                         0.0
-                                         0.0
-                                         (fade-start-time fade-record))))
+       (set-in-state! pb fix attr (wrap-fade prev-val
+                                             target
+                                             #f
+                                             down-time
+                                             down-delay
+                                             0.0
+                                             0.0
+                                             (fade-start-time fade-record))))
 
       ;; Number to number, staying the same
       ((and (number? target) (number? prev-val))
-       (set-attr! pb fix attr (wrap-fade prev-val
-                                         target
-                                         #f
-                                         0.0
-                                         0.0
-                                         0.0
-                                         0.0
-                                         (fade-start-time fade-record))))
+       (set-in-state! pb fix attr (wrap-fade prev-val
+                                             target
+                                             #f
+                                             0.0
+                                             0.0
+                                             0.0
+                                             0.0
+                                             (fade-start-time fade-record))))
 
       ;; Everything else, e.g. number to effect
       (else
-       (set-attr! pb fix attr (wrap-xf (fade-previous fade-record)
-                                       (fade-target fade-record)
-                                       (get-fade-record-fade-times fade-record)
-                                       (fade-start-time fade-record))))))))
+       (set-in-state! pb fix attr (wrap-xf (fade-previous fade-record)
+                                           (fade-target fade-record)
+                                           (get-fade-record-fade-times fade-record)
+                                           (fade-start-time fade-record))))))))
 
 
 (define (fade-finished? tnow fade-record)
@@ -409,20 +409,13 @@
 
    ((and (pair? attr-el)
          (fixture? (car attr-el))
-         (fixture-attribute? (cdr attr-el)))
+         (symbol? (cdr attr-el)))
     (and (eq? (car attr-el) fix)
          (eq? (cdr attr-el) attr)))
 
-   ((and (pair? attr-el)
-         (fixture? (car attr-el))
-         (symbol? (cdr attr-el)))
-    (and (eq? (car attr-el) fix)
-         (eq? (cdr attr-el) (get-attr-name attr))))
-
    ((list? attr-el)
     (and (memq fix attr-el)
-         (or (memq attr attr-el)
-             (memq (get-attr-name attr) attr-el))))
+         (memq attr attr-el)))
 
    (else #f)))
 
@@ -445,9 +438,9 @@
 
 (define (fixture-dark? fix the-cue)
   (let ((val (state-find fix
-                         (find-attr fix 'intensity)
+                         'intensity
                          (get-realized-state the-cue))))
-    (or (not val)
+    (or (not (have-value val))
         (eqv? 0 val))))
 
 
@@ -577,11 +570,13 @@
         ((get-cue-state-function the-cue))
         (state-for-each (lambda (fix attr val)
                           (unless (intensity? attr)
-                            (unless (state-find fix attr old-current-state)
-                              (set-attr! old-current-state
-                                         fix
-                                         attr
-                                         (home-val fix attr)))))
+                            (unless (have-value (state-find fix
+                                                            attr
+                                                            old-current-state))
+                              (set-in-state! old-current-state
+                                             fix
+                                             attr
+                                             (get-attr-home-val fix attr)))))
                         (current-state))))))
 
 

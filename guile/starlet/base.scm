@@ -25,9 +25,8 @@
             get-attr-type
             get-attr-range
             get-attr-name
-            fixture-attribute?
+            get-attr-home-val
             intensity?
-            home-val
 
             <starlet-state>
             make-empty-state
@@ -39,8 +38,9 @@
             clear-state!
             print-state
             state-source
-            set-attr!
+            set-in-state!
             state-find
+            have-value
             merge-states-htp
             current-state
             at
@@ -83,8 +83,7 @@
   (home-value
     #:init-value 0
     #:init-keyword #:home-value
-    #:getter get-attr-home-value
-    #:setter set-attr-home-value!))
+    #:getter attr-home-value))
 
 
 (define-class <fixture> (<object>)
@@ -125,10 +124,6 @@
   (is-a? f <fixture>))
 
 
-(define (fixture-attribute? f)
-  (is-a? f <fixture-attribute>))
-
-
 ;; A "state" is just a thin wrapper around a hash table
 ;; of (fixture . attribute)  -->  value
 (define-class <starlet-state> (<object>)
@@ -140,44 +135,46 @@
 
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
-                              (attr <fixture-attribute>)
+                              (attr <symbol>)
                               value)
   (hash-set! (get-state-hash-table state)
              (cons fix attr)
              value))
 
-
-(define make-fixture-home-pair cons)
-(define get-fixture-list car)
-(define get-home-state cdr)
-
 ;; List of fixtures and home state (must remain consistent)
-(define fixtures
-  (make-atomic-box
-    (make-fixture-home-pair
+(define fixtures (make-atomic-box '()))
 
-      ;; Actual list of fixtures
-      '()
-
-      ;; Basic state which holds everything at "home" unless commanded otherwise
-      (make <starlet-state>))))
-
+;; List of states being scanned out
+(define state-list (make-atomic-box '()))
 
 ;; The state used to build a new scene for recording
 (define programmer-state (make <starlet-state>))
 
-(define (blackout state)
-  (state-for-each
-   (lambda (fix attr val)
-     (when (intensity? attr)
-       (set-in-state! state fix attr 0.0)))
-   state))
 
 (define (make-empty-state)
   (make <starlet-state>))
 
-;; List of states being scanned out
-(define state-list (make-atomic-box '()))
+
+(define (find-attr fix attr-name)
+  (find (lambda (a)
+          (eq? (get-attr-name a)
+               attr-name))
+        (slot-ref fix 'attributes)))
+
+
+(define (get-attr-home-val fix attr)
+  (let ((attr-obj (find-attr fix attr)))
+    (if attr-obj
+        (attr-home-value attr-obj)
+        'fixture-does-not-have-attribute)))
+
+
+(define (blackout state)
+  (state-for-each
+    (lambda (fix attr val)
+      (when (intensity? attr)
+        (set-in-state! state fix attr 0.0)))
+    state))
 
 
 ;; Set a single attribute to home position
@@ -185,7 +182,7 @@
   (set-in-state! state
                  fix
                  attr
-                 (get-attr-home-value attr)))
+                 (get-attr-home-val fix attr)))
 
 
 (define (copy-state state)
@@ -199,45 +196,14 @@
     new-state))
 
 
-;; Return a new state with all attributes of 'fix' set to home values
-(define (home-all state fix)
-  (let ((new-home-state (copy-state state)))
-    (for-each (lambda (attr)
-                (home-attr! new-home-state fix attr))
-              (slot-ref fix 'attributes))
-    new-home-state))
-
-
-(define (home-val fix attr)
-  (state-find fix
-              attr
-              (get-home-state
-                (atomic-box-ref fixtures))))
-
 (define (intensity? a)
-  (eq? 'intensity (get-attr-name a)))
+  (eq? 'intensity a))
 
-
-(define (find-attr fix attr-name)
-  (find (lambda (a)
-          (eq? (get-attr-name a)
-               attr-name))
-        (slot-ref fix 'attributes)))
 
 (define (register-state! new-state)
   (atomic-box-set! state-list
                    (cons new-state
                          (atomic-box-ref state-list))))
-
-;; Set an attribute by name
-(define (set-attr! state fix attr-name value)
-  (cond
-   ((symbol? attr-name)
-    (let ((attr (find-attr fix attr-name)))
-      (when attr (set-in-state! state fix attr value))))
-   ((fixture-attribute? attr-name)
-    (set-in-state! state fix attr-name value))))
-
 
 ;; Patch a new fixture
 (define* (patch-real name
@@ -248,14 +214,9 @@
                            #:name name
                            #:sa start-addr
                            #:uni universe
-                           #:friendly-name friendly-name))
-        (fixture-home-pair (atomic-box-ref fixtures)))
-    (atomic-box-set! fixtures
-                     (make-fixture-home-pair
-                       (cons new-fixture
-                             (get-fixture-list fixture-home-pair))
-                       (home-all (get-home-state fixture-home-pair)
-                                 new-fixture)))
+                           #:friendly-name friendly-name)))
+    (atomic-box-set! fixtures (cons new-fixture
+                                    (atomic-box-ref fixtures)))
     new-fixture))
 
 
@@ -301,9 +262,14 @@
                          value))
                  (get-state-hash-table state)))
 
+
+(define (have-value val)
+  (not (eq? val 'attribute-not-in-state)))
+
 (define (state-find fix attr state)
   (hash-ref (get-state-hash-table state)
-            (cons fix attr)))
+            (cons fix attr)
+            'attribute-not-in-state))
 
 (define (state-map func state)
   (hash-map->list (lambda (key value)
@@ -319,7 +285,7 @@
                     (let ((current-value (state-find fix
                                                      attr
                                                      combined-state)))
-                      (if current-value
+                      (if (have-value current-value)
                           (set-in-state! combined-state
                                          fix
                                          attr
@@ -444,7 +410,6 @@ pre-existing contents."
     (let* ((fixture-home-pair (atomic-box-ref fixtures))
            (combined-state (merge-states-ltp
                              (list
-                               (get-home-state fixture-home-pair)
                                (merge-states-htp
                                  (atomic-box-ref state-list))
                                programmer-state))))
@@ -458,10 +423,10 @@ pre-existing contents."
                     ;; Helper function to get a value for this
                     ;; fixture in the current state
                     (define (get-attr attr-name)
-                      (value->number (state-find fix
-                                                 (find-attr fix attr-name)
-                                                 combined-state)
-                                     (hirestime)))
+                      (let ((val (state-find fix attr-name combined-state)))
+                        (if (have-value val)
+                            (value->number val (hirestime))
+                            (get-attr-home-val fix attr-name))))
 
                     ;; Helper function to set 8-bit DMX value
                     (define (set-chan relative-channel-number value)
@@ -478,7 +443,7 @@ pre-existing contents."
 
                     (scanout-fixture fix get-attr set-chan set-chan-16bit)))
 
-                (get-fixture-list fixture-home-pair))
+                (atomic-box-ref fixtures))
 
 
       ;; Send everything to OLA
@@ -527,12 +492,13 @@ pre-existing contents."
   (let* ((fixture-home-pair (atomic-box-ref fixtures))
          (combined-state (merge-states-ltp
                            (list
-                             (get-home-state fixture-home-pair)
                              (merge-states-htp
                                (atomic-box-ref state-list))
-                             programmer-state)))
-         (attr (find-attr fix attr-name)))
-    (value->number (state-find fix attr combined-state) 0)))
+                             programmer-state))))
+    (let ((val (state-find fix attr-name combined-state)))
+      (if (have-value val)
+          (value->number val 0)
+          (get-attr-home-val fix attr-name)))))
 
 
 (define-syntax attr-continuous
@@ -584,17 +550,12 @@ pre-existing contents."
                     (values output1 output2 others))))
 
 
-(define (attr-or-symbol? a)
-  (or (fixture-attribute? a)
-      (symbol? a)))
-
-
 (define (set-fixtures fixtures attr-name value)
   (for-each (lambda (fix)
-              (set-attr! (current-state)
-                         fix
-                         (car attr-name)
-                         (car value)))
+              (set-in-state! (current-state)
+                             fix
+                             (car attr-name)
+                             (car value)))
             fixtures))
 
 
@@ -609,7 +570,7 @@ pre-existing contents."
 
 (define (at . args)
   (receive (fixtures attr-name value)
-           (partition3 fixture? attr-or-symbol? (flatten-sublists args))
+           (partition3 fixture? symbol? (flatten-sublists args))
            (cond
              ((nil? value)
               (error "at: Value not specified"))
@@ -647,6 +608,6 @@ pre-existing contents."
         (state-map (lambda (fix attr val)
                      (list 'at
                            (get-fixture-name fix)
-                           (list 'quote (get-attr-name attr))
+                           (list 'quote attr)
                            val))
                    a)))

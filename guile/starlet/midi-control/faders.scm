@@ -80,10 +80,10 @@
          #:func (lambda (prev-cc-val new-cc-value)
                   (set! offset (+ offset (ccval->offset new-cc-value)))
                   (for-each (lambda (fix old-val)
-                              (set-attr! programmer-state
-                                         fix
-                                         attr
-                                         (+ old-val offset)))
+                              (set-in-state! programmer-state
+                                             fix
+                                             attr
+                                             (+ old-val offset)))
                             fixtures old-vals)))))))
 
 
@@ -129,11 +129,11 @@
                      initial-vals
                      fixtures)
   (for-each (lambda (fix initial-val gradient)
-              (set-attr! programmer-state
-                         fix
-                         attr-name
-                         (+ initial-val
-                            (* gradient cc-offset))))
+              (set-in-state! programmer-state
+                             fix
+                             attr-name
+                             (+ initial-val
+                                (* gradient cc-offset))))
             fixtures
             initial-vals
             gradients))
