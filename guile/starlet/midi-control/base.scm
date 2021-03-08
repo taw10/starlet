@@ -96,9 +96,13 @@
 
 (define enqueue-midi-bytes!
   (lambda bytes
-    (unless (eq? (atomic-box-compare-and-swap! send-queue '() bytes)
-                 '())
-      (apply enqueue-midi-bytes! bytes))))
+    (let* ((old-queue (atomic-box-ref send-queue))
+           (new-queue (append old-queue bytes)))
+      (unless (eq? (atomic-box-compare-and-swap! send-queue
+                                                 old-queue
+                                                 new-queue)
+                   old-queue)
+        (apply enqueue-midi-bytes! bytes)))))
 
 
 (define* (send-note-on note
