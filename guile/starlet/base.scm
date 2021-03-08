@@ -48,6 +48,7 @@
             show-state
             lighting-state
             blackout
+            register-state!
 
             start-ola-output
             scanout-freq
