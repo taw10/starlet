@@ -180,44 +180,44 @@
   (cue-list
 
     (cue 1
-         (cue-state
-           (begin (at ltruss1 (quote pan) 206)
-                  (at rtruss6 (quote pan) 334)
-                  (at ltruss1 (quote yellow) 3800/127)
-                  (at rtruss6 (quote tilt) 111)
-                  (at rtruss6 (quote yellow) 3100/127)
-                  (at ltruss1 (quote tilt) 108.0)
-                  (at ltruss1 (quote magenta) 600/127)
-                  (at ltruss1 (quote intensity) 109)
-                  (at red4 (quote intensity) 30)
-                  (at red3 (quote intensity) 30)
-                  (at red1 (quote intensity) 30)
-                  (at rtruss6 (quote intensity) 133)
-                  (at rtruss6 (quote zoom) 4200/127)
-                  (at rtruss6 (quote magenta) 100/127)
-                  (at red2 (quote intensity) 30)
-                  (at ltruss1 (quote zoom) 6300/127))))
+         (lighting-state
+           (at ltruss1 (quote pan) 206)
+           (at rtruss6 (quote pan) 334)
+           (at ltruss1 (quote yellow) 3800/127)
+           (at rtruss6 (quote tilt) 111)
+           (at rtruss6 (quote yellow) 3100/127)
+           (at ltruss1 (quote tilt) 108.0)
+           (at ltruss1 (quote magenta) 600/127)
+           (at ltruss1 (quote intensity) 109)
+           (at red4 (quote intensity) 30)
+           (at red3 (quote intensity) 30)
+           (at red1 (quote intensity) 30)
+           (at rtruss6 (quote intensity) 133)
+           (at rtruss6 (quote zoom) 4200/127)
+           (at rtruss6 (quote magenta) 100/127)
+           (at red2 (quote intensity) 30)
+           (at ltruss1 (quote zoom) 6300/127)))
 
     (cue 2
-         (cue-state
+         (lighting-state
            (apply-state my-state))
          #:up-time 1
          #:down-time 1)
 
     (cue 3
-         (cue-state
-           (begin (at floor3 (quote magenta) 11500/127)
-                  (at floor3 (quote pan) 299)
-                  (at floor3 (quote intensity) 156)
-                  (at floor3 (quote tilt) 48)
-                  (at floor4 (quote magenta) 11200/127)
-                  (at floor4 (quote cyan) 200/127)
-                  (at floor3 (quote yellow) 100)
-                  (at floor4 (quote intensity) 127)
-                  (at floor4 (quote yellow) 10000/127)
-                  (at floor4 (quote pan) 239)
-                  (at floor2 (quote intensity) -58)
-                  (at floor4 (quote tilt) 49)))
+         (lighting-state
+           (at floor3 (quote magenta) 11500/127)
+           (at floor3 (quote pan) 299)
+           (at floor3 (quote intensity) 156)
+           (at floor3 (quote tilt) 48)
+           (at floor4 (quote magenta) 11200/127)
+           (at floor4 (quote cyan) 200/127)
+           (at floor3 (quote yellow) 100)
+           (at floor4 (quote intensity) 127)
+           (at floor4 (quote yellow) 10000/127)
+           (at floor4 (quote pan) 239)
+           (at floor2 (quote intensity) -58)
+           (at floor4 (quote tilt) 49))
          #:up-time 3
          #:down-time 3)))
 

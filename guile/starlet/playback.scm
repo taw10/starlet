@@ -15,7 +15,6 @@
             run-cue-number!
             go!
             cue-list
-            cue-state
             set-playback-cue-list!))
 
 
@@ -106,15 +105,16 @@
 
 (define-record-type <cue>
   (make-cue number
-            state-function
-            realized-state
+            state
+            tracked-state
             fade-times
             track-intensities
             cue-parts)
   cue?
   (number             get-cue-number)
-  (state-function     get-cue-state-function)
-  (realized-state     get-realized-state set-realized-state!)
+  (state              get-cue-state)
+  (tracked-state      get-tracked-state
+                      set-tracked-state!)
   (fade-times         get-cue-fade-times)
   (track-intensities  track-intensities)
   (cue-parts          get-cue-parts))
@@ -147,11 +147,13 @@
 
 
 (define (cut-to-cue-number! pb cue-number)
+
   (let* ((cue-list (get-playback-cue-list pb))
          (cue-index (cue-number-to-index cue-list (qnum cue-number))))
+
     (set-state-hash-table! pb (copy-hash-table
                                 (get-state-hash-table
-                                  (realize-state cue-list cue-index))))
+                                  (calculate-tracking cue-list cue-index))))
     (set-next-cue-index! pb (+ cue-index 1))
 
     ;; Wipe out the old fade params
@@ -439,7 +441,7 @@
 (define (fixture-dark? fix the-cue)
   (let ((val (state-find fix
                          'intensity
-                         (get-realized-state the-cue))))
+                         (get-tracked-state the-cue))))
     (or (not (have-value val))
         (eqv? 0 val))))
 
@@ -447,7 +449,7 @@
 (define (next-value cue-list cue-index fix attr)
   (if (>= cue-index (- (vector-length cue-list) 1))
       #f
-      (let ((the-cue-state (realize-state cue-list (+ 1 cue-index))))
+      (let ((the-cue-state (calculate-tracking cue-list (+ 1 cue-index))))
         (state-find fix
                     attr
                     the-cue-state))))
@@ -462,7 +464,7 @@
 
 (define (run-cue-index! pb cue-list cue-number tnow)
 
-  (let ((the-cue-state (realize-state cue-list cue-number))
+  (let ((the-cue-state (calculate-tracking cue-list cue-number))
         (the-cue (vector-ref cue-list cue-number)))
 
     (state-for-each
@@ -492,13 +494,6 @@
 
 
 ;;; ******************** Cue lists ********************
-
-(define-syntax cue-state
-  (syntax-rules ()
-    ((_ body ...)
-     (lambda ()
-       body ...))))
-
 
 (define-syntax cue-part
   (syntax-rules ()
@@ -530,7 +525,7 @@
 
 
 (define cue
-  (lambda (number state-function . rest)
+  (lambda (number state . rest)
     (receive (cue-parts rest-minus-cue-parts)
         (partition cue-part? rest)
       (let-keywords rest-minus-cue-parts #f
@@ -545,7 +540,7 @@
                      (track-intensities #f))
 
                     (make-cue (qnum number)
-                              state-function
+                              state
                               #f
                               (make-fade-times
                                up-time
@@ -567,7 +562,7 @@
     (let ((the-cue (vector-ref cue-list cue-index))
           (old-current-state (current-state)))
       (parameterize ((current-state (make-empty-state)))
-        ((get-cue-state-function the-cue))
+        (apply-state (get-cue-state the-cue))
         (state-for-each (lambda (fix attr val)
                           (unless (intensity? attr)
                             (unless (have-value (state-find fix
@@ -582,36 +577,36 @@
 
 (define (ensure-cue-zero-realized cue-list)
   (let ((cue-zero (vector-ref cue-list 0)))
-    (unless (get-realized-state cue-zero)
+    (unless (get-tracked-state cue-zero)
       (parameterize ((current-state (make-empty-state)))
         (apply-for-automove cue-list 1)
-        (set-realized-state! cue-zero (current-state))))))
+        (set-tracked-state! cue-zero (current-state))))))
 
 
 ;; Get the state for a cue, taking into account tracking etc
-(define (realize-state cue-list cue-index)
+(define (calculate-tracking cue-list cue-index)
 
   (ensure-cue-zero-realized cue-list)
 
-  (let* ((the-cue (vector-ref cue-list cue-index))
-         (rstate (get-realized-state the-cue)))
-    (or rstate
-        (let ((previous-state (realize-state cue-list (- cue-index 1))))
-          (parameterize ((current-state (make-empty-state)))
-            (apply-state previous-state)
-            (unless (track-intensities the-cue)
-              (blackout (current-state)))
-            ((get-cue-state-function the-cue))
-            (apply-for-automove cue-list (+ cue-index 1))
-            (set-realized-state! the-cue (current-state))
-            (current-state))))))
+      (let* ((the-cue (vector-ref cue-list cue-index))
+             (rstate (get-tracked-state the-cue)))
+        (or rstate
+            (let ((previous-state (calculate-tracking cue-list (- cue-index 1))))
+              (parameterize ((current-state (make-empty-state)))
+                (apply-state previous-state)
+                (unless (track-intensities the-cue)
+                  (blackout (current-state)))
+                (apply-state (get-cue-state the-cue))
+                (apply-for-automove cue-list (+ cue-index 1))
+                (set-tracked-state! the-cue (current-state))
+                (current-state))))))
 
 
 (define-syntax cue-list
   (syntax-rules ()
     ((_ body ...)
      (vector (cue 0
-                  (lambda () #f)   ;; The real base state is in ensure-cue-zero-realized
+                  (make-empty-state)
                   #:up-time 0
                   #:down-time 0
                   #:attr-time 0
