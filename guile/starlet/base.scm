@@ -5,6 +5,7 @@
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 pretty-print)
+  #:use-module (ice-9 exceptions)
   #:use-module (web client)
   #:use-module (web http)
   #:use-module (web uri)
@@ -396,13 +397,19 @@ pre-existing contents."
     ;; Helper function for scanout functions to set individual DMX values
     (define (set-dmx universe addr value)
 
+      (unless (number? value)
+        (raise-exception (make-exception
+                           (make-exception-with-message
+                             "Attempt to set non-number DMX value")
+                           (make-exception-with-irritants
+                             (list universe addr value)))))
+
       ;; Create DMX array for universe if it doesn't exist already
       (unless (assq universe universes)
         (set! universes (acons universe
                                (make-u8vector 512 0)
                                universes)))
 
-      ;; Set the value in the DMX array
       (u8vector-set! (assq-ref universes universe)
                      (- addr 1)                   ; u8vector-set indexing starts from zero
                      (round-dmx value)))
@@ -431,16 +438,28 @@ pre-existing contents."
 
                     ;; Helper function to set 8-bit DMX value
                     (define (set-chan relative-channel-number value)
-                      (when value
-                        (set-dmx univ
-                                 (+ addr relative-channel-number -1)
-                                 value)))
+
+                      (unless (number? value)
+                        (raise-exception (make-exception
+                                           (make-exception-with-message
+                                             "set-chan: value is not a number")
+                                           (make-exception-with-irritants
+                                             (list relative-channel-number value)))))
+                      (set-dmx univ
+                               (+ addr relative-channel-number -1)
+                               value))
 
                     ;; Helper function to set 16-bit DMX value
                     (define (set-chan-16bit relative-channel-number value)
-                      (when value
-                        (set-chan relative-channel-number (msb value))
-                        (set-chan (+ relative-channel-number 1) (lsb value))))
+                      (unless (number? value)
+                        (raise-exception (make-exception
+                                           (make-exception-with-message
+                                             "set-chan16: value is not a number")
+                                           (make-exception-with-irritants
+                                             (list relative-channel-number
+                                                   value)))))
+                      (set-chan relative-channel-number (msb value))
+                      (set-chan (+ relative-channel-number 1) (lsb value)))
 
                     (scanout-fixture fix get-attr set-chan set-chan-16bit)))
 

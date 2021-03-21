@@ -2,6 +2,7 @@
   #:use-module (oop goops)
   #:use-module (ice-9 optargs)
   #:use-module (ice-9 receive)
+  #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-43)
@@ -218,6 +219,16 @@
                    preset-delay
                    start-time
                    current-time)
+
+  (unless (and (number? start-val)
+               (number? end-val)
+               (number? preset-val))
+    (raise-exception (make-exception
+                       (make-exception-with-message
+                         "Non-number arguments given to fade-func")
+                       (make-exception-with-irritants
+                         (list start-val end-val preset-val)))))
+
   (let ((elapsed-fade-time (- current-time start-time delay-time)))
     (cond
 
