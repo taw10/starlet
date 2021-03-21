@@ -181,7 +181,7 @@
           (hash-set! (get-fade-records pb)
                      (cons fix attr)
                      new-record)
-          (set-fade pb fix attr new-record)))
+          (apply-fade-record pb fix attr new-record)))
       pb))
 
   *unspecified*)
@@ -226,12 +226,12 @@
        start-val)
 
       ;; After both fade and preset fade
-      ((and preset-val
+      ((and (not (eq? preset-val 'attribute-not-in-state))
             (> elapsed-fade-time (+ fade-time preset-delay preset-time)))
        preset-val)
 
       ;; During preset fade
-      ((and preset-val
+      ((and (not (eq? preset-val 'attribute-not-in-state))
             (> elapsed-fade-time (+ preset-delay fade-time)))
        (+ end-val
           (* (- preset-val end-val)
@@ -303,11 +303,11 @@
                  time)))))
 
 
-(define (fade-start-val tnow pb old-fade-record fix attr val)
+(define (fade-start-val tnow pb old-fade-record fix attr)
   (cond
 
    ;; Attr not seen before in this playback: start fading from home
-   ((eq? old-fade-record #f)
+   ((eq? old-fade-record 'attribute-not-in-state)
     (get-attr-home-val fix attr))
 
    ;; Attr seen in a finished fade
@@ -322,64 +322,78 @@
       (func tnow)))))
 
 
-(define (set-fade pb fix attr fade-record)
+;; Work out the fade function for fade-record, and apply it to pb
+(define (apply-fade-record pb fix attr fade-record)
   (with-fade-times
-   (get-fade-record-fade-times fade-record)
-   (let ((prev-val (fade-previous fade-record))
-         (target (fade-target fade-record)))
+    (get-fade-record-fade-times fade-record)
+    (let ((prev-val (fade-previous fade-record))
+          (target-val (fade-target fade-record))
+          (preset-val (fade-preset fade-record)))
 
-     (cond
+      (cond
 
-      ;; Non-intensity attribute
-      ((not (intensity? attr))
-       (set-in-state! pb fix attr (wrap-fade (fade-previous fade-record)
-                                             (fade-target fade-record)
-                                             (fade-preset fade-record)
-                                             attr-time
-                                             attr-delay
-                                             preset-time
-                                             preset-delay
-                                             (fade-start-time fade-record))))
+        ((eq? target-val 'attribute-not-in-state)
+         (display "Target val not defined\n"))
 
-      ;; Number to number, fading up
-      ((and (number? target) (number? prev-val) (> target prev-val))
-       (set-in-state! pb fix attr (wrap-fade prev-val
-                                             target
-                                             #f
-                                             up-time
-                                             up-delay
-                                             0.0
-                                             0.0
-                                             (fade-start-time fade-record))))
+        ;; FIXME: Attributes fading to/from attribute-not-in-state
+        ;;    ... depends on intensity vs non-intensity?
+        ;;    ... depends on what intensity of fixture is doing?
 
-      ;; Number to number, fading down
-      ((and (number? target) (number? prev-val) (< target prev-val))
-       (set-in-state! pb fix attr (wrap-fade prev-val
-                                             target
-                                             #f
-                                             down-time
-                                             down-delay
-                                             0.0
-                                             0.0
-                                             (fade-start-time fade-record))))
+        ;; Non-intensity attribute
+        ((not (intensity? attr))
+         (set-in-state! pb fix attr (wrap-fade prev-val
+                                               target-val
+                                               preset-val
+                                               attr-time
+                                               attr-delay
+                                               preset-time
+                                               preset-delay
+                                               (fade-start-time fade-record))))
 
-      ;; Number to number, staying the same
-      ((and (number? target) (number? prev-val))
-       (set-in-state! pb fix attr (wrap-fade prev-val
-                                             target
-                                             #f
-                                             0.0
-                                             0.0
-                                             0.0
-                                             0.0
-                                             (fade-start-time fade-record))))
+        ;; Number to number, fading up
+        ((and (number? target-val)
+              (number? prev-val)
+              (> target-val prev-val))
+         (set-in-state! pb fix attr (wrap-fade prev-val
+                                               target-val
+                                               #f
+                                               up-time
+                                               up-delay
+                                               0.0
+                                               0.0
+                                               (fade-start-time fade-record))))
 
-      ;; Everything else, e.g. number to effect
-      (else
-       (set-in-state! pb fix attr (wrap-xf (fade-previous fade-record)
-                                           (fade-target fade-record)
-                                           (get-fade-record-fade-times fade-record)
-                                           (fade-start-time fade-record))))))))
+        ;; Number to number, fading down
+        ((and (number? target-val)
+              (number? prev-val)
+              (< target-val prev-val))
+         (set-in-state! pb fix attr (wrap-fade prev-val
+                                               target-val
+                                               #f
+                                               down-time
+                                               down-delay
+                                               0.0
+                                               0.0
+                                               (fade-start-time fade-record))))
+
+        ;; Number to number, staying the same
+        ((and (number? target-val)
+              (number? prev-val))
+         (set-in-state! pb fix attr (wrap-fade prev-val
+                                               target-val
+                                               #f
+                                               0.0
+                                               0.0
+                                               0.0
+                                               0.0
+                                               (fade-start-time fade-record))))
+
+        ;; Everything else, e.g. number to effect
+        (else
+          (set-in-state! pb fix attr (wrap-xf prev-val
+                                              target-val
+                                              (get-fade-record-fade-times fade-record)
+                                              (fade-start-time fade-record))))))))
 
 
 (define (fade-finished? tnow fade-record)
@@ -462,35 +476,64 @@
         #f)))
 
 
-(define (run-cue-index! pb cue-list cue-number tnow)
+(define (fix-attr-eq fa1 fa2)
+  (and (eq? (car fa1) (car fa2))
+       (eq? (cdr fa1) (cdr fa2))))
 
-  (let ((the-cue-state (calculate-tracking cue-list cue-number))
-        (the-cue (vector-ref cue-list cue-number)))
 
-    (state-for-each
-     (lambda (fix attr val)
+(define (hash-map-keys hm)
+  (hash-map->list (lambda (key val) key)
+                  hm))
 
-       (let ((fade-record (hash-ref (get-fade-records pb)
-                                    (cons fix attr))))
-         (let ((new-record (make-fade-record tnow
-                                             (cue-part-fade-times the-cue fix attr)
-                                             (fade-start-val tnow
-                                                             pb
-                                                             fade-record
-                                                             fix
-                                                             attr
-                                                             val)
-                                             val
-                                             (preset-val cue-list
-                                                         cue-number
-                                                         fix
-                                                         attr))))
-           (hash-set! (get-fade-records pb)
-                      (cons fix attr)
-                      new-record)
-           (set-fade pb fix attr new-record))))
+(define (add-fix-attrs-to-list state old-list)
+  (lset-union fix-attr-eq
+              old-list
+              (hash-map-keys
+                (get-state-hash-table state))))
 
-     the-cue-state)))
+
+(define (fix-attrs-involved . states)
+  (fold add-fix-attrs-to-list
+        '()
+        states))
+
+
+(define (run-cue-index! pb cue-list cue-index tnow)
+
+  (let ((the-cue-state (calculate-tracking cue-list cue-index))
+        (next-cue-state (calculate-tracking cue-list (+ cue-index 1)))
+        (the-cue (vector-ref cue-list cue-index)))
+
+    (for-each
+      (lambda (fix-attr)
+
+        (let* ((fix (car fix-attr))
+               (attr (cdr fix-attr))
+               (fade-record (hash-ref (get-fade-records pb) fix-attr))
+               (start-val (fade-start-val tnow pb fade-record fix attr))
+               (target-val (state-find fix attr the-cue-state))
+               (preset-val (state-find fix attr next-cue-state)))
+
+          (let ((new-record (make-fade-record tnow
+                                              (cue-part-fade-times the-cue
+                                                                   fix
+                                                                   attr)
+                                              start-val
+                                              target-val
+                                              preset-val)))
+
+            (hash-set! (get-fade-records pb)
+                       fix-attr
+                       new-record)
+
+            (apply-fade-record pb
+                               fix
+                               attr
+                               new-record))))
+
+      (fix-attrs-involved pb
+                          the-cue-state
+                          next-cue-state))))
 
 
 ;;; ******************** Cue lists ********************
@@ -555,31 +598,10 @@
                               cue-parts)))))
 
 
-;; Put the non-intensity parameters from cue-index into the current state,
-;; at their home values, but only if they are not already in the current state.
-(define (apply-for-automove cue-list cue-index)
-  (unless (>= cue-index (vector-length cue-list))
-    (let ((the-cue (vector-ref cue-list cue-index))
-          (old-current-state (current-state)))
-      (parameterize ((current-state (make-empty-state)))
-        (apply-state (get-cue-state the-cue))
-        (state-for-each (lambda (fix attr val)
-                          (unless (intensity? attr)
-                            (unless (have-value (state-find fix
-                                                            attr
-                                                            old-current-state))
-                              (set-in-state! old-current-state
-                                             fix
-                                             attr
-                                             (get-attr-home-val fix attr)))))
-                        (current-state))))))
-
-
 (define (ensure-cue-zero-realized cue-list)
   (let ((cue-zero (vector-ref cue-list 0)))
     (unless (get-tracked-state cue-zero)
       (parameterize ((current-state (make-empty-state)))
-        (apply-for-automove cue-list 1)
         (set-tracked-state! cue-zero (current-state))))))
 
 
@@ -597,7 +619,6 @@
                 (unless (track-intensities the-cue)
                   (blackout (current-state)))
                 (apply-state (get-cue-state the-cue))
-                (apply-for-automove cue-list (+ cue-index 1))
                 (set-tracked-state! the-cue (current-state))
                 (current-state))))))
 
