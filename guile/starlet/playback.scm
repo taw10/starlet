@@ -409,16 +409,15 @@
        (eq? (cdr fa1) (cdr fa2))))
 
 
-(define (hash-map-keys hm)
-  (hash-map->list (lambda (key val) key)
-                  hm))
+(define (fix-attrs-in-state state)
+  (state-map (lambda (fix attr val) (cons fix attr))
+             state))
 
 
 (define (add-fix-attrs-to-list state old-list)
   (lset-union fix-attr-eq
               old-list
-              (hash-map-keys
-                (get-state-hash-table state))))
+              (fix-attrs-in-state state)))
 
 
 (define (fix-attrs-involved . states)

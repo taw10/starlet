@@ -33,16 +33,11 @@
             make-empty-state
             state-for-each
             state-map
-            get-state-hash-table
-            set-state-hash-table!
-            add-state-to-state!
             clear-state!
             print-state
             state-source
             set-in-state!
             state-find
-            have-value
-            merge-states-htp
             current-state
             at
             apply-state
