@@ -21,7 +21,6 @@
 
             <fixture-attribute>
             attr-continuous
-            attr-boolean
             attr-list
             get-attr-type
             get-attr-range
@@ -534,15 +533,6 @@ pre-existing contents."
        #:name attr-name
        #:range attr-range
        #:type 'continuous
-       #:home-value attr-home-value))))
-
-
-(define-syntax attr-boolean
-  (syntax-rules ()
-    ((_ attr-name attr-home-value)
-     (make <fixture-attribute>
-       #:name attr-name
-       #:type 'boolean
        #:home-value attr-home-value))))
 
 
