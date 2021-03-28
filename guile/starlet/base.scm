@@ -143,6 +143,7 @@
              (cons fix attr)
              value))
 
+
 ;; List of fixtures and home state (must remain consistent)
 (define fixtures (make-atomic-box '()))
 
@@ -271,12 +272,12 @@
 
 
 (define (have-value val)
-  (not (eq? val 'attribute-not-in-state)))
+  (not (eq? val 'no-value)))
 
 (define (state-find fix attr state)
   (hash-ref (get-state-hash-table state)
             (cons fix attr)
-            'attribute-not-in-state))
+            'no-value))
 
 (define (state-map func state)
   (hash-map->list (lambda (key value)
@@ -316,9 +317,10 @@ pre-existing contents."
   (add-state-to-state! merge-rule-ltp state (current-state)))
 
 
+;; Coerce something from a state object into a number for scanout
 (define (value->number val time)
   (if (procedure? val)
-      (val time)
+      (value->number (val time) time)
       val))
 
 
@@ -326,9 +328,7 @@ pre-existing contents."
   (set-state-hash-table! state (make-hash-table)))
 
 
-(define (merge-rule-ltp attr a b)
-  (lambda (time)
-    (value->number b time)))
+(define (merge-rule-ltp attr a b) b)
 
 (define (merge-rule-htp attr a b)
   (if (intensity? attr)
@@ -339,8 +339,7 @@ pre-existing contents."
              (value->number b time)))
 
       ;; LTP for all non-intensity attributes
-      (lambda (time)
-        (value->number b time))))
+      b))
 
 (define (merge-states-htp list-of-states)
   (merge-states merge-rule-htp
