@@ -412,62 +412,50 @@ pre-existing contents."
                      (- addr 1)                   ; u8vector-set indexing starts from zero
                      (round-dmx value)))
 
-    ;; Make a combined state
-    (let* ((fixture-home-pair (atomic-box-ref fixtures))
-           (combined-state (merge-states-ltp
-                             (list
-                               (merge-states-htp
-                                 (atomic-box-ref state-list))
-                               programmer-state))))
+    (for-each
+      (lambda (fix)
 
-      ;; Request all fixtures to output their DMX values
-      (for-each (lambda (fix)
+        (let ((univ (get-fixture-universe fix))
+              (addr (get-fixture-addr fix)))
 
-                  (let ((univ (get-fixture-universe fix))
-                        (addr (get-fixture-addr fix)))
+          ;; Helper function to get a value for this
+          ;; fixture in the current state
+          (define (get-attr attr-name)
+            (current-value fix attr-name))
 
-                    ;; Helper function to get a value for this
-                    ;; fixture in the current state
-                    (define (get-attr attr-name)
-                      (let ((val (state-find fix attr-name combined-state)))
-                        (if (have-value val)
-                            (value->number val (hirestime))
-                            (get-attr-home-val fix attr-name))))
+          ;; Helper function to set 8-bit DMX value
+          (define (set-chan relative-channel-number value)
 
-                    ;; Helper function to set 8-bit DMX value
-                    (define (set-chan relative-channel-number value)
+            (unless (number? value)
+              (raise-exception (make-exception
+                                 (make-exception-with-message
+                                   "set-chan: value is not a number")
+                                 (make-exception-with-irritants
+                                   (list relative-channel-number value)))))
+            (set-dmx univ
+                     (+ addr relative-channel-number -1)
+                     value))
 
-                      (unless (number? value)
-                        (raise-exception (make-exception
-                                           (make-exception-with-message
-                                             "set-chan: value is not a number")
-                                           (make-exception-with-irritants
-                                             (list relative-channel-number value)))))
-                      (set-dmx univ
-                               (+ addr relative-channel-number -1)
-                               value))
+          ;; Helper function to set 16-bit DMX value
+          (define (set-chan-16bit relative-channel-number value)
+            (unless (number? value)
+              (raise-exception (make-exception
+                                 (make-exception-with-message
+                                   "set-chan16: value is not a number")
+                                 (make-exception-with-irritants
+                                   (list relative-channel-number
+                                         value)))))
+            (set-chan relative-channel-number (msb value))
+            (set-chan (+ relative-channel-number 1) (lsb value)))
 
-                    ;; Helper function to set 16-bit DMX value
-                    (define (set-chan-16bit relative-channel-number value)
-                      (unless (number? value)
-                        (raise-exception (make-exception
-                                           (make-exception-with-message
-                                             "set-chan16: value is not a number")
-                                           (make-exception-with-irritants
-                                             (list relative-channel-number
-                                                   value)))))
-                      (set-chan relative-channel-number (msb value))
-                      (set-chan (+ relative-channel-number 1) (lsb value)))
+          (scanout-fixture fix get-attr set-chan set-chan-16bit)))
 
-                    (scanout-fixture fix get-attr set-chan set-chan-16bit)))
+      (atomic-box-ref fixtures))
 
-                (atomic-box-ref fixtures))
-
-
-      ;; Send everything to OLA
-      (for-each (lambda (a)
-                  (send-to-ola ola-uri ola-socket a))
-                universes))
+    ;; Send everything to OLA
+    (for-each (lambda (a)
+                (send-to-ola ola-uri ola-socket a))
+              universes)
 
     (usleep 10000)
 
@@ -504,15 +492,12 @@ pre-existing contents."
             #:unwind? #f))))))
 
 
-
 (define (current-value fix attr-name)
-  ;; FIXME: Only need to track one fixture through the state stack
-  (let* ((fixture-home-pair (atomic-box-ref fixtures))
-         (combined-state (merge-states-ltp
-                           (list
-                             (merge-states-htp
-                               (atomic-box-ref state-list))
-                             programmer-state))))
+  (let ((combined-state (merge-states-ltp
+                          (list
+                            (merge-states-htp
+                              (atomic-box-ref state-list))
+                            programmer-state))))
     (let ((val (state-find fix attr-name combined-state)))
       (if (have-value val)
           (value->number val 0)
