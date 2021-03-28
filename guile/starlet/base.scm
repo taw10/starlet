@@ -28,6 +28,7 @@
             get-attr-name
             get-attr-home-val
             intensity?
+            continuous-attribute?
 
             <starlet-state>
             make-empty-state
@@ -200,6 +201,11 @@
 
 (define (intensity? a)
   (eq? 'intensity a))
+
+
+(define (continuous-attribute? aobj)
+  (eq? 'continuous
+       (get-attr-type aobj)))
 
 
 (define (register-state! new-state)
