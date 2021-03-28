@@ -265,9 +265,6 @@
                  (get-state-hash-table state)))
 
 
-(define (have-value val)
-  (not (eq? val 'no-value)))
-
 (define (state-find fix attr state)
   (hash-ref (get-state-hash-table state)
             (cons fix attr)
@@ -287,15 +284,15 @@
                     (let ((current-value (state-find fix
                                                      attr
                                                      combined-state)))
-                      (if (have-value current-value)
+                      (if (eq? 'no-value current-value)
                           (set-in-state! combined-state
                                          fix
                                          attr
-                                         (merge-rule attr current-value value))
+                                         value)
                           (set-in-state! combined-state
                                          fix
                                          attr
-                                         value))))
+                                         (merge-rule attr current-value value)))))
                  new))
 
 
@@ -499,9 +496,9 @@ pre-existing contents."
                               (atomic-box-ref state-list))
                             programmer-state))))
     (let ((val (state-find fix attr-name combined-state)))
-      (if (have-value val)
-          (value->number val 0)
-          (get-attr-home-val fix attr-name)))))
+      (if (eq? 'no-value val)
+          (get-attr-home-val fix attr-name)
+          (value->number val 0)))))
 
 
 (define-syntax attr-continuous
