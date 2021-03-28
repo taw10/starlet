@@ -131,8 +131,7 @@
 (define-class <starlet-state> (<object>)
   (hash-table
    #:init-form (make-hash-table)
-   #:getter get-state-hash-table
-   #:setter set-state-hash-table!))
+   #:getter get-state-hash-table))
 
 
 (define-method (set-in-state! (state <starlet-state>)
@@ -325,7 +324,7 @@ pre-existing contents."
 
 
 (define (clear-state! state)
-  (set-state-hash-table! state (make-hash-table)))
+  (hash-clear! (get-state-hash-table state)))
 
 
 (define (merge-rule-ltp attr a b) b)
