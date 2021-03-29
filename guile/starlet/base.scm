@@ -381,6 +381,14 @@ pre-existing contents."
        (/ (cdr a)
           1000000))))
 
+
+(define (ensure-number value irritating)
+  (unless (number? value)
+    (raise-exception (make-exception
+                       (make-exception-with-message "Value is not a number")
+                       (make-exception-with-irritants irritating)))))
+
+
 (define scanout-freq 0)
 
 (define-generic scanout-fixture)
@@ -391,13 +399,7 @@ pre-existing contents."
 
     ;; Helper function for scanout functions to set individual DMX values
     (define (set-dmx universe addr value)
-
-      (unless (number? value)
-        (raise-exception (make-exception
-                           (make-exception-with-message
-                             "Attempt to set non-number DMX value")
-                           (make-exception-with-irritants
-                             (list universe addr value)))))
+      (ensure-number value (list universe addr value))
 
       ;; Create DMX array for universe if it doesn't exist already
       (unless (assq universe universes)
@@ -422,26 +424,12 @@ pre-existing contents."
 
           ;; Helper function to set 8-bit DMX value
           (define (set-chan relative-channel-number value)
-
-            (unless (number? value)
-              (raise-exception (make-exception
-                                 (make-exception-with-message
-                                   "set-chan: value is not a number")
-                                 (make-exception-with-irritants
-                                   (list relative-channel-number value)))))
-            (set-dmx univ
-                     (+ addr relative-channel-number -1)
-                     value))
+            (ensure-number value (list fix relative-channel-number value))
+            (set-dmx univ (+ addr relative-channel-number -1) value))
 
           ;; Helper function to set 16-bit DMX value
           (define (set-chan-16bit relative-channel-number value)
-            (unless (number? value)
-              (raise-exception (make-exception
-                                 (make-exception-with-message
-                                   "set-chan16: value is not a number")
-                                 (make-exception-with-irritants
-                                   (list relative-channel-number
-                                         value)))))
+            (ensure-number value (list fix relative-channel-number value))
             (set-chan relative-channel-number (msb value))
             (set-chan (+ relative-channel-number 1) (lsb value)))
 
