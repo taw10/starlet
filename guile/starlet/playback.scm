@@ -500,7 +500,8 @@
         (format #t "  Next cue index ~a (~a)\n"
                 (get-next-cue-index pb)
                 the-cue))
-      (format #t "  End of cue list.\n")))
+      (format #t "  End of cue list.\n"))
+  *unspecified*)
 
 
 ;;; ******************** Cue lists ********************
