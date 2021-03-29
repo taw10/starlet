@@ -489,7 +489,10 @@ pre-existing contents."
     (let ((val (state-find fix attr-name combined-state)))
       (if (eq? 'no-value val)
           (get-attr-home-val fix attr-name)
-          (value->number val 0)))))
+          (let ((rv (value->number val (hirestime))))
+            (if (eq? 'no-value rv)
+                (get-attr-home-val fix attr-name)
+                rv))))))
 
 
 (define-syntax attr-continuous
