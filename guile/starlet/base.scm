@@ -551,18 +551,28 @@ pre-existing contents."
   (receive (fixtures attr-name value)
            (partition3 fixture? symbol? (flatten-sublists args))
            (cond
+
              ((nil? value)
               (error "at: Value not specified"))
+
              ((or (more-than-one value)
                   (more-than-one attr-name))
               (error "at: Only one attribute or value name"))
+
              ((and (nil? fixtures)
                    (nil? attr-name))
-              (set-fixtures selection '(intensity) value))
+              (if (nil? selection)
+                  'no-fixtures-selected
+                  (set-fixtures selection '(intensity) value)))
+
              ((nil? attr-name)
               (set-fixtures fixtures '(intensity) value))
+
              ((nil? fixtures)
-              (set-fixtures selection attr-name value))
+              (if (nil? selection)
+                  'no-fixtures-selected
+                  (set-fixtures selection attr-name value)))
+
              (else
                (set-fixtures fixtures attr-name value)))))
 
