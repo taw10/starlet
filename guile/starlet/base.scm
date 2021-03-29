@@ -280,20 +280,23 @@
 
 ;; Add the contents of state "new" to "combined-state"
 (define (add-state-to-state! merge-rule new combined-state)
-  (state-for-each (lambda (fix attr value)
-                    (let ((current-value (state-find fix
-                                                     attr
-                                                     combined-state)))
-                      (if (eq? 'no-value current-value)
-                          (set-in-state! combined-state
-                                         fix
-                                         attr
-                                         value)
-                          (set-in-state! combined-state
-                                         fix
-                                         attr
-                                         (merge-rule attr current-value value)))))
-                 new))
+  (state-for-each (lambda (fix attr incoming-value)
+                    (unless (eq? 'no-value incoming-value)
+                      (let ((current-value (state-find fix
+                                                       attr
+                                                       combined-state)))
+                        (if (eq? 'no-value current-value)
+                            (set-in-state! combined-state
+                                           fix
+                                           attr
+                                           incoming-value)
+                            (set-in-state! combined-state
+                                           fix
+                                           attr
+                                           (merge-rule attr
+                                                       current-value
+                                                       incoming-value))))))
+                  new))
 
 
 (define (apply-state state)
