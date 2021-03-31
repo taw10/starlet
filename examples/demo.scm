@@ -234,3 +234,7 @@
 
 ;: Jump between cues
 (cut-to-cue-number! pb 1)
+
+
+;; Run cues out of order
+(run-cue-number! pb 2)
