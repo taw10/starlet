@@ -14,21 +14,21 @@ With Starlet, a cue list looks like this:
   (cue-list
 
    (cue 1
-        (cue-state (at dim1 '100))
-                   (at mh1 'pan 25))
+        (lighting-state (at dim1 '100))
+                        (at mh1 'pan 25))
         #:fade-up 3
         #:fade-down 5)
 
    (cue 2
-        (cue-state (at dim1 '50)
-                   (at dim2 '100)
-                   (at mh1 'pan 50))
+        (lighting-state (at dim1 '50)
+                        (at dim2 '100)
+                        (at mh1 'pan 50))
         #:fade-up 3
         #:fade-down 1
         #:down-delay 3)
 
    (cue 3
-        (cue-state #f)  ; blackout
+        (lighting-state #f)  ; blackout
         #:fade-down 2
 ```
 
@@ -60,8 +60,8 @@ You can use pre-prepared states in cues, even if some minor modifications are ne
 
 ```
 (cue 57
-     (cue-state (apply-state spooky-dungeon)
-                (at follow-spot 100))
+     (lighting-state (apply-state spooky-dungeon)
+                     (at follow-spot 100))
      #:fade-up 3
      #:fade-down 3)
 ```
@@ -70,7 +70,7 @@ Mult-part cues are supported.  Simply specify the fade parameters and which fixt
 
 ```
 (cue 64
-     (cue-state (apply-state indoor-act1-general)
+     (lighting-state (apply-state indoor-act1-general)
      #:fade-up 3
      #:fade-down 3
 
