@@ -442,23 +442,30 @@ pre-existing contents."
         'no-value)))
 
 (define (current-value fix attr-name tnow)
-  (if (intensity? attr-name)
+  (let  ((programmer-val (state-find fix attr-name programmer-state)))
+    (if (eq? 'no-value programmer-val)
 
-      ;; HTP for intensity
-      (fold (lambda (state prev)
-              (let ((val (state-find fix attr-name state)))
-                (if (eq? 'no-value val)
-                    prev
-                    (let ((real-val (value->number val tnow)))
-                      (max real-val prev)))))
-            0.0
-            (atomic-box-ref state-list))
+        ;; Look in the states
+        (if (intensity? attr-name)
 
-      ;; Priority order for everything else
-      (let ((val (first-val fix attr-name tnow (atomic-box-ref state-list))))
-        (if (eq? 'no-value val)
-            (get-attr-home-val fix attr-name)
-            (value->number val tnow)))))
+            ;; HTP for intensity
+            (fold (lambda (state prev)
+                    (let ((val (state-find fix attr-name state)))
+                      (if (eq? 'no-value val)
+                          prev
+                          (let ((real-val (value->number val tnow)))
+                            (max real-val prev)))))
+                  0.0
+                  (atomic-box-ref state-list))
+
+            ;; Priority order for everything else
+            (let ((val (first-val fix attr-name tnow (atomic-box-ref state-list))))
+              (if (eq? 'no-value val)
+                  (get-attr-home-val fix attr-name)
+                  (value->number val tnow))))
+
+        ;; Use programmer value, if we have it
+        programmer-val)))
 
 
 (define-syntax attr-continuous
@@ -482,7 +489,6 @@ pre-existing contents."
 
 
 (define current-state (make-parameter programmer-state))
-(register-state! (current-state))
 
 
 (define-syntax lighting-state
