@@ -44,7 +44,7 @@
 
 (define (current-values fixture-list attr-name)
   (map (lambda (fix)
-         (current-value fix attr-name))
+         (current-value fix attr-name (hirestime)))
        fixture-list))
 
 

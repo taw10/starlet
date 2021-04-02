@@ -204,8 +204,8 @@
 
 (define (register-state! new-state)
   (atomic-box-set! state-list
-                   (cons new-state
-                         (atomic-box-ref state-list))))
+                   (append (atomic-box-ref state-list)
+                           (list new-state))))
 
 ;; Patch a new fixture
 (define* (patch-real name
@@ -278,37 +278,16 @@
                   (get-state-hash-table state)))
 
 
-;; Add the contents of state "new" to "combined-state"
-(define (add-state-to-state! merge-rule new combined-state)
-  (state-for-each (lambda (fix attr incoming-value)
-                    (unless (eq? 'no-value incoming-value)
-                      (let ((current-value (state-find fix
-                                                       attr
-                                                       combined-state)))
-                        (if (eq? 'no-value current-value)
-                            (set-in-state! combined-state
-                                           fix
-                                           attr
-                                           incoming-value)
-                            (set-in-state! combined-state
-                                           fix
-                                           attr
-                                           (merge-rule attr
-                                                       current-value
-                                                       incoming-value))))))
-                  new))
-
-
 (define (apply-state state)
   "Apply the contents of 'state' to the current state, on top of the \
 pre-existing contents."
-  (add-state-to-state! merge-rule-ltp state (current-state)))
+  (state-for-each at state))
 
 
 (define (show-state state)
   "Clear the current state, and apply the contents of 'state'"
   (clear-state! (current-state))
-  (add-state-to-state! merge-rule-ltp state (current-state)))
+  (state-for-each at state))
 
 
 ;; Coerce something from a state object into a number for scanout
@@ -320,38 +299,6 @@ pre-existing contents."
 
 (define (clear-state! state)
   (hash-clear! (get-state-hash-table state)))
-
-
-(define (merge-rule-ltp attr a b) b)
-
-(define (merge-rule-htp attr a b)
-  (if (intensity? attr)
-
-      ;; HTP only for intensity attributes
-      (lambda (time)
-        (max (value->number a time)
-             (value->number b time)))
-
-      ;; LTP for all non-intensity attributes
-      b))
-
-(define (merge-states-htp list-of-states)
-  (merge-states merge-rule-htp
-                list-of-states))
-
-(define (merge-states-ltp list-of-states)
-  (merge-states merge-rule-ltp
-                list-of-states))
-
-;; Combine states
-(define (merge-states merge-rule list-of-states)
-  (let ((combined-state (make <starlet-state>)))
-    (for-each (lambda (state)
-                (add-state-to-state! merge-rule
-                                     state
-                                     combined-state))
-              list-of-states)
-    combined-state))
 
 
 ;; Scanout
@@ -423,7 +370,7 @@ pre-existing contents."
           ;; Helper function to get a value for this
           ;; fixture in the current state
           (define (get-attr attr-name)
-            (current-value fix attr-name))
+            (current-value fix attr-name (hirestime)))
 
           ;; Helper function to set 8-bit DMX value
           (define (set-chan relative-channel-number value)
@@ -480,19 +427,38 @@ pre-existing contents."
             #:unwind? #f))))))
 
 
-(define (current-value fix attr-name)
-  (let ((combined-state (merge-states-ltp
-                          (list
-                            (merge-states-htp
-                              (atomic-box-ref state-list))
-                            programmer-state))))
-    (let ((val (state-find fix attr-name combined-state)))
-      (if (eq? 'no-value val)
-          (get-attr-home-val fix attr-name)
-          (let ((rv (value->number val (hirestime))))
-            (if (eq? 'no-value rv)
-                (get-attr-home-val fix attr-name)
-                rv))))))
+(define (state-has-fix-attr fix attr tnow state)
+  (let ((val (state-find fix attr state)))
+    (if (eq? 'no-value val)
+        #f
+        (not (eq? 'no-value (value->number val tnow))))))
+
+(define (first-val fix attr tnow state-list)
+  (let ((first-state (find (lambda (state)
+                             (state-has-fix-attr fix attr tnow state))
+                           state-list)))
+    (if first-state
+        (state-find fix attr first-state)
+        'no-value)))
+
+(define (current-value fix attr-name tnow)
+  (if (intensity? attr-name)
+
+      ;; HTP for intensity
+      (fold (lambda (state prev)
+              (let ((val (state-find fix attr-name state)))
+                (if (eq? 'no-value val)
+                    prev
+                    (let ((real-val (value->number val tnow)))
+                      (max real-val prev)))))
+            0.0
+            (atomic-box-ref state-list))
+
+      ;; Priority order for everything else
+      (let ((val (first-val fix attr-name tnow (atomic-box-ref state-list))))
+        (if (eq? 'no-value val)
+            (get-attr-home-val fix attr-name)
+            (value->number val tnow)))))
 
 
 (define-syntax attr-continuous
