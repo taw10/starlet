@@ -8,38 +8,35 @@
   #:export (state-on-fader))
 
 
-(define (put-state-on-fader cc-number
-                            channel
-                            state)
+(define* (state-on-fader cc-number
+                         state
+                         #:key (channel #f))
   (register-state!
     (lighting-state
       (state-for-each
         (lambda (fix attr val)
-          (if (intensity? attr)
+          (let ((cc-val (get-cc-value cc-number #:channel channel)))
+            (format #t "Have val ~a\n" cc-val)
 
-              ;; Intensity parameters get scaled according to the fader
-              (at fix attr (lambda (time)
-                             (let ((cc-val (get-cc-value cc-number
-                                                         #:channel channel)))
-                               (if cc-val
-                                   (* 0.01 val (ccval->percent cc-val))
-                                   0))))
+            ;; Fader position known?
+            (if cc-val
 
-              ;; Non-intensity parameters just get set in our new state
-              (at fix attr val)))
+                (if (intensity? attr)
+
+                    ;; Intensity parameters get scaled according to the fader
+                    (at fix attr (lambda (time)
+                                   (* 0.01 val (ccval->percent cc-val))))
+
+                    ;; Non-intensity parameters just get set in our new state,
+                    ;; but only if the fader is up!
+                    (if (> cc-val 0)
+                        (at fix attr val)
+                        'no-value))
+
+                ;; Fader position unknown
+                'no-value)))
 
         state))))
-
-
-(define* (state-on-fader cc-number state
-                         #:key (channel #f))
-  (register-midi-cc-callback!
-    #:cc-number cc-number
-    #:func (lambda (old-val new-val)
-             (when (or (eqv? old-val 0)
-                       (and (not old-val)
-                            (< new-val 10)))
-               (put-state-on-fader cc-number channel state)))))
 
 
 (define (current-values fixture-list attr-name)

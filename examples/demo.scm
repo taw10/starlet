@@ -170,10 +170,7 @@
 
 
 ;; Put a lighting state on a MIDI fader
-(state-on-fader 19
-                (lighting-state
-                  (apply-state my-state)))
-
+(state-on-fader 19 my-state)
 
 ;; Create a cue list
 (define my-cue-list
