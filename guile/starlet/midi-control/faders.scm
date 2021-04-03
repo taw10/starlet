@@ -242,7 +242,7 @@
 
   (set! midi-callbacks '())
 
-  (when (car fixture-list)
+  (unless (nil? fixture-list)
     (set! midi-callbacks
       (map (partial midi-control-attr fixture-list)
            control-map))))

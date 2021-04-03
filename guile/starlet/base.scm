@@ -561,8 +561,11 @@ pre-existing contents."
 
 
 (define (sel . fixture-list)
-  (set! selection
-    (flatten-sublists fixture-list))
+  (if (nil? fixture-list)
+      (set! selection '())
+      (if (not (car fixture-list))
+          (set! selection '())
+          (set! selection (flatten-sublists fixture-list))))
   (run-hook selection-hook selection))
 
 
