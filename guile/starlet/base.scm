@@ -125,8 +125,13 @@
 ;; of (fixture . attribute)  -->  value
 (define-class <starlet-state> (<object>)
   (hash-table
-   #:init-form (make-hash-table)
-   #:getter get-state-hash-table))
+    #:init-form (make-hash-table)
+    #:getter get-state-hash-table)
+  (name
+    #:init-value #f
+    #:init-keyword #:name
+    #:getter get-state-name
+    #:setter set-state-name!))
 
 
 (define-method (set-in-state! (state <starlet-state>)
@@ -202,10 +207,35 @@
        (get-attr-type aobj)))
 
 
-(define (register-state! new-state)
-  (atomic-box-set! state-list
-                   (append (atomic-box-ref state-list)
-                           (list new-state))))
+(define (append-or-replace-named-state orig-list name new-state)
+  (let ((new-list (map (lambda (st)
+                         (if (eq? (get-state-name st) name)
+                             (begin
+                               new-state)
+                             st))
+                       orig-list)))
+
+    ;; If there is no state with this name in the list,
+    ;; the replacement above will have no effect.
+    ;; Check again and add in the normal way if so.
+    (if (find (lambda (st) (eq? (get-state-name st)
+                                name))
+              new-list)
+        new-list
+        (append orig-list (list new-state)))))
+
+
+(define* (register-state! new-state
+                          #:key (unique-name #f))
+  (if unique-name
+      (begin (set-state-name! new-state unique-name)
+             (atomic-box-set! state-list
+                              (append-or-replace-named-state (atomic-box-ref state-list)
+                                                             unique-name
+                                                             new-state)))
+      (atomic-box-set! state-list
+                       (append (atomic-box-ref state-list)
+                               (list new-state)))))
 
 ;; Patch a new fixture
 (define* (patch-real name

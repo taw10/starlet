@@ -8,6 +8,21 @@
   #:export (state-on-fader))
 
 
+(define (channel-number->string channel)
+  (if channel
+      (number->string channel)
+      "default"))
+
+
+(define (name-for-fader-state channel cc-number)
+  (string->symbol
+    (string-append
+      "faderstate-ch"
+      (channel-number->string channel)
+      "-cc"
+      (number->string cc-number))))
+
+
 (define* (state-on-fader cc-number
                          state
                          #:key (channel #f))
@@ -37,7 +52,8 @@
                       ;; Fader position unknown
                       'no-value)))))
 
-        state))))
+        state))
+    #:unique-name (name-for-fader-state channel cc-number)))
 
 
 (define (current-values fixture-list attr-name)
