@@ -15,26 +15,27 @@
     (lighting-state
       (state-for-each
         (lambda (fix attr val)
-          (let ((cc-val (get-cc-value cc-number #:channel channel)))
-            (format #t "Have val ~a\n" cc-val)
+          (at fix attr
+              (lambda (time)
 
-            ;; Fader position known?
-            (if cc-val
+                (let ((cc-val (get-cc-value cc-number #:channel channel)))
 
-                (if (intensity? attr)
+                  ;; Fader position known?
+                  (if cc-val
 
-                    ;; Intensity parameters get scaled according to the fader
-                    (at fix attr (lambda (time)
-                                   (* 0.01 val (ccval->percent cc-val))))
+                      (if (intensity? attr)
 
-                    ;; Non-intensity parameters just get set in our new state,
-                    ;; but only if the fader is up!
-                    (if (> cc-val 0)
-                        (at fix attr val)
-                        'no-value))
+                          ;; Intensity parameters get scaled according to the fader
+                          (* 0.01 val (ccval->percent cc-val))
 
-                ;; Fader position unknown
-                'no-value)))
+                          ;; Non-intensity parameters just get set in our new state,
+                          ;; but only if the fader is up!
+                          (if (> cc-val 0)
+                              val
+                              'no-value))
+
+                      ;; Fader position unknown
+                      'no-value)))))
 
         state))))
 
