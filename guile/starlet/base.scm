@@ -454,7 +454,9 @@ pre-existing contents."
                       (if (eq? 'no-value val)
                           prev
                           (let ((real-val (value->number val tnow)))
-                            (max real-val prev)))))
+                            (if (eq? 'no-value real-val)
+                                prev
+                                (max real-val prev))))))
                   0.0
                   (atomic-box-ref state-list))
 
