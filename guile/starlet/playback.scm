@@ -311,23 +311,44 @@
 (define (make-continuous-attr-fade start-val
                                    target-val
                                    preset-val
-                                   fade-times
+                                   fade-time
                                    fade-start-time
                                    preset-time
                                    preset-start-time)
-  (lambda (time)
+  (if (and (number? target-val)
+           (not (eq? start-val 'no-value)))
 
-    ;; FIXME: If target value is a number, do a fade
-    ;;  (if starting value is a function, freeze it)
-    (cond
+      ;; It makes sense to do a fade
+      (let ((real-start-val (value->number start-val fade-start-time)))
+        (lambda (time)
+          (cond
+            ((< time fade-start-time) start-val)
 
-      ((< time fade-start-time) start-val)
+            ((and (not (eq? 'no-value preset-val))
+                  (> time preset-start-time))
+             (simple-fade target-val
+                          preset-val
+                          preset-time
+                          preset-start-time
+                          time))
 
-      ((and (not (eq? 'no-value preset-val))
-            (> time preset-start-time))
-       preset-val)
+            (else
+              (simple-fade real-start-val
+                           target-val
+                           fade-time
+                           fade-start-time
+                           time)))))
 
-      (else target-val))))
+      ;; A fade doesn't make sense, so make do with a snap transition
+      (lambda (time)
+        (cond
+          ((< time fade-start-time) start-val)
+
+          ((and (not (eq? 'no-value preset-val))
+                (> time preset-start-time))
+           preset-val)
+
+          (else target-val)))))
 
 
 (define (match-fix-attr attr-el fix attr)
