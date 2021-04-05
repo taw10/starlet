@@ -72,6 +72,11 @@
           (cons '() '())
           fixture-list attrs)))
 
+(define (clamp-to-attr-range attr-obj val)
+  (let ((r (get-attr-range attr-obj)))
+    (max (car r)
+         (min (cadr r)
+              val))))
 
 (define* (at-midi-jogwheel fixture-list attr cc-number
                            #:key (led #f))
@@ -90,15 +95,20 @@
       (let ((old-vals (current-values fixtures attr))
             (offset 0))
         (register-midi-cc-callback!
-         #:cc-number cc-number
-         #:func (lambda (prev-cc-val new-cc-value)
-                  (set! offset (+ offset (ccval->offset new-cc-value)))
-                  (for-each (lambda (fix old-val)
-                              (set-in-state! programmer-state
-                                             fix
-                                             attr
-                                             (+ old-val offset)))
-                            fixtures old-vals)))))))
+          #:cc-number cc-number
+          #:func (lambda (prev-cc-val new-cc-value)
+                   (set! offset (+ offset (ccval->offset new-cc-value)))
+                   (for-each (lambda (fix old-val)
+                               (let ((attr-obj (find-attr fix attr)))
+                                 (when (and attr-obj
+                                            (continuous-attribute? attr-obj))
+                                   (set-in-state! programmer-state
+                                                  fix
+                                                  attr
+                                                  (clamp-to-attr-range
+                                                    attr-obj
+                                                    (+ old-val offset))))))
+                             fixtures old-vals)))))))
 
 
 
