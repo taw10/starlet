@@ -154,10 +154,10 @@
              (let ((strb (get-attr 'strobe))
                    (spd (get-attr 'strobe-speed)))
                (cond
-                ((eq? strb #t) (scale-to-range spd '(0 100) '(64 95)))
-                ((eq? strb 'random) (scale-to-range spd '(0 100) '(192 223)))
-                ((eq? strb 'zap) (scale-to-range spd '(0 100) '(160 191)))
-                (else 255))))
+                 ((eq? strb #t) (scale-to-range spd '(0 100) '(64 95)))
+                 ((eq? strb 'random) (scale-to-range spd '(0 100) '(192 223)))
+                 ((eq? strb 'zap) (scale-to-range spd '(0 100) '(160 191)))
+                 (else 255))))
 
   (set-chan8 25 (if (get-attr 'prism) 20 0))
 
