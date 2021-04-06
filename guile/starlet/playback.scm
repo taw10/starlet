@@ -304,7 +304,28 @@
   (lambda (time)
     (cond
       ((< time fade-start-time) start-val)
-      ((> time (+ preset-start-time preset-time)) preset-val)
+      ((and (not (eq? 'no-value preset-val))
+            (> time (+ preset-start-time preset-time)))
+       preset-val)
+      (else target-val))))
+
+
+(define (make-colour-fade start-val
+                          target-val
+                          preset-val
+                          fade-time
+                          fade-start-time
+                          preset-time
+                          preset-start-time)
+  (lambda (time)
+    (cond
+
+      ((< time fade-start-time) start-val)
+
+      ((and (not (eq? 'no-value preset-val))
+            (> time (+ preset-start-time preset-time)))
+       preset-val)
+
       (else target-val))))
 
 
@@ -449,6 +470,7 @@
   (cond
     ((eq? type 'continuous) make-continuous-attr-fade)
     ((eq? type 'list) make-list-attr-fade)
+    ((eq? type 'colour) make-colour-fade)
     (else
       (raise-exception (make-exception
                          (make-exception-with-message

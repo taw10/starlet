@@ -29,6 +29,7 @@
   (starlet base)
   (starlet playback)
   (starlet effects)
+  (starlet colours)
   (starlet fixture-library generic)
   (starlet fixture-library robe)
   (starlet midi-control base)
@@ -138,8 +139,7 @@
 (at red 100)
 (at rtruss 100)
 (at rtruss 'zoom 80)
-(at rtruss 'magenta 100)
-(at rtruss 'yellow 40)
+(at rtruss 'colour (make-colour-cmy 0 100 0))
 (at rtruss 'tilt 70)
 (at rtruss 'pan 200)
 (at rtruss 'prism #f)
@@ -154,6 +154,8 @@
 (at 100)        ;; Without fixture name 'at' applies to selected fixture(s)
 (sel rtruss1)
 (sel #f)
+(sel ltruss5)
+(at 'colour (make-colour-cmy 0 0 100))
 
 
 ;; Record a state to a variable, then clear up
@@ -179,27 +181,36 @@
     (cue 1
          (lighting-state
            (at ltruss1 (quote pan) 206)
-           (at rtruss6 (quote pan) 334)
-           (at ltruss1 (quote yellow) 3800/127)
-           (at rtruss6 (quote tilt) 111)
-           (at rtruss6 (quote yellow) 3100/127)
            (at ltruss1 (quote tilt) 108.0)
-           (at ltruss1 (quote magenta) 600/127)
+           (at ltruss1 (quote zoom) 6300/127)
            (at ltruss1 (quote intensity) 109)
+           (at ltruss1 (quote colour) (make-colour-cmy 0 600/127 3800/127))
+
+           (at rtruss6 (quote pan) 334)
+           (at rtruss6 (quote intensity) 133)
+           (at rtruss6 (quote zoom) 4200/127)
+           (at rtruss6 (quote tilt) 111)
+           (at rtruss6 (quote colour) (make-colour-cmy 0 100/127 3100/127))
+
            (at red4 (quote intensity) 30)
            (at red3 (quote intensity) 30)
            (at red1 (quote intensity) 30)
-           (at rtruss6 (quote intensity) 133)
-           (at rtruss6 (quote zoom) 4200/127)
-           (at rtruss6 (quote magenta) 100/127)
-           (at red2 (quote intensity) 30)
-           (at ltruss1 (quote zoom) 6300/127)))
+           (at red2 (quote intensity) 30)))
 
     (cue 2
          (lighting-state
            (apply-state my-state))
          #:up-time 1
          #:down-time 1)
+
+    (cue 2.5
+         (lighting-state
+           (apply-state my-state)
+           (at ltruss6 'colour (make-colour-cmy 100 0 0))
+           (at rtruss1 'colour (make-colour-cmy 0 40 0)))
+         #:up-time 3
+         #:down-time 3
+         #:attr-time 2)
 
     (cue 3
          (lighting-state

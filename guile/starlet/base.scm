@@ -1,5 +1,6 @@
 (define-module (starlet base)
   #:use-module (starlet utils)
+  #:use-module (starlet colours)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
@@ -22,12 +23,14 @@
             <fixture-attribute>
             attr-continuous
             attr-list
+            attr-colour
             get-attr-type
             get-attr-range
             get-attr-name
             get-attr-home-val
             intensity?
             continuous-attribute?
+            colour-attribute?
 
             <starlet-state>
             make-empty-state
@@ -204,6 +207,11 @@
 
 (define (continuous-attribute? aobj)
   (eq? 'continuous
+       (get-attr-type aobj)))
+
+
+(define (colour-attribute? aobj)
+  (eq? 'colour
        (get-attr-type aobj)))
 
 
@@ -517,6 +525,15 @@ pre-existing contents."
        #:name attr-name
        #:range attr-allowed-values
        #:type 'list
+       #:home-value attr-home-value))))
+
+
+(define-syntax attr-colour
+  (syntax-rules ()
+    ((_ attr-name attr-home-value)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:type 'colour
        #:home-value attr-home-value))))
 
 

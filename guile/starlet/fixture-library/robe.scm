@@ -1,6 +1,7 @@
 (define-module (starlet fixture-library robe)
   #:use-module (oop goops)
   #:use-module (starlet base)
+  #:use-module (starlet colours)
   #:export (<robe-dl7s-mode1>
             <robe-mmxwashbeam-mode1>
             <robe-mmxspot-mode1>))
@@ -127,9 +128,7 @@
                 (attr-list 'prism '(#t #f) #f)
                 (attr-list 'strobe '(#f #t random zap) #f)
                 (attr-continuous 'strobe-speed '(0 100) 50)
-                (attr-continuous 'cyan '(0 100) 0)
-                (attr-continuous 'magenta '(0 100) 0)
-                (attr-continuous 'yellow '(0 100) 0)
+                (attr-colour 'colour white)
                 (attr-continuous 'iris '(0 100) 0)
                 (attr-continuous 'zoom '(0 100) 0)
                 (attr-continuous 'focus '(0 100) 0)
@@ -171,9 +170,11 @@
                            (uv . 110))
                          (get-attr 'colwheel)))
 
-  (set-chan8 9 (percent->dmxval8 (get-attr 'cyan)))
-  (set-chan8 10 (percent->dmxval8 (get-attr 'magenta)))
-  (set-chan8 11 (percent->dmxval8 (get-attr 'yellow)))
+  (let ((cmy (colour-as-cmy (get-attr 'colour))))
+    (set-chan8 9 (percent->dmxval8 (car cmy)))
+    (set-chan8 10 (percent->dmxval8 (cadr cmy)))
+    (set-chan8 11 (percent->dmxval8 (caddr cmy))))
+
   (set-chan8 35 (percent->dmxval8 (get-attr 'hotspot)))
   (set-chan8 12 (scale-to-range (get-attr 'cto) '(3200 6900) '(0 255)))
   (set-chan8 27 (scale-to-range (get-attr 'frost) '(0 100) '(0 179))))
