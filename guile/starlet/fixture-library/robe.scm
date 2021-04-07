@@ -16,9 +16,7 @@
                 (attr-list 'strobe '(#t #f) #f)
                 (attr-list 'prism '(#t #f) #f)
                 (attr-list 'tungsten-watts-emulation '(750 1000 1200 2000 2500 #f) #f)
-                (attr-continuous 'cyan '(0 100) 0)
-                (attr-continuous 'magenta '(0 100) 0)
-                (attr-continuous 'yellow '(0 100) 0)
+                (attr-colour 'colour white)
                 (attr-continuous 'colour-temperature-correction '(2700 8000) 8000)
                 (attr-continuous 'green-correction '(-100 100) 0))))
 
@@ -43,9 +41,10 @@
                            (#f . 107))
                          (get-attr 'tungsten-watts-emulation)))
 
-  (set-chan16 9 (percent->dmxval16 (get-attr 'cyan)))
-  (set-chan16 11 (percent->dmxval16 (get-attr 'magenta)))
-  (set-chan16 13 (percent->dmxval16 (get-attr 'yellow))))
+  (let ((cmy (colour-as-cmy (get-attr 'colour))))
+    (set-chan8 9 (percent->dmxval8 (car cmy)))
+    (set-chan8 11 (percent->dmxval8 (cadr cmy)))
+    (set-chan8 13 (percent->dmxval8 (caddr cmy)))))
 
 
 (define-class <robe-mmxwashbeam-mode1> (<fixture>)
@@ -58,9 +57,7 @@
                 (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
                 (attr-list 'gobo '(#f iris gobo1 gobo2 gobo3 gobo4 gobo5 gobo6) #f)
                 (attr-list 'beamtype '(beam beamwash beamwashext) 'beam)
-                (attr-continuous 'cyan '(0 100) 0)
-                (attr-continuous 'magenta '(0 100) 0)
-                (attr-continuous 'yellow '(0 100) 0)
+                (attr-colour 'colour white)
                 (attr-continuous 'zoom '(0 100) 0)
                 (attr-continuous 'focus '(0 100) 0)
                 (attr-continuous 'barndoor-rot '(0 180) 90)
@@ -113,9 +110,10 @@
                             (beamwashext . 45))
                           (get-attr 'beamtype)))
 
-  (set-chan8 9 (percent->dmxval8 (get-attr 'cyan)))
-  (set-chan8 10 (percent->dmxval8 (get-attr 'magenta)))
-  (set-chan8 11 (percent->dmxval8 (get-attr 'yellow))))
+  (let ((cmy (colour-as-cmy (get-attr 'colour))))
+    (set-chan8 9 (percent->dmxval8 (car cmy)))
+    (set-chan8 10 (percent->dmxval8 (cadr cmy)))
+    (set-chan8 11 (percent->dmxval8 (caddr cmy)))))
 
 
 (define-class <robe-mmxspot-mode1> (<fixture>)

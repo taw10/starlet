@@ -83,7 +83,7 @@
 ;; Set a parameter
 (at foh1 'intensity 80)
 (at floor4 'intensity 100)
-(at floor4 'cyan 80)
+(at floor4 'colour (make-colour-rgb 0 100 0))
 
 
 ;; If parameter is not specified, 'intensity' is understood
@@ -98,7 +98,7 @@
 
 ;; Effects library
 (at floor2 'intensity 100)
-(at floor2 'yellow 100)
+(at floor2 'colour (make-colour-cmy 0 0 100))
 (at floor2 'pan 0)
 (at floor2 'tilt (sinewave 0.5 100 170))
 
@@ -214,15 +214,12 @@
 
     (cue 3
          (lighting-state
-           (at floor3 (quote magenta) 11500/127)
            (at floor3 (quote pan) 299)
            (at floor3 (quote intensity) 156)
            (at floor3 (quote tilt) 48)
-           (at floor4 (quote magenta) 11200/127)
-           (at floor4 (quote cyan) 200/127)
-           (at floor3 (quote yellow) 100)
+           (at floor4 'colour (make-colour-cmy 200/127 11500/127 100))
+           (at floor3 'colour (make-colour-cmy 200/127 11500/127 100))
            (at floor4 (quote intensity) 127)
-           (at floor4 (quote yellow) 10000/127)
            (at floor4 (quote pan) 239)
            (at floor2 (quote intensity) -58)
            (at floor4 (quote tilt) 49))
