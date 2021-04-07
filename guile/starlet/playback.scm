@@ -8,6 +8,7 @@
   #:use-module (srfi srfi-43)
   #:use-module (starlet base)
   #:use-module (starlet utils)
+  #:use-module (starlet colours)
   #:export (make-playback
             cue
             cue-part
@@ -179,6 +180,39 @@
         'no-more-cues-in-list)))
 
 
+(define (colour-fade start-val
+                     end-val
+                     fade-time
+                     start-time
+                     current-time)
+
+  (unless (and (colour? start-val)
+               (colour? end-val))
+    (raise-exception (make-exception
+                       (make-exception-with-message
+                         "Non-colour arguments given to simple-fade")
+                       (make-exception-with-irritants
+                         (list start-val end-val)))))
+
+  (let ((elapsed-fade-time (- current-time start-time)))
+    (cond
+
+      ;; Before start of fade
+      ((< elapsed-fade-time 0)
+       start-val)
+
+      ;; After fade
+      ((> elapsed-fade-time fade-time)
+       end-val)
+
+      ;; During the fade
+      (else
+        (interpolate-colour start-val
+                            end-val
+                            (/ elapsed-fade-time fade-time)
+                            #:interpolation-type 'linear-cmy)))))
+
+
 (define (simple-fade start-val
                      end-val
                      fade-time
@@ -310,33 +344,17 @@
       (else target-val))))
 
 
-(define (make-colour-fade start-val
-                          target-val
-                          preset-val
-                          fade-time
-                          fade-start-time
-                          preset-time
-                          preset-start-time)
-  (lambda (time)
-    (cond
+(define (make-general-fade start-val
+                           target-val
+                           preset-val
+                           fade-time
+                           fade-start-time
+                           preset-time
+                           preset-start-time
+                           fade-func)
 
-      ((< time fade-start-time) start-val)
-
-      ((and (not (eq? 'no-value preset-val))
-            (> time (+ preset-start-time preset-time)))
-       preset-val)
-
-      (else target-val))))
-
-
-(define (make-continuous-attr-fade start-val
-                                   target-val
-                                   preset-val
-                                   fade-time
-                                   fade-start-time
-                                   preset-time
-                                   preset-start-time)
-  (if (and (number? target-val)
+  (if (and (not (procedure? target-val))
+           (not (eq? target-val 'no-value))
            (not (eq? start-val 'no-value)))
 
       ;; It makes sense to do a fade
@@ -347,18 +365,18 @@
 
             ((and (not (eq? 'no-value preset-val))
                   (> time preset-start-time))
-             (simple-fade target-val
-                          preset-val
-                          preset-time
-                          preset-start-time
-                          time))
+             (fade-func target-val
+                        preset-val
+                        preset-time
+                        preset-start-time
+                        time))
 
             (else
-              (simple-fade real-start-val
-                           target-val
-                           fade-time
-                           fade-start-time
-                           time)))))
+              (fade-func real-start-val
+                         target-val
+                         fade-time
+                         fade-start-time
+                         time)))))
 
       ;; A fade doesn't make sense, so make do with a snap transition
       (lambda (time)
@@ -370,6 +388,40 @@
            preset-val)
 
           (else target-val)))))
+
+
+(define (make-colour-fade start-val
+                          target-val
+                          preset-val
+                          fade-time
+                          fade-start-time
+                          preset-time
+                          preset-start-time)
+  (make-general-fade start-val
+                     target-val
+                     preset-val
+                     fade-time
+                     fade-start-time
+                     preset-time
+                     preset-start-time
+                     colour-fade))
+
+
+(define (make-continuous-attr-fade start-val
+                                   target-val
+                                   preset-val
+                                   fade-time
+                                   fade-start-time
+                                   preset-time
+                                   preset-start-time)
+  (make-general-fade start-val
+                     target-val
+                     preset-val
+                     fade-time
+                     fade-start-time
+                     preset-time
+                     preset-start-time
+                     simple-fade))
 
 
 (define (match-fix-attr attr-el fix attr)
