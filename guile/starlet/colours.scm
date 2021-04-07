@@ -19,10 +19,22 @@
     #:getter colour-value))
 
 
-(define-method (write (col <colour>) port)
+(define cyan car)
+(define magenta cadr)
+(define yellow caddr)
+
+(define-method (display (col <colour>) port)
   (format port "#<<colour> ~a ~a>"
           (colour-type col)
           (colour-value col)))
+
+
+(define-method (write (col <colour>) port)
+  (let ((cmy (colour-as-cmy col)))
+    (format port "(make-colour-cmy ~a ~a ~a)"
+            (cyan cmy)
+            (magenta cmy)
+            (yellow cmy))))
 
 
 (define (make-colour-cmy c m y)
