@@ -505,7 +505,7 @@ pre-existing contents."
                   (value->number val tnow))))
 
         ;; Use programmer value, if we have it
-        programmer-val)))
+        (value->number programmer-val tnow))))
 
 
 (define-syntax attr-continuous
