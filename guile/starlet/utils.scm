@@ -3,6 +3,7 @@
   #:export (print-hash-table
             copy-hash-table
             partial
+            partial-start
             in-range
             mean
             flatten-sublists
@@ -28,6 +29,11 @@
 (define (partial f second-val)
   (lambda (first-val)
     (f first-val second-val)))
+
+
+(define (partial-start f first-val)
+  (lambda args
+    (apply f first-val args)))
 
 
 (define (in-range a val1 val2)

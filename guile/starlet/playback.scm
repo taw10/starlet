@@ -344,14 +344,14 @@
       (else target-val))))
 
 
-(define (make-general-fade start-val
+(define (make-general-fade fade-func
+                           start-val
                            target-val
                            preset-val
                            fade-time
                            fade-start-time
                            preset-time
-                           preset-start-time
-                           fade-func)
+                           preset-start-time)
 
   (if (and (not (procedure? target-val))
            (not (eq? target-val 'no-value))
@@ -388,40 +388,6 @@
            preset-val)
 
           (else target-val)))))
-
-
-(define (make-colour-fade start-val
-                          target-val
-                          preset-val
-                          fade-time
-                          fade-start-time
-                          preset-time
-                          preset-start-time)
-  (make-general-fade start-val
-                     target-val
-                     preset-val
-                     fade-time
-                     fade-start-time
-                     preset-time
-                     preset-start-time
-                     colour-fade))
-
-
-(define (make-continuous-attr-fade start-val
-                                   target-val
-                                   preset-val
-                                   fade-time
-                                   fade-start-time
-                                   preset-time
-                                   preset-start-time)
-  (make-general-fade start-val
-                     target-val
-                     preset-val
-                     fade-time
-                     fade-start-time
-                     preset-time
-                     preset-start-time
-                     simple-fade))
 
 
 (define (match-fix-attr attr-el fix attr)
@@ -520,9 +486,9 @@
 
 (define (make-fade-for-attribute-type type)
   (cond
-    ((eq? type 'continuous) make-continuous-attr-fade)
+    ((eq? type 'continuous) (partial-start make-general-fade simple-fade))
     ((eq? type 'list) make-list-attr-fade)
-    ((eq? type 'colour) make-colour-fade)
+    ((eq? type 'colour) (partial-start make-general-fade colour-fade))
     (else
       (raise-exception (make-exception
                          (make-exception-with-message
