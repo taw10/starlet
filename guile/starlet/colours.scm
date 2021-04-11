@@ -6,6 +6,7 @@
              make-colour-cmy
              make-colour-rgb
              colour-as-cmy
+             colour-as-rgb
              interpolate-colour
              white))
 
@@ -62,6 +63,24 @@
 
 (define white
   (make-colour-cmy 0 0 0))
+
+
+(define (colour-as-rgb col)
+  (let ((val (colour-value col)))
+    (case (colour-type col)
+
+      ((rgb)
+       val)
+
+      ((cmy)
+       (list (- 100 (red val))
+             (- 100 (green val))
+             (- 100 (blue val))))
+
+      (else
+        (raise-exception (make-exception
+                           (make-exception-with-message "Unrecognised colour type")
+                           (make-exception-with-irritants (colour-type col))))))))
 
 
 (define (colour-as-cmy col)
