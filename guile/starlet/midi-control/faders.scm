@@ -73,7 +73,7 @@
           fixture-list attrs)))
 
 (define (clamp-to-attr-range attr-obj val)
-  (let ((r (get-attr-range attr-obj)))
+  (let ((r (get-attr-range-maybe-colour attr-obj)))
     (max (car r)
          (min (cadr r)
               val))))
@@ -111,11 +111,16 @@
                              fixtures old-vals)))))))
 
 
+(define (get-attr-range-maybe-colour attr-obj)
+  (if (colour-attribute? attr-obj)
+      '(0 100)
+      (get-attr-range attr-obj)))
+
 
 (define (fader-congruent vals attrs)
   (mean (map (lambda (val attr)
                (scale-to-range val
-                               (get-attr-range attr)
+                               (get-attr-range-maybe-colour attr)
                                '(0 127)))
              vals attrs)))
 
@@ -124,7 +129,7 @@
                             attrs
                             congruent-val)
   (map (lambda (initial-val attr)
-         (let ((attr-max (cadr (get-attr-range attr))))
+         (let ((attr-max (cadr (get-attr-range-maybe-colour attr))))
            (if (< congruent-val 127)
                (/ (- attr-max initial-val)
                   (- 127 congruent-val))
@@ -137,7 +142,7 @@
                               attrs
                               congruent-val)
   (map (lambda (initial-val attr)
-         (let ((attr-min (car (get-attr-range attr))))
+         (let ((attr-min (car (get-attr-range-maybe-colour attr))))
            (if (> congruent-val 0)
                (/ (- initial-val attr-min)
                   congruent-val)
