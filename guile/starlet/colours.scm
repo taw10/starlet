@@ -7,8 +7,21 @@
              make-colour-rgb
              colour-as-cmy
              colour-as-rgb
+
+             cyan
+             magenta
+             yellow
+             red
+             green
+             blue
+
              interpolate-colour
-             white))
+             white
+
+             <colour-component-id>
+             colour-component-id?
+             colour-component-id
+             get-colour-component))
 
 
 (define-class <colour> (<object>)
@@ -121,3 +134,19 @@
                          (make-exception-with-message
                            "Unrecognised colour interpolation type")
                          (make-exception-with-irritants interpolation-type))))))
+
+
+(define-class <colour-component-id> (<object>)
+  (component
+    #:init-form (error "Colour component must be specified")
+    #:init-keyword #:component
+    #:getter get-colour-component))
+
+
+(define (colour-component-id? a)
+  (is-a? a <colour-component-id>))
+
+
+(define (colour-component-id a)
+  (make <colour-component-id>
+        #:component a))
