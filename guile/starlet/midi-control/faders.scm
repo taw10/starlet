@@ -1,6 +1,7 @@
 (define-module (starlet midi-control faders)
   #:use-module (starlet midi-control base)
   #:use-module (starlet base)
+  #:use-module (starlet colours)
   #:use-module (starlet utils)
   #:use-module (ice-9 receive)
   #:use-module (srfi srfi-9)
@@ -221,16 +222,17 @@
 
 
 (define control-map
-  '((intensity jogwheel 21 98)
-    (pan       jogwheel 0  124)
-    (tilt      jogwheel 1  125)
-    (cyan      fader    4  (120 84))
-    (magenta   fader    5  (121 85))
-    (yellow    fader    6  (122 86))
-    (cto       fader    7  (123 87))
-    (iris      fader    8  (116 80))
-    (zoom      fader    9  (117 81))
-    (focus     fader    10 (118 82))))
+  (list
+    (list 'intensity                     'fader    16 '(72 72))
+    (list 'pan                           'jogwheel 0  124)
+    (list 'tilt                          'jogwheel 1  125)
+    (list (colour-component-id 'cyan)    'fader    4  '(120 84))
+    (list (colour-component-id 'magenta) 'fader    5  '(121 85))
+    (list (colour-component-id 'yellow)  'fader    6  '(122 86))
+    (list 'cto                           'fader    7  '(123 87))
+    (list 'iris                          'fader    8  '(116 80))
+    (list 'zoom                          'fader    9  '(117 81))
+    (list 'focus                         'fader    10 '(118 82))))
 
 
 (define (midi-control-attr control-spec fixture-list)
