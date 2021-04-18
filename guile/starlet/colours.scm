@@ -21,7 +21,8 @@
              <colour-component-id>
              colour-component-id?
              colour-component-id
-             get-colour-component))
+             get-colour-component
+             extract-colour-component))
 
 
 (define-class <colour> (<object>)
@@ -150,3 +151,24 @@
 (define (colour-component-id a)
   (make <colour-component-id>
         #:component a))
+
+
+(define (extract-colour-component col component-id)
+  (cond
+    ((eq? (get-colour-component component-id) 'cyan)
+     (cyan (colour-as-cmy col)))
+    ((eq? (get-colour-component component-id) 'magenta)
+     (magenta (colour-as-cmy col)))
+    ((eq? (get-colour-component component-id) 'yellow)
+     (yellow (colour-as-cmy col)))
+    ((eq? (get-colour-component component-id) 'red)
+     (red (colour-as-rgb col)))
+    ((eq? (get-colour-component component-id) 'green)
+     (green (colour-as-rgb col)))
+    ((eq? (get-colour-component component-id) 'blue)
+     (blue (colour-as-rgb col)))
+    (else (raise-exception (make-exception
+                             (make-exception-with-message
+                               "Invalid colour component ID")
+                             (make-exception-with-irritants
+                               (get-colour-component component-id)))))))
