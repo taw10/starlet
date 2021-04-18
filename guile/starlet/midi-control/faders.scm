@@ -223,7 +223,7 @@
 
 (define control-map
   (list
-    (list 'intensity                     'fader    16 '(72 72))
+    (list 'intensity                     'fader    16 '(108 72))
     (list 'pan                           'jogwheel 0  124)
     (list 'tilt                          'jogwheel 1  125)
     (list (colour-component-id 'cyan)    'fader    4  '(120 84))

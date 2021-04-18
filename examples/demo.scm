@@ -276,12 +276,16 @@
 
 
 ;; Set up some buttons for quick access to fixtures
+(select-on-button 32 ltruss)
+(select-on-button 33 rtruss)
+(select-on-button 34 foh3)
+(select-on-button 35 floor)
+(send-note-on 68)
+(send-note-on 69)
+(send-note-on 70)
+(send-note-on 71)
+
+
+;; Red button de-selects everything
 (select-on-button 26 #f)
-(select-on-button 36 ltruss)
-(select-on-button 37 rtruss)
-(select-on-button 38 foh3)
-(select-on-button 39 floor)
-;;(send-note-on 72)
-(send-note-on 73)
-(send-note-on 74)
-(send-note-on 75)
+(send-note-on 26)
