@@ -32,6 +32,7 @@
   (starlet colours)
   (starlet fixture-library generic)
   (starlet fixture-library robe)
+  (starlet fixture-library arduino)
   (starlet midi-control base)
   (starlet midi-control button-utils)
   (starlet midi-control faders))
@@ -79,6 +80,7 @@
 (patch-fixture! floor5 <robe-mmxwashbeam-mode1> 236)
 (patch-fixture! floor6 <robe-mmxwashbeam-mode1> 270)
 
+(patch-fixture! led <arduino-dmx-thing> 1 #:universe 4)
 
 ;; Set a parameter
 (at foh1 'intensity 80)
@@ -108,6 +110,13 @@
 
 
 ;; Fixtures can be grouped together
+(define ltruss (list ltruss1
+                     ltruss2
+                     ltruss3
+                     ltruss4
+                     ltruss5
+                     ltruss6))
+
 (define rtruss (list rtruss1
                      rtruss2
                      rtruss3
@@ -195,7 +204,10 @@
            (at red4 (quote intensity) 30)
            (at red3 (quote intensity) 30)
            (at red1 (quote intensity) 30)
-           (at red2 (quote intensity) 30)))
+           (at red2 (quote intensity) 30)
+
+           (at led 'intensity 20)
+           (at led 'colour (make-colour-cmy 50 21 0))))
 
     (cue 2
          (lighting-state
@@ -207,7 +219,10 @@
          (lighting-state
            (apply-state my-state)
            (at ltruss6 'colour (make-colour-cmy 100 0 0))
-           (at rtruss1 'colour (make-colour-cmy 0 40 0)))
+           (at rtruss1 'colour (make-colour-cmy 0 40 0))
+
+           (at led 'intensity 100)
+           (at led 'colour (make-colour-cmy 50 100 0)))
          #:up-time 3
          #:down-time 3
          #:attr-time 2)
@@ -222,7 +237,9 @@
            (at floor4 (quote intensity) 127)
            (at floor4 (quote pan) 239)
            (at floor2 (quote intensity) -58)
-           (at floor4 (quote tilt) 49))
+           (at floor4 (quote tilt) 49)
+           (at led 'colour (make-colour-rgb 0 50 80))
+           (at led 'intensity 100))
          #:up-time 3
          #:down-time 3)))
 
@@ -243,3 +260,28 @@
 
 ;; Run cues out of order
 (run-cue-number! pb 2)
+
+
+;; Set up MIDI controller buttons to run cues
+(make-go-button pb 12)
+(make-stop-button pb 24)
+(send-note-on 20)
+(send-note-on 24)
+
+;; A second set of go/stop buttons, because this works well on my controller
+(make-go-button pb 15)
+(make-stop-button pb 27)
+(send-note-on 23)
+(send-note-on 27)
+
+
+;; Set up some buttons for quick access to fixtures
+(select-on-button 26 #f)
+(select-on-button 36 ltruss)
+(select-on-button 37 rtruss)
+(select-on-button 38 foh3)
+(select-on-button 39 floor)
+;;(send-note-on 72)
+(send-note-on 73)
+(send-note-on 74)
+(send-note-on 75)
