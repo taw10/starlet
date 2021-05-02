@@ -1,15 +1,13 @@
 (define-module (starlet base)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
+  #:use-module (starlet guile-ola)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 pretty-print)
   #:use-module (ice-9 exceptions)
-  #:use-module (web client)
-  #:use-module (web http)
-  #:use-module (web uri)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:export (<fixture>
@@ -437,19 +435,10 @@ pre-existing contents."
     ","))
 
 
-(define (send-to-ola ola-uri ola-socket universe)
-  (http-post
-    ola-uri
-    #:port ola-socket
-    #:keep-alive? #t
-    #:headers (acons 'content-type
-                     (parse-header 'content-type
-                                   "application/x-www-form-urlencoded")
-                     '())
-    #:body (string-append "u="
-                          (number->string (car universe))
-                          "&d="
-                          (bytevec->string (cdr universe)))))
+(define (send-to-ola ola-client universe-buffer-pair)
+  (let ((uni (car universe-buffer-pair))
+        (buf (cdr universe-buffer-pair)))
+  (send-streaming-dmx-data! ola-client uni buf)))
 
 
 (define (hirestime)
@@ -470,7 +459,7 @@ pre-existing contents."
 
 (define-generic scanout-fixture)
 
-(define (scanout-loop ola-uri ola-socket start-time count)
+(define (scanout-loop ola-client start-time count)
 
   (let ((universes '()))
 
@@ -481,12 +470,12 @@ pre-existing contents."
       ;; Create DMX array for universe if it doesn't exist already
       (unless (assq universe universes)
         (set! universes (acons universe
-                               (make-u8vector 512 0)
+                               (make-ola-dmx-buffer)
                                universes)))
 
-      (u8vector-set! (assq-ref universes universe)
-                     (- addr 1)                   ; u8vector-set indexing starts from zero
-                     (round-dmx value)))
+      (set-ola-dmx-buffer! (assq-ref universes universe)
+                           (- addr 1)                   ; OLA indexing starts from zero
+                           (round-dmx value)))
 
     (for-each
       (lambda (fix)
@@ -516,7 +505,7 @@ pre-existing contents."
 
     ;; Send everything to OLA
     (for-each (lambda (a)
-                (send-to-ola ola-uri ola-socket a))
+                (send-to-ola ola-client a))
               universes)
 
     (usleep 10000)
@@ -527,18 +516,14 @@ pre-existing contents."
           (set! scanout-freq
             (exact->inexact (/ 100
                                (- (hirestime) start-time))))
-          (scanout-loop ola-uri ola-socket (hirestime) 0))
-        (scanout-loop ola-uri ola-socket start-time (+ count 1)))))
+          (scanout-loop ola-client (hirestime) 0))
+        (scanout-loop ola-client start-time (+ count 1)))))
 
 (define ola-thread #f)
 
 (define (start-ola-output)
   (unless ola-thread
-    (let* ((ola-uri (build-uri 'http
-                               #:host "127.0.0.1"
-                               #:port 9090
-                               #:path "/set_dmx"))
-           (ola-socket (open-socket-for-uri ola-uri))
+    (let* ((ola-client (make-ola-streaming-client))
            (start-time (hirestime)))
 
       (set! ola-thread
@@ -550,7 +535,7 @@ pre-existing contents."
               (backtrace)
               (raise-exception exn))
             (lambda ()
-              (scanout-loop ola-uri ola-socket start-time 0))
+              (scanout-loop ola-client start-time 0))
             #:unwind? #f))))))
 
 
