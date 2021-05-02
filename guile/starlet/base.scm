@@ -459,7 +459,7 @@ pre-existing contents."
 
 (define-generic scanout-fixture)
 
-(define (scanout-loop ola-client start-time count)
+(define (scanout-loop ola-client start-time count previous-universes)
 
   (let ((universes '()))
 
@@ -504,8 +504,18 @@ pre-existing contents."
       (atomic-box-ref fixtures))
 
     ;; Send everything to OLA
-    (for-each (lambda (a)
-                (send-to-ola ola-client a))
+    (for-each (lambda (uni-buf-pair)
+                (let ((uni (car uni-buf-pair))
+                      (buf (cdr uni-buf-pair)))
+                  (let ((prev-buf (assv-ref previous-universes uni)))
+
+                    ;; Do not send exactly the same data every time,
+                    ;; but do send an update once every 100 loops, just to
+                    ;; make sure OLA does not forget about us.
+                    (unless (and prev-buf
+                                 (ola-dmx-buffers-equal? buf prev-buf)
+                                 (not (= count 0)))
+                      (send-streaming-dmx-data! ola-client uni buf)))))
               universes)
 
     (usleep 10000)
@@ -516,8 +526,8 @@ pre-existing contents."
           (set! scanout-freq
             (exact->inexact (/ 100
                                (- (hirestime) start-time))))
-          (scanout-loop ola-client (hirestime) 0))
-        (scanout-loop ola-client start-time (+ count 1)))))
+          (scanout-loop ola-client (hirestime) 0 universes))
+        (scanout-loop ola-client start-time (+ count 1) universes))))
 
 (define ola-thread #f)
 
@@ -535,7 +545,7 @@ pre-existing contents."
               (backtrace)
               (raise-exception exn))
             (lambda ()
-              (scanout-loop ola-client start-time 0))
+              (scanout-loop ola-client start-time 0 '()))
             #:unwind? #f))))))
 
 
