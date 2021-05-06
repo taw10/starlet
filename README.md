@@ -1,7 +1,7 @@
 Starlet: Stage lighting control in Lisp
 =======================================
 
-Starlet is an experimental Lisp-based domain-specific language (DSL) for theatrical lighting control.  It's based on [Guile](https://www.gnu.org/software/guile/) and sends its DMX output via [OLA](https://openlighting.org) to almost any type of lighting control interface - DMX, sACN, Art-Net etc.
+Starlet is an experimental Lisp-based domain-specific language (DSL) for theatrical lighting control.  It's based on [Guile](https://www.gnu.org/software/guile/) and sends its DMX output via [OLA](https://openlighting.org) to almost any type of lighting control interface - DMX, sACN, Art-Net etc.  Starlet also undertands MIDI, enabling you to control lights and cues with physical faders, knobs and buttons.
 
 [![Video demonstration](screenshot.png)](https://vimeo.com/520547229)
 
@@ -66,7 +66,7 @@ You can use pre-prepared states in cues, even if some minor modifications are ne
      #:fade-down 3)
 ```
 
-Mult-part cues are supported.  Simply specify the fade parameters and which fixtures should be in the part:
+Multi-part cues are supported.  Simply specify the fade parameters and which fixtures should be in the part:
 
 ```
 (cue 64
@@ -102,12 +102,13 @@ Getting started
 
 1. Install and set up [OLA](https://openlighting.org) for your lighting environment.
 2. Start olad if it's not already running: `olad &`
-3. Install [Guile](https://www.gnu.org/software/guile/), if it's not already there (there's a good chance it is).  Version 3 is preferred because it's much faster (= ability to handle more fixtures with less CPU load), but version 2.2 works as well.
-4. Run `guile -L /path/to/starlet/guile`
-5. Once in the Guile REPL, import the Starlet modules: `(use-modules (starlet base) (starlet playback) (starlet fixture-library generic))`
-6. Patch a fixture with `(patch-fixture! fix <generic-dimmer> 1 #:universe 2)` - replace 1 and 2 with the DMX address and universe (respectively) of a real dimmer.
-7. Turn the dimmer on with `(at fix 100)`
-8. Look in the _examples_ folder for more advanced ideas.
+3. Install [Guile](https://www.gnu.org/software/guile/), if it's not already there (there's a good chance it is).  Version 3 is preferred because it's much faster (= ability to handle more fixtures with less CPU load), but version 2.2 works as well.  You will need the development packages (C header files) as well.
+4. Run `./compile` to compile the very small Guile`<-->`OLA compatibility module.  Follow the instructions to copy the shared library to a system location and run `ldconfig` to update the dynamic linker's cache.
+5. Run `guile -L /path/to/starlet/guile`
+6. Once in the Guile REPL, import the Starlet modules: `(use-modules (starlet base) (starlet playback) (starlet fixture-library generic))`
+7. Patch a fixture with `(patch-fixture! fix <generic-dimmer> 1 #:universe 2)` - replace 1 and 2 with the DMX address and universe (respectively) of a real dimmer.
+8. Turn the dimmer on with `(at fix 100)`
+9. Look in the _examples_ folder for more advanced ideas.
 
 
 Related projects
