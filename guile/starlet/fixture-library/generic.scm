@@ -20,7 +20,7 @@
 ;;
 (define-module (starlet fixture-library generic)
   #:use-module (oop goops)
-  #:use-module (starlet base)
+  #:use-module (starlet fixture)
   #:export (<generic-dimmer>
             generic-rgb))
 

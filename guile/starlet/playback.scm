@@ -26,7 +26,9 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-43)
-  #:use-module (starlet base)
+  #:use-module (starlet fixture)
+  #:use-module (starlet state)
+  #:use-module (starlet scanout)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (make-playback

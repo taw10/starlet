@@ -27,7 +27,8 @@
             in-range
             mean
             flatten-sublists
-            more-than-one))
+            more-than-one
+            hirestime))
 
 
 (define (print-hash-table ht)
@@ -85,3 +86,11 @@
   (if (nil? a)
       #f
       (not (nil? (cdr a)))))
+
+
+(define (hirestime)
+  (let ((a (gettimeofday)))
+    (+ (car a)
+       (/ (cdr a)
+          1000000))))
+

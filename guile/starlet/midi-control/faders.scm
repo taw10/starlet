@@ -20,11 +20,11 @@
 ;;
 (define-module (starlet midi-control faders)
   #:use-module (starlet midi-control base)
-  #:use-module (starlet base)
+  #:use-module (starlet state)
+  #:use-module (starlet fixture)
   #:use-module (starlet colours)
+  #:use-module (starlet scanout)
   #:use-module (starlet utils)
-  #:use-module (ice-9 receive)
-  #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-1)
   #:export (state-on-fader))
 
@@ -93,11 +93,13 @@
           (cons '() '())
           fixture-list attrs)))
 
+
 (define (clamp-to-attr-range attr-obj val)
   (let ((r (get-attr-range-maybe-colour attr-obj)))
     (max (car r)
          (min (cadr r)
               val))))
+
 
 (define* (at-midi-jogwheel fixture-list attr cc-number
                            #:key (led #f))

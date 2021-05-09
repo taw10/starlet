@@ -20,7 +20,7 @@
 ;;
 (define-module (starlet fixture-library robe)
   #:use-module (oop goops)
-  #:use-module (starlet base)
+  #:use-module (starlet fixture)
   #:use-module (starlet colours)
   #:export (<robe-dl7s-mode1>
             <robe-mmxwashbeam-mode1>

@@ -26,7 +26,9 @@
 
 ;; Basic setup
 (use-modules
-  (starlet base)
+  (starlet fixture)
+  (starlet state)
+  (starlet scanout)
   (starlet playback)
   (starlet effects)
   (starlet colours)
