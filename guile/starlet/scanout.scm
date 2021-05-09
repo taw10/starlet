@@ -29,8 +29,7 @@
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
-  #:export (start-ola-output
-            patch-fixture!
+  #:export (patch-fixture!
             scanout-freq
             register-state!
             current-value))
@@ -240,19 +239,22 @@
 
 
 (define (start-ola-output)
-  (unless ola-thread
-    (let* ((ola-client (make-ola-streaming-client))
-           (start-time (hirestime)))
+  (if ola-thread
+      (format #t "OLA output already running\n")
+      (let* ((ola-client (make-ola-streaming-client))
+             (start-time (hirestime)))
 
-      (set! ola-thread
-        (begin-thread
-          (with-exception-handler
-            (lambda (exn)
-              (display "Error in OLA output thread:\n")
-              (set! ola-thread #f)
-              (backtrace)
-              (raise-exception exn))
-            (lambda ()
-              (scanout-loop ola-client start-time 0 '()))
-            #:unwind? #f))))))
+        (set! ola-thread
+          (begin-thread
+            (with-exception-handler
+              (lambda (exn)
+                (display "Error in OLA output thread:\n")
+                (set! ola-thread #f)
+                (backtrace)
+                (raise-exception exn))
+              (lambda ()
+                (scanout-loop ola-client start-time 0 '()))
+              #:unwind? #f))))))
 
+
+(start-ola-output)

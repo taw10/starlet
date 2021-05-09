@@ -39,8 +39,6 @@
   (starlet midi-control button-utils)
   (starlet midi-control faders))
 
-;; Start readout to OLA
-(start-ola-output)
 
 ;; Start MIDI control
 (start-midi-control "/dev/snd/midiC0D0"
