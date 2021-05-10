@@ -51,12 +51,15 @@
             value->number))
 
 
-;; A "state" is just a thin wrapper around a hash table
-;; of (fixture . attribute)  -->  value
+;; A "state" is an atomically-updating container for an immutable
+;; hash table mapping (fixture-object . attribute-symbol) pairs to values
+;; which can be numbers, symbols, colours, boolean values and more
+;; depending on the type of attribute.  Values can also be
+;; functions which provide the value.
 (define-class <starlet-state> (<object>)
-  (hash-table
-    #:init-form (make-hash-table)
-    #:getter get-state-hash-table)
+  (hash-table-box
+    #:init-form (make-atomic-box (make-hash-table))
+    #:getter get-ht-box)
   (name
     #:init-value #f
     #:init-keyword #:name
@@ -139,9 +142,17 @@
                               (fix <fixture>)
                               (attr <symbol>)
                               value)
-  (hash-set! (get-state-hash-table state)
-             (cons fix attr)
-             value))
+  (let* ((old-ht (atomic-box-ref (get-ht-box state)))
+         (new-ht (copy-hash-table old-ht)))
+    (hash-set! new-ht
+               (cons fix attr)
+               value)
+    (unless (eq? (atomic-box-compare-and-swap!
+                   (get-ht-box state)
+                   old-ht
+                   new-ht)
+                 old-ht)
+      (set-in-state! state fix attr))))  ;; Try again
 
 
 (define (blackout state)
@@ -180,13 +191,13 @@
                    (func (car key)
                          (cdr key)
                          value))
-                 (get-state-hash-table state)))
+                 (atomic-box-ref (get-ht-box state))))
 
 
 (define-method (state-find (fix <fixture>)
                            (attr <symbol>)
                            (state <starlet-state>))
-  (hash-ref (get-state-hash-table state)
+  (hash-ref (atomic-box-ref (get-ht-box state))
             (cons fix attr)
             'no-value))
 
@@ -205,7 +216,7 @@
                     (func (car key)
                           (cdr key)
                           value))
-                  (get-state-hash-table state)))
+                  (atomic-box-ref (get-ht-box state))))
 
 
 (define (apply-state state)
@@ -253,7 +264,14 @@ pre-existing contents."
 
 
 (define (clear-state! state)
-  (hash-clear! (get-state-hash-table state)))
+  (let* ((old-ht (atomic-box-ref (get-ht-box state)))
+         (new-ht (make-hash-table)))
+    (unless (eq? (atomic-box-compare-and-swap!
+                   (get-ht-box state)
+                   old-ht
+                   new-ht)
+                 old-ht)
+      (clear-state! state))))  ;; Try again
 
 
 (define (partition3 pred1 pred2 input)
