@@ -48,7 +48,8 @@
             blackout
             sel
             selection-hook
-            value->number))
+            value->number
+            atomically-overlay-state!))
 
 
 ;; A "state" is an atomically-updating container for an immutable
@@ -229,6 +230,23 @@ pre-existing contents."
   "Clear the current state, and apply the contents of 'state'"
   (clear-state! (current-state))
   (state-for-each at state))
+
+
+(define (atomically-overlay-state! state newbits)
+  "Apply 'newbits' within 'state', as a single atomic operation."
+  (let* ((old-ht (atomic-box-ref (get-ht-box state)))
+         (new-ht (copy-hash-table old-ht)))
+    (state-for-each (lambda (fix attr val)
+                      (hash-set! new-ht
+                                 (cons fix attr)
+                                 val))
+                    newbits)
+    (unless (eq? (atomic-box-compare-and-swap!
+                   (get-ht-box state)
+                   old-ht
+                   new-ht)
+                 old-ht)
+      (atomically-overlay-state! state newbits))))  ;; Try again
 
 
 (define current-state (make-parameter programmer-state))

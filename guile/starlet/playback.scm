@@ -522,7 +522,8 @@
   (let ((this-cue-state (calculate-tracking (get-playback-cue-list pb) cue-index))
         (next-cue-state (calculate-tracking (get-playback-cue-list pb) (+ cue-index 1)))
         (the-cue (vector-ref (get-playback-cue-list pb) cue-index))
-        (tnow (hirestime)))
+        (tnow (hirestime))
+        (overlay-state (make-empty-state)))
 
     (for-each
       (lambda (fix-attr)
@@ -537,7 +538,7 @@
           (if (intensity? attr)
 
               ;; Intensity attribute
-              (set-in-state! pb fix attr
+              (set-in-state! overlay-state fix attr
                              (make-intensity-fade start-val
                                                   target-val
                                                   fade-times
@@ -558,7 +559,7 @@
                        (fade-start-time (+ tnow (get-fade-attr-delay fade-times)))
                        (preset-start-time (+ tnow (calc-preset-start-time fix the-cue))))
 
-                  (set-in-state! pb fix attr
+                  (set-in-state! overlay-state fix attr
                                  (make-fade-func start-val
                                                  target-val
                                                  preset-val
@@ -570,7 +571,9 @@
       ;; Add the next cue to list of states to look at, only if it exists)
       (if next-cue-state
           (fix-attrs-involved pb this-cue-state next-cue-state)
-          (fix-attrs-involved pb this-cue-state)))))
+          (fix-attrs-involved pb this-cue-state)))
+
+    (atomically-overlay-state! pb overlay-state)))
 
 
 (define (print-playback pb)
