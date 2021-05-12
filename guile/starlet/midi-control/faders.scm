@@ -226,7 +226,7 @@
                                        up-gradients
                                        initial-vals
                                        fixtures))
-                         ((< new-cc-value congruent-val)
+                         ((<= new-cc-value congruent-val)
                           (apply-fader (- new-cc-value congruent-val)
                                        attr-name
                                        dn-gradients
