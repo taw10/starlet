@@ -41,6 +41,21 @@
 ;; List of states being scanned out
 (define state-list (make-atomic-box '()))
 
+;; Association list of names to states
+(define state-names (make-atomic-box '()))
+
+
+(define (get-state-name st)
+  (assq-ref (atomic-box-ref state-names)
+            st))
+
+
+(define (set-state-name! st name)
+  (atomic-box-set! state-names
+                   (assq-set! (atomic-box-ref state-names)
+                              st
+                              name)))
+
 
 ;; Patch a new fixture
 (define* (patch-real name

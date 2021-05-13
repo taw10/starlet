@@ -31,7 +31,6 @@
   #:export (<starlet-state>
             make-empty-state
             get-state-name
-            set-state-name!
             state-for-each
             state-map
             clear-state!
@@ -60,12 +59,7 @@
 (define-class <starlet-state> (<object>)
   (hash-table-box
     #:init-form (make-atomic-box (make-hash-table))
-    #:getter get-ht-box)
-  (name
-    #:init-value #f
-    #:init-keyword #:name
-    #:getter get-state-name
-    #:setter set-state-name!))
+    #:getter get-ht-box))
 
 
 ;; The state used to build a new scene for recording
