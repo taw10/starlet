@@ -33,6 +33,7 @@
             get-state-name
             state-for-each
             state-map
+            copy-state
             clear-state!
             print-state
             state-source
