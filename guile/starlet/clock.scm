@@ -32,7 +32,7 @@
 
             clock-stopped?
             clock-reversed?
-            time-elapsed))
+            elapsed-fraction))
 
 
 (define (time-now)
@@ -123,7 +123,12 @@
   (delay-time
     #:init-form (error "Delay time must be specified")
     #:init-keyword #:delay-time
-    #:getter get-delay-time))
+    #:getter get-delay-time)
+
+  (duration
+    #:init-value #f
+    #:init-keyword #:duration
+    #:getter get-duration))
 
 
 (define-method (clock-stopped? (clock <starlet-delayed-clock>))
@@ -139,6 +144,12 @@
             (get-delay-time clock))))
 
 
+(define-method (elapsed-fraction (clock <starlet-delayed-clock>))
+  (min 1.0
+       (/ (time-elapsed clock)
+          (get-duration clock))))
+
+
 (define-method (stop-clock! (clock <starlet-delayed-clock>))
   (error "Can only stop a top-level clock."))
 
@@ -151,7 +162,8 @@
   (error "Can only reverse a top-level clock."))
 
 
-(define (make-delayed-clock clock delay-time)
+(define (make-delayed-clock clock delay-time duration)
   (make <starlet-delayed-clock>
         #:parent clock
-        #:delay-time delay-time))
+        #:delay-time delay-time
+        #:duration duration))
