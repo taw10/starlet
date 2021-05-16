@@ -86,30 +86,6 @@
   (preset-delay get-fade-preset-delay))
 
 
-;; Macro to avoid a profusion of (get-fade-xxx-time fade-times)
-(define-syntax with-fade-times
-  (lambda (x)
-    (syntax-case x ()
-      ((_ fade-times body ...)
-       (with-syntax ((up-time (datum->syntax x 'up-time))
-                     (down-time (datum->syntax x 'down-time))
-                     (attr-time (datum->syntax x 'attr-time))
-                     (up-delay (datum->syntax x 'up-delay))
-                     (down-delay (datum->syntax x 'down-delay))
-                     (attr-delay (datum->syntax x 'attr-delay))
-                     (preset-time (datum->syntax x 'preset-time))
-                     (preset-delay (datum->syntax x 'preset-delay)))
-         #'(let ((up-time (get-fade-up-time fade-times))
-                 (down-time (get-fade-down-time fade-times))
-                 (attr-time (get-fade-attr-time fade-times))
-                 (up-delay (get-fade-up-delay fade-times))
-                 (down-delay (get-fade-down-delay fade-times))
-                 (attr-delay (get-fade-attr-delay fade-times))
-                 (preset-time (get-fade-preset-time fade-times))
-                 (preset-delay (get-fade-preset-delay fade-times)))
-             body ...))))))
-
-
 (define-record-type <cue>
   (make-cue number
             state
