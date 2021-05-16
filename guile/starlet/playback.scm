@@ -30,6 +30,7 @@
   #:use-module (starlet state)
   #:use-module (starlet scanout)
   #:use-module (starlet utils)
+  #:use-module (starlet clock)
   #:use-module (starlet colours)
   #:export (make-playback
             cue
@@ -169,7 +170,7 @@
     (let ((cue-state (calculate-tracking cue-list cue-index)))
       (state-for-each
         (lambda (fix attr val)
-          (set-in-state! pb fix attr (lambda (time) val)))
+          (set-in-state! pb fix attr (lambda () val)))
         cue-state))
 
     *unspecified*))
@@ -202,11 +203,22 @@
         'no-more-cues-in-list)))
 
 
+(define (snap-fade start-val
+                   target-val
+                   preset-val
+                   clock
+                   preset-clock)
+  (cond
+    ((and (not (eq? 'no-value preset-val))
+          (> (elapsed-fraction preset-clock) 0))
+     preset-val)
+    ((> (elapsed-fraction clock) 0) target-val)
+    (else start-val)))
+
+
 (define (colour-fade start-val
                      end-val
-                     fade-time
-                     start-time
-                     current-time)
+                     clock)
 
   (unless (and (colour? start-val)
                (colour? end-val))
@@ -216,30 +228,15 @@
                        (make-exception-with-irritants
                          (list start-val end-val)))))
 
-  (let ((elapsed-fade-time (- current-time start-time)))
-    (cond
-
-      ;; Before start of fade
-      ((< elapsed-fade-time 0)
-       start-val)
-
-      ;; After fade
-      ((> elapsed-fade-time fade-time)
-       end-val)
-
-      ;; During the fade
-      (else
-        (interpolate-colour start-val
-                            end-val
-                            (/ elapsed-fade-time fade-time)
-                            #:interpolation-type 'linear-cmy)))))
+  (interpolate-colour start-val
+                      end-val
+                      (elapsed-fraction clock)
+                      #:interpolation-type 'linear-cmy))
 
 
 (define (simple-fade start-val
                      end-val
-                     fade-time
-                     start-time
-                     current-time)
+                     clock)
 
   (unless (and (number? start-val)
                (number? end-val))
@@ -249,167 +246,104 @@
                        (make-exception-with-irritants
                          (list start-val end-val)))))
 
-  (let ((elapsed-fade-time (- current-time start-time)))
-    (cond
-
-      ;; Before start of fade
-      ((< elapsed-fade-time 0)
-       start-val)
-
-      ;; After fade
-      ((> elapsed-fade-time fade-time)
-       end-val)
-
-      ;; During the fade
-      (else
-        (+ start-val
-           (* (- end-val start-val)
-              ;; Fraction of fade time elapsed
-              (/ elapsed-fade-time fade-time)))))))
-
-
-;; Return a function to fade from start-val to end-val using the
-;; specified fade time and delay, starting at the specified time
-(define (make-fade start-val
-                   end-val
-                   fade-time
-                   fade-start-time)
-  (lambda (time)
-    (simple-fade (value->number start-val time)
-                 (value->number end-val time)
-                 fade-time
-                 fade-start-time
-                 time)))
-
-
-;; Return a function for HTP mix of:
-;;    start-val fading down in down-time/down-delay
-;;    end-val fading up in up-time/up-delay
-(define (make-xf start-val
-                 end-val
-                 fade-times
-                 fade-start-time)
-  (with-fade-times fade-times
-   (lambda (time)
-     (max
-      (simple-fade (value->number start-val time)
-                   0
-                   down-time
-                   fade-start-time
-                   time)
-      (simple-fade 0
-                   (value->number end-val time)
-                   up-time
-                   fade-start-time
-                   time)))))
+  (+ start-val
+     (* (- end-val start-val)
+        (elapsed-fraction clock))))
 
 
 (define (replace-noval val replacement)
   (if (eq? 'no-value val) replacement val))
 
 
-(define (make-intensity-fade prev-val target-val-in fade-times fade-start-time)
-  (with-fade-times
-    fade-times
+(define (make-intensity-fade prev-val
+                             target-val-in
+                             up-clock
+                             down-clock)
+  (let ((target-val (replace-noval target-val-in 0.0)))
 
-    ;; Since we only handle intensities here, "not in state" should be
-    ;; interpreted as zero intensity.
-    (let ((target-val (replace-noval target-val-in 0.0)))
+    (cond
 
-      (cond
+      ;; Number to number, fading up
+      ((and (number? target-val)
+            (number? prev-val)
+            (> target-val prev-val))
+       (lambda ()
+         (simple-fade prev-val
+                      target-val
+                      up-clock)))
 
-        ;; Number to number, fading up
-        ((and (number? target-val)
-              (number? prev-val)
-              (> target-val prev-val))
-         (make-fade prev-val
-                    target-val
-                    up-time
-                    (+ fade-start-time up-delay)))
+      ;; Number to number, fading down
+      ((and (number? target-val)
+            (number? prev-val)
+            (< target-val prev-val))
+       (lambda ()
+         (simple-fade prev-val
+                      target-val
+                      down-clock)))
 
-        ;; Number to number, fading down
-        ((and (number? target-val)
-              (number? prev-val)
-              (< target-val prev-val))
-         (make-fade prev-val
-                    target-val
-                    down-time
-                    (+ fade-start-time down-delay)))
+      ;; Number to number, staying the same
+      ;; NB We still need a static value so that fade-start-val can "unwrap" it
+      ((and (number? target-val)
+            (number? prev-val))
+       (lambda () prev-val))
 
-        ;; Number to number, staying the same
-        ;; NB We still need a static value so that fade-start-val can "unwrap" it
-        ((and (number? target-val)
-              (number? prev-val))
-         (lambda (time) prev-val))
-
-        ;; Everything else, e.g. number to effect
-        (else
-          (make-xf prev-val
-                   target-val
-                   fade-times
-                   fade-start-time))))))
+      ;; Everything else, e.g. number to effect
+      (else
+        (lambda ()
+          (max
+            (simple-fade (value->number prev-val)
+                         0
+                         down-clock)
+            (simple-fade 0
+                         (value->number target-val)
+                         up-clock)))))))
 
 
 (define (make-list-attr-fade start-val
                              target-val
                              preset-val
-                             fade-time
-                             fade-start-time
-                             preset-time
-                             preset-start-time)
-  (lambda (time)
-    (cond
-      ((< time fade-start-time) start-val)
-      ((and (not (eq? 'no-value preset-val))
-            (> time (+ preset-start-time preset-time)))
-       preset-val)
-      (else target-val))))
+                             clock
+                             preset-clock)
+  (lambda ()
+    (snap-fade start-val
+               target-val
+               preset-val
+               clock
+               preset-clock)))
 
 
 (define (make-general-fade fade-func
                            start-val
                            target-val
                            preset-val
-                           fade-time
-                           fade-start-time
-                           preset-time
-                           preset-start-time)
+                           clock
+                           preset-clock)
 
   (if (and (not (procedure? target-val))
            (not (eq? target-val 'no-value))
            (not (eq? start-val 'no-value)))
 
       ;; It makes sense to do a fade
-      (let ((real-start-val (value->number start-val fade-start-time)))
-        (lambda (time)
-          (cond
-            ((< time fade-start-time) start-val)
+      (let ((real-start-val (value->number start-val)))
+        (lambda ()
+          (if (and (not (eq? 'no-value preset-val))
+                    (> (elapsed-fraction preset-clock) 0))
 
-            ((and (not (eq? 'no-value preset-val))
-                  (> time preset-start-time))
-             (fade-func target-val
-                        preset-val
-                        preset-time
-                        preset-start-time
-                        time))
+              (fade-func target-val
+                         preset-val
+                         preset-clock)
 
-            (else
               (fade-func real-start-val
                          target-val
-                         fade-time
-                         fade-start-time
-                         time)))))
+                         clock))))
 
       ;; A fade doesn't make sense, so make do with a snap transition
-      (lambda (time)
-        (cond
-          ((< time fade-start-time) start-val)
-
-          ((and (not (eq? 'no-value preset-val))
-                (> time preset-start-time))
-           preset-val)
-
-          (else target-val)))))
+      (lambda ()
+        (snap-fade start-val
+                   target-val
+                   preset-val
+                   clock
+                   preset-clock))))
 
 
 (define (match-fix-attr attr-el fix attr)
@@ -447,7 +381,7 @@
       (get-cue-fade-times the-cue))))
 
 
-(define (fade-start-val tnow pb fix attr)
+(define (fade-start-val pb fix attr)
   (let ((val-in-pb (state-find fix attr pb)))
     (if (eq? val-in-pb 'no-value)
 
@@ -456,7 +390,7 @@
 
         ;; Currently in playback - fade from current value
         ;; by running the outer crossfade function
-        (val-in-pb tnow))))
+        (val-in-pb))))
 
 
 (define (dark? a)
@@ -522,8 +456,8 @@
   (let ((this-cue-state (calculate-tracking (get-playback-cue-list pb) cue-index))
         (next-cue-state (calculate-tracking (get-playback-cue-list pb) (+ cue-index 1)))
         (the-cue (vector-ref (get-playback-cue-list pb) cue-index))
-        (tnow (hirestime))
-        (overlay-state (make-empty-state)))
+        (overlay-state (make-empty-state))
+        (cue-clock (make-clock)))
 
     (for-each
       (lambda (fix-attr)
@@ -531,9 +465,28 @@
         (let* ((fix (car fix-attr))
                (attr (cdr fix-attr))
                (fade-times (cue-part-fade-times the-cue fix attr))
-               (start-val (fade-start-val tnow pb fix attr))
+
+               ;; The values for fading
+               (start-val (fade-start-val pb fix attr))
                (target-val (state-find fix attr this-cue-state))
-               (preset-val (fade-preset-val this-cue-state next-cue-state fix attr)))
+               (preset-val (fade-preset-val this-cue-state next-cue-state fix attr))
+
+               ;; The clocks for things in this cue part
+               (up-clock (make-delayed-clock cue-clock
+                                             (get-fade-up-delay fade-times)
+                                             (get-fade-up-time fade-times)))
+
+               (down-clock (make-delayed-clock cue-clock
+                                               (get-fade-down-delay fade-times)
+                                               (get-fade-down-time fade-times)))
+
+               (attribute-clock (make-delayed-clock cue-clock
+                                                    (get-fade-attr-delay fade-times)
+                                                    (get-fade-attr-time fade-times)))
+
+               (preset-clock (make-delayed-clock cue-clock
+                                                 (get-fade-preset-delay fade-times)
+                                                 (get-fade-preset-time fade-times))))
 
           (if (intensity? attr)
 
@@ -541,8 +494,8 @@
               (set-in-state! overlay-state fix attr
                              (make-intensity-fade start-val
                                                   target-val
-                                                  fade-times
-                                                  tnow))
+                                                  up-clock
+                                                  down-clock))
 
               ;; Non-intensity attribute
               (let ((attribute-obj (find-attr fix attr)))
@@ -555,18 +508,14 @@
                                        (list fix attr)))))
 
                 (let* ((atype (get-attr-type attribute-obj))
-                       (make-fade-func (make-fade-for-attribute-type atype))
-                       (fade-start-time (+ tnow (get-fade-attr-delay fade-times)))
-                       (preset-start-time (+ tnow (calc-preset-start-time fix the-cue))))
+                       (make-fade-func (make-fade-for-attribute-type atype)))
 
                   (set-in-state! overlay-state fix attr
                                  (make-fade-func start-val
                                                  target-val
                                                  preset-val
-                                                 (get-fade-attr-time fade-times)
-                                                 fade-start-time
-                                                 (get-fade-preset-time fade-times)
-                                                 preset-start-time)))))))
+                                                 attribute-clock
+                                                 preset-clock)))))))
 
       ;; Add the next cue to list of states to look at, only if it exists)
       (if next-cue-state

@@ -93,9 +93,11 @@
 
 
 ;; Functions can be assigned to parameters
-(at foh1 'intensity (lambda (time)
-                      (* 50
-                         (+ 1 (sin (* 2 time))))))
+;;   (temporarily disabled - time parameter is gone, should use
+;;      clock objects instead)
+;;(at foh1 'intensity (lambda (time)
+;;                      (* 50
+;;                         (+ 1 (sin (* 2 time))))))
 
 
 ;; Effects library

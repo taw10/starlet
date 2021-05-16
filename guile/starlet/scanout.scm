@@ -82,7 +82,7 @@
   (let ((val (state-find fix attr state)))
     (if (eq? 'no-value val)
         #f
-        (not (eq? 'no-value (value->number val tnow))))))
+        (not (eq? 'no-value (value->number val))))))
 
 
 (define (first-val fix attr tnow state-list)
@@ -106,7 +106,7 @@
                     (let ((val (state-find fix attr-name state)))
                       (if (eq? 'no-value val)
                           prev
-                          (let ((real-val (value->number val tnow)))
+                          (let ((real-val (value->number val)))
                             (if (eq? 'no-value real-val)
                                 prev
                                 (max real-val prev))))))
@@ -117,10 +117,10 @@
             (let ((val (first-val fix attr-name tnow (atomic-box-ref state-list))))
               (if (eq? 'no-value val)
                   (get-attr-home-val fix attr-name)
-                  (value->number val tnow))))
+                  (value->number val))))
 
         ;; Use programmer value, if we have it
-        (value->number programmer-val tnow))))
+        (value->number programmer-val))))
 
 
 (define-method (current-value (fix <fixture>) (attr-name <colour-component-id>) tnow)

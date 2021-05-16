@@ -52,7 +52,7 @@
       (state-for-each
         (lambda (fix attr val)
           (at fix attr
-              (lambda (time)
+              (lambda ()
 
                 (let ((cc-val (get-cc-value cc-number #:channel channel)))
 

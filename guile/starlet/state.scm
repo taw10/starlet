@@ -270,9 +270,9 @@ pre-existing contents."
 
 
 ;; Coerce something from a state object into a number for scanout
-(define (value->number val time)
+(define (value->number val)
   (if (procedure? val)
-      (value->number (val time) time)
+      (value->number (val))
       val))
 
 
