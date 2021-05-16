@@ -224,7 +224,7 @@
                (colour? end-val))
     (raise-exception (make-exception
                        (make-exception-with-message
-                         "Non-colour arguments given to simple-fade")
+                         "Non-colour arguments given to colour-fade")
                        (make-exception-with-irritants
                          (list start-val end-val)))))
 
