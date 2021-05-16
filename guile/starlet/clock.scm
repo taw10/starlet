@@ -145,9 +145,13 @@
 
 
 (define-method (elapsed-fraction (clock <starlet-delayed-clock>))
-  (min 1.0
-       (/ (time-elapsed clock)
-          (get-duration clock))))
+  (if (= (get-duration clock) 0)
+      (if (> (time-elapsed clock) 0)
+          1.0
+          0.0)
+      (min 1.0
+           (/ (time-elapsed clock)
+              (get-duration clock)))))
 
 
 (define-method (stop-clock! (clock <starlet-delayed-clock>))
