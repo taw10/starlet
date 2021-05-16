@@ -32,6 +32,7 @@
 
             clock-stopped?
             clock-reversed?
+            elapsed-time
             elapsed-fraction))
 
 
@@ -45,7 +46,7 @@
 ;; "Real" clocks are straightforward objects for measuring differences in time
 ;; between now and some point in the past, allowing for temporarily "pausing"
 ;; the clock.  The time difference cannot be negative: if the start time is in
-;; the future, then "time-elapsed" will return 0.
+;; the future, then "elapsed-time" will return 0.
 
 (define-class <starlet-clock> (<object>)
   (start-real-time
@@ -74,7 +75,7 @@
   (make <starlet-clock>))
 
 
-(define-method (time-elapsed (clock <starlet-clock>))
+(define-method (elapsed-time (clock <starlet-clock>))
   (if (clock-stopped? clock)
       (get-start-elapsed-time clock)
       (max 0
@@ -91,13 +92,13 @@
 
 ;; Stop the clock running
 (define-method (stop-clock! (clock <starlet-clock>))
-  (set-start-elapsed-time! clock (time-elapsed clock))
+  (set-start-elapsed-time! clock (elapsed-time clock))
   (set-clock-stopped! clock #t))
 
 
 ;; Start the clock running (forwards)
 (define-method (start-clock! (clock <starlet-clock>))
-  (set-start-elapsed-time! clock (time-elapsed clock))
+  (set-start-elapsed-time! clock (elapsed-time clock))
   (set-start-real-time! clock (time-now))
   (set-clock-reversed! clock #f)
   (set-clock-stopped! clock #f))
@@ -105,7 +106,7 @@
 
 ;; Start the clock running, backwards
 (define-method (reverse-clock! (clock <starlet-clock>))
-  (set-start-elapsed-time! clock (time-elapsed clock))
+  (set-start-elapsed-time! clock (elapsed-time clock))
   (set-start-real-time! clock (time-now))
   (set-clock-reversed! clock #t)
   (set-clock-stopped! clock #f))
@@ -139,18 +140,18 @@
   (clock-reversed? (get-parent-clock clock)))
 
 
-(define-method (time-elapsed (clock <starlet-delayed-clock>))
-  (max 0 (- (time-elapsed (get-parent-clock clock))
+(define-method (elapsed-time (clock <starlet-delayed-clock>))
+  (max 0 (- (elapsed-time (get-parent-clock clock))
             (get-delay-time clock))))
 
 
 (define-method (elapsed-fraction (clock <starlet-delayed-clock>))
   (if (= (get-duration clock) 0)
-      (if (> (time-elapsed clock) 0)
+      (if (> (elapsed-time clock) 0)
           1.0
           0.0)
       (min 1.0
-           (/ (time-elapsed clock)
+           (/ (elapsed-time clock)
               (get-duration clock)))))
 
 

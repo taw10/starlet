@@ -93,15 +93,14 @@
 
 
 ;; Functions can be assigned to parameters
-;;   (temporarily disabled - time parameter is gone, should use
-;;      clock objects instead)
-;;(at foh1 'intensity (lambda (time)
-;;                      (* 50
-;;                         (+ 1 (sin (* 2 time))))))
+(let ((clock (make-clock)))
+  (at foh1 'intensity (lambda ()
+                        (* 50
+                           (+ 1 (sin (* 2 (elapsed-time clock))))))))
 
 
 ;; Effects library
-(at floor2 'intensity 100)
+(at floor2 'intensity (flash 1.3))
 (at floor2 'colour (make-colour-cmy 0 0 100))
 (at floor2 'pan 0)
 (at floor2 'tilt (sinewave 0.5 100 170))

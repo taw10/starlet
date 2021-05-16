@@ -19,6 +19,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet effects)
+  #:use-module (starlet clock)
   #:export (flash
              sinewave))
 
@@ -32,12 +33,15 @@
       0))
 
 (define (flash hz)
-  (lambda (time)
-    (square-wave time hz)))
+  (let ((clock (make-clock)))
+    (lambda ()
+      (square-wave (elapsed-time clock)
+                   hz))))
 
 
 (define (sinewave hz range-min range-max)
-  (lambda (time)
-    (+ range-min
-       (* (/ (- range-max range-min) 2)
-          (+ 1 (sin (* 2 pi hz time)))))))
+  (let ((clock (make-clock)))
+    (lambda ()
+      (+ range-min
+         (* (/ (- range-max range-min) 2)
+            (+ 1 (sin (* 2 pi hz (elapsed-time clock)))))))))
