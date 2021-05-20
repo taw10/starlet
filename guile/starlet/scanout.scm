@@ -31,6 +31,7 @@
   #:use-module (srfi srfi-1)
   #:export (patch-fixture!
             scanout-freq
+            total-num-attrs
             register-state!
             current-value))
 
@@ -43,6 +44,13 @@
 
 ;; Association list of names to states
 (define state-names (make-atomic-box '()))
+
+
+(define (total-num-attrs)
+  (fold (lambda (fix prev)
+          (+ prev (length (get-fixture-attrs fix))))
+        0
+        (atomic-box-ref fixtures)))
 
 
 (define (get-state-name st)
