@@ -26,6 +26,7 @@
             get-fixture-name
             get-fixture-addr
             get-fixture-universe
+            get-fixture-attrs
             find-attr
             fixture?
             scanout-fixture
@@ -130,8 +131,8 @@
        #:home-value attr-home-value))))
 
 
-(define (get-attributes f)
-  (slot-ref f 'attributes))
+(define (get-fixture-attrs fix)
+  (slot-ref fix 'attributes))
 
 
 (define (fixture? f)
@@ -142,7 +143,7 @@
   (find (lambda (a)
           (eq? (get-attr-name a)
                attr-name))
-        (slot-ref fix 'attributes)))
+        (get-fixture-attrs fix)))
 
 
 (define-method (find-attr (fix <fixture>) (attr-name <colour-component-id>))
