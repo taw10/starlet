@@ -45,7 +45,8 @@
             show-state
             lighting-state
             programmer-state
-            blackout
+            home-fixture!
+            blackout!
             sel
             selection-hook
             value->number
@@ -151,20 +152,21 @@
       (set-in-state! state fix attr))))  ;; Try again
 
 
-(define (blackout state)
-  (state-for-each
-    (lambda (fix attr val)
-      (when (intensity? attr)
-        (set-in-state! state fix attr 0.0)))
-    state))
+;; Set any intensity attributes in the current state to zero
+(define (blackout!)
+  (let ((state (current-state)))
+    (state-for-each
+      (lambda (fix attr val)
+        (when (intensity? attr)
+          (set-in-state! state fix attr 0.0)))
+      state)))
 
 
-;; Set a single attribute to home position
-(define (home-attr! state fix attr)
-  (set-in-state! state
-                 fix
-                 attr
-                 (get-attr-home-val fix attr)))
+;; Set all attributes of the fixture to their home values
+(define (home-fixture! fix)
+  (for-each (lambda (attr)
+              (at fix attr (get-attr-home-val fix attr)))
+            (get-fixture-attrs fix)))
 
 
 (define (copy-state state)

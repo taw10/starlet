@@ -598,7 +598,7 @@
               (parameterize ((current-state (make-empty-state)))
                 (apply-state previous-state)
                 (unless (track-intensities the-cue)
-                  (blackout (current-state)))
+                  (blackout!))
                 (apply-state (get-cue-state the-cue))
                 (set-tracked-state! the-cue (current-state))
                 (current-state)))))))
