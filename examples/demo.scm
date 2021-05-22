@@ -264,33 +264,35 @@
 
 
 ;; Set up MIDI controller buttons to run cues
-(make-go-button pb 12)
-(make-stop-button pb 24)
-(make-back-button pb 28)
-(send-note-on 20)
-(send-note-on 24)
-(send-note-on 28)
+(make-go-button pb 12
+                #:ready-note 20
+                #:pause-note 16)
+(make-stop-button pb 24
+                  #:ready-note 24)
+(make-back-button pb 28
+                  #:ready-note 28)
 
 ;; A second set of go/stop buttons, because this works well on my controller
-(make-go-button pb 15)
-(make-stop-button pb 27)
-(make-back-button pb 31)
-(send-note-on 23)
-(send-note-on 27)
-(send-note-on 31)
+(make-go-button pb 15
+                #:ready-note 23
+                #:pause-note 19)
+(make-stop-button pb 27
+                  #:ready-note 27)
+(make-back-button pb 31
+                  #:ready-note 31)
 
 
 ;; Set up some buttons for quick access to fixtures
-(select-on-button 32 ltruss)
-(select-on-button 33 rtruss)
-(select-on-button 34 foh3)
-(select-on-button 35 floor)
-(send-note-on 68)
-(send-note-on 69)
-(send-note-on 70)
-(send-note-on 71)
+(select-on-button 32 ltruss
+                  #:ready-note 68)
+(select-on-button 33 rtruss
+                  #:ready-note 69)
+(select-on-button 34 foh3
+                  #:ready-note 70)
+(select-on-button 35 floor
+                  #:ready-note 71)
 
 
 ;; Red button de-selects everything
-(select-on-button 26 #f)
-(send-note-on 26)
+(select-on-button 26 #f
+                  #:ready-note 26)
