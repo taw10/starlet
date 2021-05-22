@@ -127,18 +127,20 @@
 
 (define* (send-note-on note
                        #:key (channel #f))
-  (enqueue-midi-bytes! (+ #b10010000
-                          (if channel channel default-channel))
-                       note
-                       127))
+  (when note
+    (enqueue-midi-bytes! (+ #b10010000
+                            (if channel channel default-channel))
+                         note
+                         127)))
 
 
 (define* (send-note-off note
                         #:key (channel #f))
-  (enqueue-midi-bytes! (+ #b10000000
-                          (if channel channel default-channel))
-                       note
-                       0))
+  (when note
+    (enqueue-midi-bytes! (+ #b10000000
+                            (if channel channel default-channel))
+                         note
+                         0)))
 
 
 (define (all-notes-off! channel)
