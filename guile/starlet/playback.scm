@@ -39,6 +39,8 @@
             get-playback-cue-number
             run-cue-number!
             go!
+            stop!
+            back!
             cue-list
             set-playback-cue-list!
             print-playback))
@@ -48,14 +50,19 @@
 ;; from a cue list
 (define-class <starlet-playback> (<starlet-state>)
   (cue-list
-   #:init-keyword #:cue-list
-   #:getter get-playback-cue-list
-   #:setter set-playback-cue-list!)
+    #:init-keyword #:cue-list
+    #:getter get-playback-cue-list
+    #:setter set-playback-cue-list!)
 
   (next-cue-index
-   #:init-value 0
-   #:getter get-next-cue-index
-   #:setter set-next-cue-index!))
+    #:init-value 0
+    #:getter get-next-cue-index
+    #:setter set-next-cue-index!)
+
+  (running-cue-clock
+    #:init-value #f
+    #:getter get-cue-clock
+    #:setter set-cue-clock!))
 
 
 (define-record-type <cue-part>
@@ -129,6 +136,18 @@
                 cue-list))
 
 
+(define (cut-to-cue-index! pb cue-index)
+  (let ((cue-list (get-playback-cue-list pb)))
+    (clear-state! pb)
+    (set-next-cue-index! pb (+ cue-index 1))
+    (set-cue-clock! pb #f)
+    (let ((cue-state (calculate-tracking cue-list cue-index)))
+      (state-for-each
+        (lambda (fix attr val)
+          (set-in-state! pb fix attr (lambda () val)))
+        cue-state))))
+
+
 (define (cut-to-cue-number! pb cue-number)
 
   (let* ((cue-list (get-playback-cue-list pb))
@@ -141,13 +160,7 @@
                          (make-exception-with-irritants
                            (list pb cue-number)))))
 
-    (clear-state! pb)
-    (set-next-cue-index! pb (+ cue-index 1))
-    (let ((cue-state (calculate-tracking cue-list cue-index)))
-      (state-for-each
-        (lambda (fix attr val)
-          (set-in-state! pb fix attr (lambda () val)))
-        cue-state))
+    (cut-to-cue-index! pb cue-index)
 
     *unspecified*))
 
@@ -170,13 +183,35 @@
 
 
 (define (go! pb)
-  (let ((next-cue-index (get-next-cue-index pb)))
-    (if (< next-cue-index (vector-length (get-playback-cue-list pb)))
-        (begin
-          (run-cue-index! pb next-cue-index)
-          (set-next-cue-index! pb (+ next-cue-index 1))
-          *unspecified*)
-        'no-more-cues-in-list)))
+  (let ((clock (get-cue-clock pb)))
+    (if (and clock
+             (clock-stopped? clock))
+
+        ;; Restart paused cue
+        (start-clock! clock)
+
+        ;; Run next cue
+        (let ((next-cue-index (get-next-cue-index pb)))
+          (if (< next-cue-index (vector-length (get-playback-cue-list pb)))
+              (begin
+                (run-cue-index! pb next-cue-index)
+                (set-next-cue-index! pb (+ next-cue-index 1))
+                *unspecified*)
+              'no-more-cues-in-list)))))
+
+
+(define (stop! pb)
+  (let ((clock (get-cue-clock pb)))
+    (when (and clock
+               (not (clock-expired? clock)))
+      (stop-clock! (get-cue-clock pb)))))
+
+
+(define (back! pb)
+  (let ((prev-cue-index (- (get-next-cue-index pb) 2)))
+    (if (>= prev-cue-index 0)
+        (cut-to-cue-index! pb prev-cue-index)
+        'already-at-cue-zero)))
 
 
 (define (snap-fade start-val
@@ -386,6 +421,28 @@
       'no-value))
 
 
+(define (longest-fade-time fade-times)
+  (max
+    (+ (get-fade-down-time fade-times)
+       (get-fade-down-delay fade-times)
+       (get-fade-preset-delay fade-times)
+       (get-fade-preset-time fade-times))
+    (+ (get-fade-up-time fade-times)
+       (get-fade-up-delay fade-times))
+    (+ (get-fade-attr-time fade-times)
+       (get-fade-attr-delay fade-times))))
+
+
+;; Work out how long it will take before we can forget about this cue
+(define (cue-total-time the-cue)
+  (let ((fade-times (cons (get-cue-fade-times the-cue)
+                          (map get-cue-part-fade-times
+                               (get-cue-parts the-cue)))))
+    (fold max
+          0
+          (map longest-fade-time fade-times))))
+
+
 ;; Work out how many seconds 'fix' will take to complete its intensity fade
 ;; NB Don't worry about whether it makes sense to do a preset or not
 ;; - that's already taken care of in fade-preset-val
@@ -429,11 +486,11 @@
 
 
 (define (run-cue-index! pb cue-index)
-  (let ((this-cue-state (calculate-tracking (get-playback-cue-list pb) cue-index))
-        (next-cue-state (calculate-tracking (get-playback-cue-list pb) (+ cue-index 1)))
-        (the-cue (vector-ref (get-playback-cue-list pb) cue-index))
-        (overlay-state (make-empty-state))
-        (cue-clock (make-clock)))
+  (let* ((this-cue-state (calculate-tracking (get-playback-cue-list pb) cue-index))
+         (next-cue-state (calculate-tracking (get-playback-cue-list pb) (+ cue-index 1)))
+         (the-cue (vector-ref (get-playback-cue-list pb) cue-index))
+         (overlay-state (make-empty-state))
+         (cue-clock (make-clock #:expiration-time (cue-total-time the-cue))))
 
     (for-each
       (lambda (fix-attr)
@@ -498,7 +555,8 @@
           (fix-attrs-involved pb this-cue-state next-cue-state)
           (fix-attrs-involved pb this-cue-state)))
 
-    (atomically-overlay-state! pb overlay-state)))
+    (atomically-overlay-state! pb overlay-state)
+    (set-cue-clock! pb cue-clock)))
 
 
 (define (print-playback pb)
