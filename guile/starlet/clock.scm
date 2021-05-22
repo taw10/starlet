@@ -26,6 +26,7 @@
             stop-clock!
             start-clock!
             reverse-clock!
+            clock-expired?
 
             <starlet-delayed-clock>
             make-delayed-clock
@@ -65,14 +66,26 @@
     #:getter clock-stopped?
     #:setter set-clock-stopped!)
 
+  (expiration-time
+    #:init-value #f
+    #:init-keyword #:expiration-time
+    #:getter expiration-time)
+
   (reversed
     #:init-value #f
     #:getter clock-reversed?
     #:setter set-clock-reversed!))
 
 
-(define (make-clock)
-  (make <starlet-clock>))
+(define* (make-clock
+           #:key (expiration-time #f))
+  (make <starlet-clock>
+        #:expiration-time expiration-time))
+
+
+(define (clock-expired? clock)
+  (> (elapsed-time clock)
+     (expiration-time clock)))
 
 
 (define-method (elapsed-time (clock <starlet-clock>))
