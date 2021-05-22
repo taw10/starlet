@@ -24,6 +24,7 @@
   #:use-module (starlet playback)
   #:export (make-go-button
             make-stop-button
+            make-back-button
             select-on-button))
 
 
@@ -40,7 +41,15 @@
     (register-midi-note-callback!
      #:channel channel
      #:note-number button
-     #:func (lambda () (display "Stop/back!\n"))))
+     #:func (lambda () (stop! pb))))
+
+
+(define* (make-back-button pb button
+                           #:key (channel #f))
+    (register-midi-note-callback!
+     #:channel channel
+     #:note-number button
+     #:func (lambda () (back! pb))))
 
 
 (define* (select-on-button button fixture

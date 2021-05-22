@@ -266,14 +266,18 @@
 ;; Set up MIDI controller buttons to run cues
 (make-go-button pb 12)
 (make-stop-button pb 24)
+(make-back-button pb 28)
 (send-note-on 20)
 (send-note-on 24)
+(send-note-on 28)
 
 ;; A second set of go/stop buttons, because this works well on my controller
 (make-go-button pb 15)
 (make-stop-button pb 27)
+(make-back-button pb 31)
 (send-note-on 23)
 (send-note-on 27)
+(send-note-on 31)
 
 
 ;; Set up some buttons for quick access to fixtures
