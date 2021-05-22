@@ -78,8 +78,13 @@
 
 
 (define* (select-on-button button fixture
-                           #:key (channel #f))
+                           #:key
+                           (channel #f)
+                           (ready-note #f))
   (register-midi-note-callback!
-   #:channel channel
-   #:note-number button
-   #:func (lambda () (sel fixture))))
+    #:channel channel
+    #:note-number button
+    #:func (lambda () (sel fixture)))
+
+  (when ready-note
+    (send-note-on ready-note)))
