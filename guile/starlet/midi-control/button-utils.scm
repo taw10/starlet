@@ -29,27 +29,52 @@
 
 
 (define* (make-go-button pb button
-                         #:key (channel #f))
-    (register-midi-note-callback!
-     #:channel channel
-     #:note-number button
-     #:func (lambda () (go! pb))))
+                         #:key
+                         (channel #f)
+                         (ready-note #f)
+                         (pause-note #f))
+  (register-midi-note-callback!
+    #:channel channel
+    #:note-number button
+    #:func (lambda () (go! pb)))
+
+  (when (or ready-note pause-note)
+    (add-hook!
+      (state-change-hook pb)
+      (lambda (new-state)
+        (cond
+          ((eq? new-state 'pause)
+           (send-note-on pause-note))
+          ((eq? new-state 'ready)
+           (send-note-on ready-note))
+          (else
+            (send-note-off ready-note)))))))
 
 
 (define* (make-stop-button pb button
-                           #:key (channel #f))
-    (register-midi-note-callback!
-     #:channel channel
-     #:note-number button
-     #:func (lambda () (stop! pb))))
+                           #:key
+                           (channel #f)
+                           (ready-note #f))
+  (register-midi-note-callback!
+    #:channel channel
+    #:note-number button
+    #:func (lambda () (stop! pb)))
+
+  (when ready-note
+    (send-note-on ready-note)))
 
 
 (define* (make-back-button pb button
-                           #:key (channel #f))
-    (register-midi-note-callback!
-     #:channel channel
-     #:note-number button
-     #:func (lambda () (back! pb))))
+                           #:key
+                           (channel #f)
+                           (ready-note #f))
+  (register-midi-note-callback!
+    #:channel channel
+    #:note-number button
+    #:func (lambda () (back! pb)))
+
+  (when ready-note
+    (send-note-on ready-note)))
 
 
 (define* (select-on-button button fixture

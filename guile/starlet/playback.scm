@@ -43,7 +43,8 @@
             back!
             cue-list
             set-playback-cue-list!
-            print-playback))
+            print-playback
+            state-change-hook))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -62,7 +63,11 @@
   (running-cue-clock
     #:init-value #f
     #:getter get-cue-clock
-    #:setter set-cue-clock!))
+    #:setter set-cue-clock!)
+
+  (state-change-hook
+    #:init-form (make-hook 1)
+    #:getter state-change-hook))
 
 
 (define-record-type <cue-part>
@@ -141,6 +146,7 @@
     (clear-state! pb)
     (set-next-cue-index! pb (+ cue-index 1))
     (set-cue-clock! pb #f)
+    (run-hook (state-change-hook pb) 'ready)
     (let ((cue-state (calculate-tracking cue-list cue-index)))
       (state-for-each
         (lambda (fix attr val)
@@ -188,7 +194,8 @@
              (clock-stopped? clock))
 
         ;; Restart paused cue
-        (start-clock! clock)
+        (begin (start-clock! clock)
+               (run-hook (state-change-hook pb) 'ready))
 
         ;; Run next cue
         (let ((next-cue-index (get-next-cue-index pb)))
@@ -204,13 +211,15 @@
   (let ((clock (get-cue-clock pb)))
     (when (and clock
                (not (clock-expired? clock)))
-      (stop-clock! (get-cue-clock pb)))))
+      (stop-clock! (get-cue-clock pb))
+      (run-hook (state-change-hook pb) 'pause))))
 
 
 (define (back! pb)
   (let ((prev-cue-index (- (get-next-cue-index pb) 2)))
     (if (>= prev-cue-index 0)
-        (cut-to-cue-index! pb prev-cue-index)
+        (begin (cut-to-cue-index! pb prev-cue-index)
+               (run-hook (state-change-hook pb) 'ready))
         'already-at-cue-zero)))
 
 
@@ -556,7 +565,8 @@
           (fix-attrs-involved pb this-cue-state)))
 
     (atomically-overlay-state! pb overlay-state)
-    (set-cue-clock! pb cue-clock)))
+    (set-cue-clock! pb cue-clock)
+    (run-hook (state-change-hook pb) 'ready)))
 
 
 (define (print-playback pb)
