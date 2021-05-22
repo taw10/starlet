@@ -32,6 +32,7 @@
   (starlet playback)
   (starlet effects)
   (starlet colours)
+  (starlet clock)
   (starlet fixture-library generic)
   (starlet fixture-library robe)
   (starlet fixture-library arduino)
