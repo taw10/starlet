@@ -47,6 +47,8 @@
            (send-note-on pause-note))
           ((eq? new-state 'ready)
            (send-note-on ready-note))
+          ((eq? new-state 'running)
+           (send-note-on ready-note))
           (else
             (send-note-off ready-note)))))))
 
@@ -61,7 +63,12 @@
     #:func (lambda () (stop! pb)))
 
   (when ready-note
-    (send-note-on ready-note)))
+    (add-hook!
+      (state-change-hook pb)
+      (lambda (new-state)
+        (if (eq? new-state 'running)
+            (send-note-on ready-note)
+            (send-note-off ready-note))))))
 
 
 (define* (make-back-button pb button
