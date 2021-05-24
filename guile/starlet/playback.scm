@@ -89,18 +89,14 @@
                    attr-time
                    up-delay
                    down-delay
-                   attr-delay
-                   preset-time
-                   preset-delay)
+                   attr-delay)
   fade-times?
   (up-time      get-fade-up-time)
   (down-time    get-fade-down-time)
   (attr-time    get-fade-attr-time)
   (up-delay     get-fade-up-delay)
   (down-delay   get-fade-down-delay)
-  (attr-delay   get-fade-attr-delay)
-  (preset-time  get-fade-preset-time)
-  (preset-delay get-fade-preset-delay))
+  (attr-delay   get-fade-attr-delay))
 
 
 (define-record-type <cue>
@@ -108,6 +104,7 @@
             state
             tracked-state
             fade-times
+            preset-time
             track-intensities
             cue-parts)
   cue?
@@ -116,6 +113,7 @@
   (tracked-state      get-tracked-state
                       set-tracked-state!)
   (fade-times         get-cue-fade-times)
+  (preset-time        get-cue-preset-time)
   (track-intensities  track-intensities)
   (cue-parts          get-cue-parts))
 
@@ -234,15 +232,10 @@
 
 (define (snap-fade start-val
                    target-val
-                   preset-val
-                   clock
-                   preset-clock)
-  (cond
-    ((and (not (eq? 'no-value preset-val))
-          (> (elapsed-fraction preset-clock) 0))
-     preset-val)
-    ((> (elapsed-fraction clock) 0) target-val)
-    (else start-val)))
+                   clock)
+  (if (> (elapsed-fraction clock) 0)
+      target-val
+      start-val))
 
 
 (define (colour-fade start-val
@@ -330,23 +323,17 @@
 
 (define (make-list-attr-fade start-val
                              target-val
-                             preset-val
-                             clock
-                             preset-clock)
+                             clock)
   (lambda ()
     (snap-fade start-val
                target-val
-               preset-val
-               clock
-               preset-clock)))
+               clock)))
 
 
 (define (make-general-fade fade-func
                            start-val
                            target-val
-                           preset-val
-                           clock
-                           preset-clock)
+                           clock)
 
   (if (and (not (procedure? target-val))
            (not (eq? target-val 'no-value))
@@ -355,24 +342,15 @@
       ;; It makes sense to do a fade
       (let ((real-start-val (value->number start-val)))
         (lambda ()
-          (if (and (not (eq? 'no-value preset-val))
-                    (> (elapsed-fraction preset-clock) 0))
-
-              (fade-func target-val
-                         preset-val
-                         preset-clock)
-
-              (fade-func real-start-val
+          (fade-func real-start-val
                          target-val
-                         clock))))
+                         clock)))
 
       ;; A fade doesn't make sense, so make do with a snap transition
       (lambda ()
         (snap-fade start-val
                    target-val
-                   preset-val
-                   clock
-                   preset-clock))))
+                   clock))))
 
 
 (define (match-fix-attr attr-el fix attr)
@@ -428,23 +406,10 @@
            (< a 1))))
 
 
-;; NB next-cue-state might be #f, if there is no next cue
-(define (fade-preset-val this-cue-state next-cue-state fix attr)
-  (if next-cue-state
-      (let ((next-cue-val (state-find fix attr next-cue-state))
-            (this-cue-intensity (state-find fix 'intensity this-cue-state)))
-        (if (dark? this-cue-intensity)
-            next-cue-val
-            'no-value))
-      'no-value))
-
-
 (define (longest-fade-time fade-times)
   (max
     (+ (get-fade-down-time fade-times)
-       (get-fade-down-delay fade-times)
-       (get-fade-preset-delay fade-times)
-       (get-fade-preset-time fade-times))
+       (get-fade-down-delay fade-times))
     (+ (get-fade-up-time fade-times)
        (get-fade-up-delay fade-times))
     (+ (get-fade-attr-time fade-times)
@@ -459,16 +424,6 @@
     (fold max
           0
           (map longest-fade-time fade-times))))
-
-
-;; Work out how many seconds 'fix' will take to complete its intensity fade
-;; NB Don't worry about whether it makes sense to do a preset or not
-;; - that's already taken care of in fade-preset-val
-(define (calc-preset-start-time fix the-cue)
-  (let ((fade-times (cue-part-fade-times the-cue fix 'intensity)))
-    (+ (get-fade-down-time fade-times)
-       (get-fade-down-delay fade-times)
-       (get-fade-preset-delay fade-times))))
 
 
 (define (fix-attr-eq fa1 fa2)
@@ -505,7 +460,6 @@
 
 (define (run-cue-index! pb cue-index)
   (let* ((this-cue-state (calculate-tracking (get-playback-cue-list pb) cue-index))
-         (next-cue-state (calculate-tracking (get-playback-cue-list pb) (+ cue-index 1)))
          (the-cue (vector-ref (get-playback-cue-list pb) cue-index))
          (overlay-state (make-empty-state))
          (cue-clock (make-clock #:expiration-time (cue-total-time the-cue))))
@@ -520,8 +474,6 @@
                ;; The values for fading
                (start-val (fade-start-val pb fix attr))
                (target-val (state-find fix attr this-cue-state))
-               (preset-val (fade-preset-val this-cue-state next-cue-state fix attr))
-
                ;; The clocks for things in this cue part
                (up-clock (make-delayed-clock cue-clock
                                              (get-fade-up-delay fade-times)
@@ -533,11 +485,7 @@
 
                (attribute-clock (make-delayed-clock cue-clock
                                                     (get-fade-attr-delay fade-times)
-                                                    (get-fade-attr-time fade-times)))
-
-               (preset-clock (make-delayed-clock cue-clock
-                                                 (get-fade-preset-delay fade-times)
-                                                 (get-fade-preset-time fade-times))))
+                                                    (get-fade-attr-time fade-times))))
 
           (if (intensity? attr)
 
@@ -564,14 +512,9 @@
                   (set-in-state! overlay-state fix attr
                                  (make-fade-func start-val
                                                  target-val
-                                                 preset-val
-                                                 attribute-clock
-                                                 preset-clock)))))))
+                                                 attribute-clock)))))))
 
-      ;; Add the next cue to list of states to look at, only if it exists)
-      (if next-cue-state
-          (fix-attrs-involved pb this-cue-state next-cue-state)
-          (fix-attrs-involved pb this-cue-state)))
+      (fix-attrs-involved pb this-cue-state))
 
     (atomically-overlay-state! pb overlay-state)
     (set-cue-clock! pb cue-clock)
@@ -609,9 +552,7 @@
                             (attr-time 3)
                             (up-delay 0)
                             (down-delay 0)
-                            (attr-delay 0)
-                            (preset-time 1)
-                            (preset-delay 1))
+                            (attr-delay 0))
   (make-cue-part attr-list
                  (make-fade-times
                   up-time
@@ -619,9 +560,7 @@
                   attr-time
                   up-delay
                   down-delay
-                  attr-delay
-                  preset-time
-                  preset-delay)))
+                  attr-delay)))
 
 
 (define cue
@@ -636,7 +575,6 @@
                      (down-delay 0)
                      (attr-delay 0)
                      (preset-time 1)
-                     (preset-delay 1)
                      (track-intensities #f))
 
                     (make-cue (qnum number)
@@ -648,9 +586,8 @@
                                attr-time
                                up-delay
                                down-delay
-                               attr-delay
-                               preset-time
-                               preset-delay)
+                               attr-delay)
+                              preset-time
                               track-intensities
                               cue-parts)))))
 
@@ -700,6 +637,5 @@
                   #:up-time 0
                   #:down-time 0
                   #:attr-time 0
-                  #:preset-time 0
-                  #:preset-delay 0)
+                  #:preset-time 0)
              body ...))))
