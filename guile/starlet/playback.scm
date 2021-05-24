@@ -144,13 +144,17 @@
                 cue-list))
 
 
+(define (set-playback-state! pb state)
+  (atomic-box-set! (state-box  pb) state)
+  (run-hook (state-change-hook pb) state))
+
+
 (define (cut-to-cue-index! pb cue-index)
   (let ((cue-list (get-playback-cue-list pb)))
     (clear-state! pb)
     (set-next-cue-index! pb (+ cue-index 1))
     (set-cue-clock! pb #f)
-    (atomic-box-set! (state-box  pb) 'ready)
-    (run-hook (state-change-hook pb) 'ready)
+    (set-playback-state! pb 'ready)
     (let ((cue-state (calculate-tracking cue-list cue-index)))
       (state-for-each
         (lambda (fix attr val)
@@ -199,8 +203,7 @@
 
         ;; Restart paused cue
         (begin (start-clock! clock)
-               (atomic-box-set! (state-box pb) 'running)
-               (run-hook (state-change-hook pb) 'running))
+               (set-playback-state! pb 'running))
 
         ;; Run next cue
         (let ((next-cue-index (get-next-cue-index pb)))
@@ -217,16 +220,14 @@
     (when (and clock
                (not (clock-expired? clock)))
       (stop-clock! (get-cue-clock pb))
-      (atomic-box-set! (state-box pb) 'pause)
-      (run-hook (state-change-hook pb) 'pause))))
+      (set-playback-state! pb 'pause))))
 
 
 (define (back! pb)
   (let ((prev-cue-index (- (get-next-cue-index pb) 2)))
     (if (>= prev-cue-index 0)
         (begin (cut-to-cue-index! pb prev-cue-index)
-               (atomic-box-set! (state-box pb) 'ready)
-               (run-hook (state-change-hook pb) 'ready))
+               (set-playback-state! pb 'ready))
         'already-at-cue-zero)))
 
 
@@ -518,8 +519,7 @@
 
     (atomically-overlay-state! pb overlay-state)
     (set-cue-clock! pb cue-clock)
-    (atomic-box-set! (state-box pb) 'running)
-    (run-hook (state-change-hook pb) 'running)))
+    (set-playback-state! pb 'running)))
 
 
 (define (print-playback pb)
