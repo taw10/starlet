@@ -50,7 +50,8 @@
             sel
             selection-hook
             value->number
-            atomically-overlay-state!))
+            atomically-overlay-state!
+            update-state!))
 
 
 ;; A "state" is an atomically-updating container for an immutable
@@ -81,6 +82,11 @@
               home-col))
 
         col)))
+
+
+(define-method (update-state! (state <starlet-state>))
+  ;; Basic state object needs no updates
+  #f)
 
 
 (define-method (set-in-state! (state <starlet-state>)

@@ -23,6 +23,7 @@
   #:use-module (ice-9 optargs)
   #:use-module (ice-9 receive)
   #:use-module (ice-9 exceptions)
+  #:use-module (ice-9 atomic)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-43)
@@ -64,6 +65,10 @@
     #:init-value #f
     #:getter get-cue-clock
     #:setter set-cue-clock!)
+
+  (current-state
+    #:init-form (make-atomic-box 'ready)
+    #:getter state-box)
 
   (state-change-hook
     #:init-form (make-hook 1)
@@ -146,6 +151,7 @@
     (clear-state! pb)
     (set-next-cue-index! pb (+ cue-index 1))
     (set-cue-clock! pb #f)
+    (atomic-box-set! (state-box  pb) 'ready)
     (run-hook (state-change-hook pb) 'ready)
     (let ((cue-state (calculate-tracking cue-list cue-index)))
       (state-for-each
@@ -195,7 +201,8 @@
 
         ;; Restart paused cue
         (begin (start-clock! clock)
-               (run-hook (state-change-hook pb) 'ready))
+               (atomic-box-set! (state-box pb) 'running)
+               (run-hook (state-change-hook pb) 'running))
 
         ;; Run next cue
         (let ((next-cue-index (get-next-cue-index pb)))
@@ -212,6 +219,7 @@
     (when (and clock
                (not (clock-expired? clock)))
       (stop-clock! (get-cue-clock pb))
+      (atomic-box-set! (state-box pb) 'pause)
       (run-hook (state-change-hook pb) 'pause))))
 
 
@@ -219,6 +227,7 @@
   (let ((prev-cue-index (- (get-next-cue-index pb) 2)))
     (if (>= prev-cue-index 0)
         (begin (cut-to-cue-index! pb prev-cue-index)
+               (atomic-box-set! (state-box pb) 'ready)
                (run-hook (state-change-hook pb) 'ready))
         'already-at-cue-zero)))
 
@@ -566,7 +575,8 @@
 
     (atomically-overlay-state! pb overlay-state)
     (set-cue-clock! pb cue-clock)
-    (run-hook (state-change-hook pb) 'ready)))
+    (atomic-box-set! (state-box pb) 'running)
+    (run-hook (state-change-hook pb) 'running)))
 
 
 (define (print-playback pb)
@@ -670,6 +680,16 @@
                 (apply-state (get-cue-state the-cue))
                 (set-tracked-state! the-cue (current-state))
                 (current-state)))))))
+
+
+(define-method (update-state! (pb <starlet-playback>))
+  (when (and (get-cue-clock pb)
+             (clock-expired? (get-cue-clock pb))
+             (eq? 'running (atomic-box-ref (state-box pb))))
+    (when (eq? 'running (atomic-box-compare-and-swap! (state-box pb)
+                                                      'running
+                                                      'ready))
+      (run-hook (state-change-hook pb) 'ready))))
 
 
 (define-syntax cue-list

@@ -208,6 +208,8 @@
                            (- addr 1)                   ; OLA indexing starts from zero
                            (round-dmx value)))
 
+    (for-each update-state! (atomic-box-ref state-list))
+
     (for-each
       (lambda (fix)
 
