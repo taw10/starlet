@@ -549,7 +549,7 @@
                             #:key
                             (up-time 5)
                             (down-time 5)
-                            (attr-time 3)
+                            (attr-time 0)
                             (up-delay 0)
                             (down-delay 0)
                             (attr-delay 0))
@@ -570,7 +570,7 @@
       (let-keywords rest-minus-cue-parts #f
                     ((up-time 5)
                      (down-time 5)
-                     (attr-time 5)
+                     (attr-time 0)
                      (up-delay 0)
                      (down-delay 0)
                      (attr-delay 0)
