@@ -150,16 +150,15 @@
 
 
 (define (cut-to-cue-index! pb cue-index)
-  (let ((cue-list (get-playback-cue-list pb)))
-    (clear-state! pb)
-    (set-next-cue-index! pb (+ cue-index 1))
-    (set-cue-clock! pb #f)
-    (set-playback-state! pb 'ready)
-    (let ((cue-state (calculate-tracking cue-list cue-index)))
-      (state-for-each
-        (lambda (fix attr val)
-          (set-in-state! pb fix attr (lambda () val)))
-        cue-state))))
+  (clear-state! pb)
+  (set-next-cue-index! pb (+ cue-index 1))
+  (set-cue-clock! pb #f)
+  (set-playback-state! pb 'ready)
+  (state-for-each
+    (lambda (fix attr val)
+      (set-in-state! pb fix attr (lambda () val)))
+    (get-tracked-state (vector-ref (get-playback-cue-list pb)
+                                   cue-index))))
 
 
 (define (cut-to-cue-number! pb cue-number)
@@ -460,8 +459,8 @@
 
 
 (define (run-cue-index! pb cue-index)
-  (let* ((this-cue-state (calculate-tracking (get-playback-cue-list pb) cue-index))
-         (the-cue (vector-ref (get-playback-cue-list pb) cue-index))
+  (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
+         (this-cue-state (get-tracked-state the-cue))
          (overlay-state (make-empty-state))
          (cue-clock (make-clock #:expiration-time (cue-total-time the-cue))))
 
@@ -579,7 +578,8 @@
 
                     (make-cue (qnum number)
                               state
-                              #f
+                              #f   ;; tracked state
+                              #f   ;; preset state
                               (make-fade-times
                                up-time
                                down-time
@@ -592,31 +592,18 @@
                               cue-parts)))))
 
 
-(define (ensure-cue-zero-realized the-cue-list)
-  (let ((cue-zero (vector-ref the-cue-list 0)))
-    (unless (get-tracked-state cue-zero)
-      (parameterize ((current-state (make-empty-state)))
-        (set-tracked-state! cue-zero (current-state))))))
-
-
-;; Get the state for a cue, taking into account tracking etc
-(define (calculate-tracking the-cue-list cue-index)
-
-  (ensure-cue-zero-realized the-cue-list)
-
-  (if (>= cue-index (vector-length the-cue-list))
-      #f
-      (let* ((the-cue (vector-ref the-cue-list cue-index))
-             (rstate (get-tracked-state the-cue)))
-        (or rstate
-            (let ((previous-state (calculate-tracking the-cue-list (- cue-index 1))))
-              (parameterize ((current-state (make-empty-state)))
-                (apply-state previous-state)
-                (unless (track-intensities the-cue)
-                  (blackout!))
-                (apply-state (get-cue-state the-cue))
-                (set-tracked-state! the-cue (current-state))
-                (current-state)))))))
+(define (track-all-cues! the-cue-list)
+  (vector-fold
+    (lambda (idx prev-state the-cue)
+      (let ((the-tracked-state (lighting-state
+                                 (apply-state prev-state)
+                                 (unless (track-intensities the-cue)
+                                   (blackout!))
+                                 (apply-state (get-cue-state the-cue)))))
+        (set-tracked-state! the-cue the-tracked-state)
+        the-tracked-state))
+    (make-empty-state)
+    the-cue-list))
 
 
 (define-method (update-state! (pb <starlet-playback>))
@@ -632,10 +619,12 @@
 (define-syntax cue-list
   (syntax-rules ()
     ((_ body ...)
-     (vector (cue 0
-                  (make-empty-state)
-                  #:up-time 0
-                  #:down-time 0
-                  #:attr-time 0
-                  #:preset-time 0)
-             body ...))))
+     (let ((the-cue-list (vector (cue 0
+                                      (make-empty-state)
+                                      #:up-time 0
+                                      #:down-time 0
+                                      #:attr-time 0
+                                      #:preset-time 0)
+                                 body ...)))
+       (track-all-cues! the-cue-list)
+       the-cue-list))))
