@@ -157,11 +157,20 @@
   (set-next-cue-index! pb (+ cue-index 1))
   (set-cue-clock! pb #f)
   (set-playback-state! pb 'ready)
+
+  ;; Set the actual state
   (state-for-each
     (lambda (fix attr val)
       (set-in-state! pb fix attr (lambda () val)))
     (get-tracked-state (vector-ref (get-playback-cue-list pb)
-                                   cue-index))))
+                                   cue-index)))
+
+  ;; Set the preset state on top
+  (state-for-each
+    (lambda (fix attr val)
+      (set-in-state! pb fix attr (lambda () val)))
+    (get-preset-state (vector-ref (get-playback-cue-list pb)
+                                  cue-index))))
 
 
 (define (cut-to-cue-number! pb cue-number)
