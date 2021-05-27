@@ -103,6 +103,7 @@
   (make-cue number
             state
             tracked-state
+            preset-state
             fade-times
             preset-time
             track-intensities
@@ -112,6 +113,8 @@
   (state              get-cue-state)
   (tracked-state      get-tracked-state
                       set-tracked-state!)
+  (preset-state       get-preset-state
+                      set-preset-state!)
   (fade-times         get-cue-fade-times)
   (preset-time        get-cue-preset-time)
   (track-intensities  track-intensities)
@@ -606,6 +609,31 @@
     the-cue-list))
 
 
+(define (fixture-dark-in-state? fix state)
+  (dark? (state-find fix 'intensity state)))
+
+
+(define (preset-all-cues! the-cue-list)
+  (vector-fold-right
+    (lambda (idx next-state the-cue)
+      (let ((preset-state (make-empty-state)))
+
+        (state-for-each
+          (lambda (fix attr val)
+            (unless (intensity? attr)
+              (when (fixture-dark-in-state? fix (get-tracked-state the-cue))
+                (set-in-state! preset-state fix attr val))))
+          next-state)
+
+        (set-preset-state! the-cue preset-state))
+
+      ;; Pass the raw state from this cue to the previous one
+      (get-cue-state the-cue))
+
+    (make-empty-state)
+    the-cue-list))
+
+
 (define-method (update-state! (pb <starlet-playback>))
   (when (and (get-cue-clock pb)
              (clock-expired? (get-cue-clock pb))
@@ -627,4 +655,5 @@
                                       #:preset-time 0)
                                  body ...)))
        (track-all-cues! the-cue-list)
+       (preset-all-cues! the-cue-list)
        the-cue-list))))
