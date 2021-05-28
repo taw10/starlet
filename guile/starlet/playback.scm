@@ -66,6 +66,11 @@
     #:getter get-cue-clock
     #:setter set-cue-clock!)
 
+  (running-cue
+    #:init-value #f
+    #:getter get-running-cue
+    #:setter set-running-cue!)
+
   (current-state
     #:init-form (make-atomic-box 'ready)
     #:getter state-box)
@@ -156,6 +161,7 @@
   (clear-state! pb)
   (set-next-cue-index! pb (+ cue-index 1))
   (set-cue-clock! pb #f)
+  (set-running-cue! pb #f)
   (set-playback-state! pb 'ready)
 
   ;; Set the actual state
@@ -530,6 +536,7 @@
 
     (atomically-overlay-state! pb overlay-state)
     (set-cue-clock! pb cue-clock)
+    (set-running-cue! pb the-cue)
     (set-playback-state! pb 'running)))
 
 
@@ -650,7 +657,13 @@
     (when (eq? 'running (atomic-box-compare-and-swap! (state-box pb)
                                                       'running
                                                       'ready))
-      (run-hook (state-change-hook pb) 'ready))))
+      (run-hook (state-change-hook pb) 'ready)
+      (let ((st (get-preset-state (get-running-cue pb))))
+        (state-for-each
+          (lambda (fix attr val)
+            (set-in-state! pb fix attr (lambda () val)))
+          st))
+      (set-running-cue! pb #f))))
 
 
 (define-syntax cue-list
