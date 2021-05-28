@@ -40,6 +40,7 @@
             get-playback-cue-number
             run-cue-number!
             go!
+            cut!
             stop!
             back!
             cue-list
@@ -230,6 +231,10 @@
                 (set-next-cue-index! pb (+ next-cue-index 1))
                 *unspecified*)
               'no-more-cues-in-list)))))
+
+
+(define (cut! pb)
+  (cut-to-cue-index! pb (get-next-cue-index pb)))
 
 
 (define (stop! pb)
