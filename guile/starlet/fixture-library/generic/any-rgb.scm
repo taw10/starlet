@@ -1,5 +1,5 @@
 ;;
-;; starlet/fixture-library/generic.scm
+;; starlet/fixture-library/generic/any-rgb.scm
 ;;
 ;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
 ;;
@@ -18,30 +18,17 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library generic)
+(define-module (starlet fixture-library generic any-rgb)
   #:use-module (oop goops)
   #:use-module (starlet fixture)
-  #:export (<generic-dimmer>
-            generic-rgb))
-
-(define-class <generic-dimmer> (<fixture>)
-  (attributes
-    #:init-form (list
-                  (attr-continuous 'intensity '(0 100) 0))))
-
-
-(define-method (scanout-fixture (fixture <generic-dimmer>)
-                                get-attr set-chan8 set-chan16)
-
-  ;; Set DMX value for intensity
-  (set-chan8 1 (percent->dmxval8 (get-attr 'intensity))))
+  #:export (make-any-rgb))
 
 
 (define (chan->attr chan)
   (attr-continuous chan '(0 100) 0))
 
 
-(define (generic-rgb chans)
+(define (make-any-rgb chans)
 
   (let ((new-class (make-class
                     (list <fixture>)

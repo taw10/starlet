@@ -1,5 +1,5 @@
 ;;
-;; starlet/fixture-library/arduino.scm
+;; starlet/fixture-library/chauvet.scm
 ;;
 ;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
 ;;
@@ -18,30 +18,32 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library arduino)
+(define-module (starlet fixture-library chauvet)
   #:use-module (oop goops)
   #:use-module (starlet fixture)
-  #:use-module (starlet colours)
-  #:export (<arduino-dmx-thing>))
+  #:export (<chauvet-mav2-32ch>))
 
 
-;; This fixture class drives the RGB LED on the Arduino DMX shield
-;; as described by Matthias Hertel at http://www.mathertel.de/Arduino/DMXShield.aspx
-
-
-(define-class <arduino-dmx-thing> (<fixture>)
+(define-class <chauvet-mav2-32ch> (<fixture>)
   (attributes
    #:init-form (list
                 (attr-continuous 'intensity '(0 100) 0)
-                (attr-colour 'colour white))))
+                (attr-continuous 'pan '(0 540) 270)
+                (attr-continuous 'tilt '(0 270) 135)
+                (attr-continuous 'cyan '(0 100) 0)
+                (attr-continuous 'magenta '(0 100) 0)
+                (attr-continuous 'yellow '(0 100) 0))))
 
 
-(define-method (scanout-fixture (fixture <arduino-dmx-thing>)
-                                get-attr set-chan8 set-chan16)
+(define-method (scanout-fixture (fixture <chauvet-mav2-32ch>)
+                                get-attr set-chan set-chan-16bit)
 
-  (let ((intensity (get-attr 'intensity))
-        (rgb (colour-as-rgb (get-attr 'colour))))
-    (set-chan8 1 (percent->dmxval8 (* intensity 0.01 (car rgb))))
-    (set-chan8 2 (percent->dmxval8 (* intensity 0.01 (cadr rgb))))
-    (set-chan8 3 (percent->dmxval8 (* intensity 0.01 (caddr rgb))))))
+  (set-chan-16bit 1 (get-attr 'pan) 540)
+  (set-chan-16bit 3 (get-attr 'tilt) 270)
+  (set-chan-16bit 6 (get-attr 'intensity) 100)
 
+  (set-chan 10 (percent->dmxval (get-attr 'cyan)))
+  (set-chan 11 (percent->dmxval (get-attr 'magenta)))
+  (set-chan 12 (percent->dmxval (get-attr 'yellow)))
+
+  (set-chan 8 255))

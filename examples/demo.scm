@@ -33,9 +33,10 @@
   (starlet effects)
   (starlet colours)
   (starlet clock)
-  (starlet fixture-library generic)
-  (starlet fixture-library robe)
-  (starlet fixture-library arduino)
+  (starlet fixture-library generic dimmer)
+  (starlet fixture-library generic rgb)
+  (starlet fixture-library robe mmxspot mode1)
+  (starlet fixture-library robe mmxwashbeam mode1)
   (starlet midi-control base)
   (starlet midi-control button-utils)
   (starlet midi-control faders))
@@ -81,7 +82,7 @@
 (patch-fixture! floor5 <robe-mmxwashbeam-mode1> 236)
 (patch-fixture! floor6 <robe-mmxwashbeam-mode1> 270)
 
-(patch-fixture! led <arduino-dmx-thing> 1 #:universe 4)
+(patch-fixture! led <generic-rgb> 1 #:universe 4)
 
 ;; Set a parameter
 (at foh1 'intensity 80)
