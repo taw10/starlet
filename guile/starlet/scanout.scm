@@ -30,6 +30,7 @@
   #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
   #:export (patch-fixture!
+            patch-many!
             scanout-freq
             total-num-attrs
             register-state!
@@ -84,6 +85,27 @@
   (syntax-rules ()
     ((_ name stuff ...)
      (define name (patch-real (quote name) stuff ...)))))
+
+
+;; Patch several new fixtures
+(define* (patch-many-real name
+                          class
+                          start-addrs
+                          #:key (universe 0) (friendly-name "Fixture"))
+  (map (lambda (start-addr n)
+         (patch-real `(list-ref ,name ,n)
+                     class
+                     start-addr
+                     #:universe universe
+                     #:friendly-name friendly-name))
+       start-addrs
+       (iota (length start-addrs))))
+
+
+(define-syntax patch-many!
+  (syntax-rules ()
+    ((_ name stuff ...)
+     (define name (patch-many-real (quote name) stuff ...)))))
 
 
 (define (state-has-fix-attr fix attr tnow state)
