@@ -46,21 +46,22 @@
 (start-midi-control "/dev/snd/midiC0D0"
             #:channel 14)
 
-;; Fixtures are normal GOOPS objects, fixture types are GOOPS classes
-(patch-fixture! foh1 <generic-dimmer> 8)
-(patch-fixture! foh2 <generic-dimmer> 7)
-(patch-fixture! foh3 <generic-dimmer> 6)
-(patch-fixture! foh4 <generic-dimmer> 5)
-(patch-fixture! foh5 <generic-dimmer> 4)
-(patch-fixture! foh6 <generic-dimmer> 3)
-(patch-fixture! foh7 <generic-dimmer> 2)
-(patch-fixture! foh8 <generic-dimmer> 1)
 
+;; Fixtures are normal GOOPS objects, fixture types are GOOPS classes
 (patch-fixture! red1 <generic-dimmer> 9)
 (patch-fixture! red2 <generic-dimmer> 13)
 (patch-fixture! red3 <generic-dimmer> 20)
 (patch-fixture! red4 <generic-dimmer> 24)
 
+(patch-fixture! led <generic-rgb> 1 #:universe 4)
+
+
+;; Multiple fixtures can be defined at once
+;; Example: Eight dimmers on channels 1-8 of universe 0
+(patch-many! foh <generic-dimmer> (iota 8 1))
+
+
+;; Define many more fixtures
 (patch-fixture! ltruss1 <robe-mmxspot-mode1> 1 #:universe 1)
 (patch-fixture! ltruss2 <robe-mmxspot-mode1> 39 #:universe 1)
 (patch-fixture! ltruss3 <robe-mmxspot-mode1> 77 #:universe 1)
@@ -82,10 +83,9 @@
 (patch-fixture! floor5 <robe-mmxwashbeam-mode1> 236)
 (patch-fixture! floor6 <robe-mmxwashbeam-mode1> 270)
 
-(patch-fixture! led <generic-rgb> 1 #:universe 4)
 
 ;; Set a parameter
-(at foh1 'intensity 80)
+(at foh 'intensity 80)
 (at floor4 'intensity 100)
 (at floor4 'colour (make-colour-rgb 0 100 0))
 
@@ -96,9 +96,11 @@
 
 ;; Functions can be assigned to parameters
 (let ((clock (make-clock)))
-  (at foh1 'intensity (lambda ()
-                        (* 50
-                           (+ 1 (sin (* 2 (elapsed-time clock))))))))
+  (at (list-ref foh 0)
+      'intensity
+      (lambda ()
+        (* 50
+           (+ 1 (sin (* 2 (elapsed-time clock))))))))
 
 
 ;; Effects library
@@ -138,15 +140,6 @@
                   red2
                   red3
                   red4))
-
-(define foh (list foh1
-                  foh2
-                  foh3
-                  foh4
-                  foh5
-                  foh6
-                  foh7
-                  foh8))
 
 (at red 100)
 (at rtruss 100)
@@ -289,7 +282,7 @@
                   #:ready-note 68)
 (select-on-button 33 rtruss
                   #:ready-note 69)
-(select-on-button 34 foh3
+(select-on-button 34 foh
                   #:ready-note 70)
 (select-on-button 35 floor
                   #:ready-note 71)
