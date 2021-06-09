@@ -1,0 +1,30 @@
+# Starlet translation file
+# Copyright (C) 2021 Thomas White
+# This file is distributed under the same license as the Starlet package.
+# Thomas White <taw@bitwiz.me.uk>, 20201
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: starlet\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-06-09 18:21+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/starlet-fixture-display.c:231
+#, c-format
+msgid ""
+"Syntax: %s [options]\n"
+"\n"
+msgstr ""
+
+#: src/starlet-fixture-display.c:232
+#, c-format
+msgid "Show fixtures in Starlet  -h, --help    Display this help message.\n"
+msgstr ""
