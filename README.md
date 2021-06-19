@@ -116,17 +116,19 @@ Getting started
    environment.
 2. Install [Guile](https://www.gnu.org/software/guile/), if it's not already
    there.  Version 3 is required.
-3. Install Starlet (`meson build`, `ninja -C build` and `sudo ninja -C build
-   install`).
+3. Install Starlet:
+    `meson build`, `ninja -C build` and `sudo ninja -C build install`
 4. Start olad if it's not already running: `olad -l 3` (in a separate
    terminal).
-5. Run `guile`
-6. Once in the Guile REPL, import some Starlet modules: `(use-modules (starlet
-   scanout) (starlet state) (starlet fixture-library generic dimmer))`
-7. Patch a fixture with `(patch-fixture! fix <generic-dimmer> 1 #:universe 2)`
-   - replace 1 and 2 with the DMX address and universe (respectively) of a real
+5. Run `guile`.
+6. Once in the Guile REPL, import some Starlet modules:
+    `(use-modules (starlet scanout) (starlet state) (starlet fixture-library
+    generic dimmer))`
+7. Patch a fixture:
+    `(patch-fixture! mydimmer <generic-dimmer> 1 #:universe 2)`
+   Replace 1 and 2 with the DMX address and universe (respectively) of a real
    dimmer.
-8. Turn the dimmer on with `(at fix 100)`
+8. Turn the dimmer on with `(at mydimmer 100)`
 9. Look in the _examples_ and _docs_ folders for more advanced ideas.
 
 
