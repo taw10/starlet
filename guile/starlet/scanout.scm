@@ -34,7 +34,8 @@
             scanout-freq
             total-num-attrs
             register-state!
-            current-value))
+            current-value
+            patched-fixture-names))
 
 
 ;; The list of patched fixtures
@@ -45,6 +46,10 @@
 
 ;; Association list of names to states
 (define state-names (make-atomic-box '()))
+
+
+(define (patched-fixture-names)
+  (map get-fixture-name (atomic-box-ref fixtures)))
 
 
 (define (total-num-attrs)
