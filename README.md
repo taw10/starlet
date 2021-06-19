@@ -108,26 +108,26 @@ Note that the names of the fixtures are just normal Scheme variables.  They can
 be anything you like, and you're encouraged to make the names more descriptive
 than logical channel numbers, where appropriate.
 
+
 Getting started
 ---------------
 
 1. Install and set up [OLA](https://openlighting.org) for your lighting
    environment.
-2. Start olad if it's not already running: `olad &`
-3. Install [Guile](https://www.gnu.org/software/guile/), if it's not already
-   there (there's a good chance it is).  Version 3 is preferred because it's
-   much faster (= ability to handle more fixtures with less CPU load), but
-   version 2.2 works as well.  You will need the development packages (C header
-   files) as well.
-4. Run `meson build`, `ninja -C build` and `sudo ninja -C build install`.
-5. Run `guile -L /path/to/starlet/guile`
-6. Once in the Guile REPL, import the Starlet modules: `(use-modules (starlet
-   base) (starlet playback) (starlet fixture-library generic))`
+2. Install [Guile](https://www.gnu.org/software/guile/), if it's not already
+   there.  Version 3 is required.
+3. Install Starlet (`meson build`, `ninja -C build` and `sudo ninja -C build
+   install`).
+4. Start olad if it's not already running: `olad -l 3` (in a separate
+   terminal).
+5. Run `guile`
+6. Once in the Guile REPL, import some Starlet modules: `(use-modules (starlet
+   scanout) (starlet state) (starlet fixture-library generic dimmer))`
 7. Patch a fixture with `(patch-fixture! fix <generic-dimmer> 1 #:universe 2)`
    - replace 1 and 2 with the DMX address and universe (respectively) of a real
    dimmer.
 8. Turn the dimmer on with `(at fix 100)`
-9. Look in the _examples_ folder for more advanced ideas.
+9. Look in the _examples_ and _docs_ folders for more advanced ideas.
 
 
 Related projects
