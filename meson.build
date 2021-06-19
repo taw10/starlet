@@ -30,6 +30,7 @@ library('guile-ola', ['src/guile-ola.cpp'],
 
 # Fixture display tool
 executable('starlet-fixture-display',
-           ['src/starlet-fixture-display.c'],
+           ['src/starlet-fixture-display.c',
+            'src/repl-connection.c'],
            dependencies : [gtk_dep],
            install : true)

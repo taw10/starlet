@@ -32,6 +32,8 @@
 #include <libintl.h>
 #define _(x) gettext(x)
 
+#include "repl-connection.h"
+
 
 #define OVERALL_BORDER (20.0)
 #define FIXTURE_BORDER (5.0)
@@ -49,6 +51,7 @@ struct fixture_display
 	struct fixture *fixtures;
 	int n_fixtures;
 	GtkWidget *da;
+	ReplConnection *repl;
 };
 
 
@@ -179,7 +182,11 @@ static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_
 	switch ( event->keyval ) {
 
 		case GDK_KEY_Escape :
-		/* FIXME: Send (sel #f) */
+		repl_send(fixd->repl, "(sel #f)");
+		break;
+
+		case GDK_KEY_KP_Enter :
+		repl_send(fixd->repl, "(go! pb)");
 		break;
 
 		default :
@@ -214,7 +221,8 @@ static gboolean redraw_cb(gpointer data)
 
 static void get_fixture_list(struct fixture_display *fixd)
 {
-	int i;
+	repl_send(fixd->repl, "(patched-fixture-names)");
+
 	/* FIXME: Dummy */
 	int i;
 	fixd->fixtures = malloc(32*sizeof(struct fixture));
@@ -231,6 +239,7 @@ static void show_help(const char *s)
 {
 	printf(_("Syntax: %s [options]\n\n"), s);
 	printf(_("Show fixtures in Starlet"
+	         "  -s, --socket  REPL socket for Starlet process (default guile.socket).\n"
 	         "  -h, --help    Display this help message.\n"));
 }
 
@@ -241,11 +250,13 @@ int main(int argc, char *argv[])
 	int c;
 	GtkWidget *mainwindow;
 	GtkWidget *da;
+	char *socket = NULL;
 
 	gtk_init(&argc, &argv);
 
 	const struct option longopts[] = {
 		{"help",               0, NULL,               'h'},
+		{"socket",             1, NULL,               's'},
 		{0, 0, NULL, 0}
 	};
 
@@ -256,6 +267,10 @@ int main(int argc, char *argv[])
 			case 'h' :
 			show_help(argv[0]);
 			return 0;
+
+			case 's' :
+			socket = strdup(optarg);
+			break;
 
 			case 0 :
 			break;
@@ -272,6 +287,10 @@ int main(int argc, char *argv[])
 
 	bindtextdomain("starlet", LOCALEDIR);
 	textdomain("starlet");
+
+	if ( socket == NULL ) {
+		socket = strdup("guile.socket");
+	}
 
 	/* Create main window */
 	mainwindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -298,7 +317,8 @@ int main(int argc, char *argv[])
 	gtk_widget_show_all(mainwindow);
 
 	g_timeout_add(50, redraw_cb, &fixd);
-	
+
+	fixd.repl = repl_connection_new(socket);
 	get_fixture_list(&fixd);
 
 	gtk_main();
