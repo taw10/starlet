@@ -35,7 +35,11 @@ library('guile-ola', ['src/guile-ola.cpp'],
 executable('starlet-fixture-display',
            ['src/starlet-fixture-display.c',
             'src/repl-connection.c'],
-           dependencies: [gtk_dep, cairo_dep, pango_dep, pangocairo_dep],
+           dependencies: [gtk_dep,
+                          cairo_dep,
+                          pango_dep,
+                          pangocairo_dep,
+                          guile_dep],
            install: true)
 
 

@@ -24,9 +24,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <glib.h>
 #include <gio/gio.h>
 #include <gio/gunixsocketaddress.h>
+#include <libguile.h>
 
 #include <libintl.h>
 #define _(x) gettext(x)
@@ -38,6 +40,8 @@ struct _replconnection
 	GSocketConnection *conn;
 	char inbuf[1024];
 	char input[2048];
+	void (*process_func)(SCM sexp, void *data);
+	void *process_func_data;
 };
 
 
@@ -71,10 +75,46 @@ static char *strip_crap(const char *line_orig)
 }
 
 
+static int find_reply(const char *line)
+{
+	const char *eq;
+	size_t eq_pos;
+	int i;
+
+	if ( line[0] != '$' ) return 0;
+
+	eq = strstr(line, " = ");
+	if ( eq == NULL ) return 0;
+	eq_pos = eq - line;
+
+	for ( i=1; i<eq_pos; i++ ) {
+		if ( !isdigit(line[i]) ) return 0;
+	}
+
+	return eq_pos+3;
+}
+
+
 static void process_line(const char *line_orig, ReplConnection *repl)
 {
+	SCM port, str, sexp;
+	int eq_pos;
 	char *line = strip_crap(line_orig);
+
 	printf("%p: '%s'\n", repl, line);
+	eq_pos = find_reply(line);
+	if ( eq_pos == 0 ) {
+		free(line);
+		return;
+	}
+
+	str = scm_from_utf8_string(line+eq_pos);
+	port = scm_open_input_string(str);
+	sexp = scm_read(port);
+
+	repl->process_func(sexp, repl->process_func_data);
+
+	scm_close_port(port);
 	free(line);
 }
 
@@ -129,7 +169,9 @@ static void input_ready(GObject *source, GAsyncResult *res, gpointer vp)
 }
 
 
-ReplConnection *repl_connection_new(const char *socket)
+ReplConnection *repl_connection_new(const char *socket,
+                                    void (*process_func)(SCM sexp, void *data),
+                                    void *data)
 {
 	ReplConnection *repl;
 	GSocketClient *client;
@@ -151,6 +193,10 @@ ReplConnection *repl_connection_new(const char *socket)
 	}
 
 	repl->input[0] = '\0';
+	scm_init_guile();
+
+	repl->process_func = process_func;
+	repl->process_func_data = data;
 
 	g_input_stream_read_async(g_io_stream_get_input_stream(G_IO_STREAM(repl->conn)),
 	                          repl->inbuf, 1023, G_PRIORITY_DEFAULT, NULL,

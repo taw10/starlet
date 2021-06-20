@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <libguile.h>
 
 #include <libintl.h>
 #define _(x) gettext(x)
@@ -219,28 +220,78 @@ static gboolean redraw_cb(gpointer data)
 }
 
 
-static void get_fixture_list(struct fixture_display *fixd)
-{
-	repl_send(fixd->repl, "(patched-fixture-names)");
-
-	/* FIXME: Dummy */
-	int i;
-	fixd->fixtures = malloc(32*sizeof(struct fixture));
-	fixd->n_fixtures = 32;
-	for ( i=0; i<32; i++ ) {
-		char tmp[32];
-		snprintf(tmp, 31, "mh%i", 1+i);
-		fixd->fixtures[i].label = strdup(tmp);
-	}
-}
-
-
 static void show_help(const char *s)
 {
 	printf(_("Syntax: %s [options]\n\n"), s);
 	printf(_("Show fixtures in Starlet"
 	         "  -s, --socket  REPL socket for Starlet process (default guile.socket).\n"
 	         "  -h, --help    Display this help message.\n"));
+}
+
+
+static int is_list(SCM list)
+{
+	return scm_is_true(scm_list_p(list));
+}
+
+
+static int symbol_eq(SCM symbol, const char *val)
+{
+	return scm_is_true(scm_eq_p(symbol, scm_from_utf8_symbol(val)));
+}
+
+
+static void handle_patched_fixtures(struct fixture_display *fixd,
+                                    SCM list)
+{
+	int i;
+	int nfix;
+
+	if ( !is_list(list) ) {
+		fprintf(stderr, "Invalid patched fixture list\n");
+		return;
+	}
+
+	nfix = scm_to_int(scm_length(list));
+
+	free(fixd->fixtures);
+	fixd->fixtures = malloc(nfix*sizeof(struct fixture));
+	fixd->n_fixtures = nfix;
+
+	for ( i=0; i<nfix; i++ ) {
+		SCM item = scm_list_ref(list, scm_from_int(i));
+		if ( is_list(item) && (scm_to_int(scm_length(item)) == 3) ) {
+
+			char tmp[64];
+			SCM group_name = scm_list_ref(item, scm_from_int(1));
+			SCM idx = scm_list_ref(item, scm_from_int(2));
+			SCM name = scm_symbol_to_string(group_name);
+			snprintf(tmp, 63, "%s/%i",
+			         scm_to_locale_string(name),
+			         scm_to_int(idx));
+			fixd->fixtures[i].label = strdup(tmp);
+
+		} else {
+			SCM name = scm_symbol_to_string(item);
+			fixd->fixtures[i].label = scm_to_locale_string(name);
+		}
+	}
+}
+
+
+static void process_line(SCM sexp, void *data)
+{
+	struct fixture_display *fixd = data;
+
+	if ( is_list(sexp) && scm_to_int(scm_length(sexp)) == 2 ) {
+		SCM tag = scm_list_ref(sexp, scm_from_int(0));
+		SCM contents = scm_list_ref(sexp, scm_from_int(1));
+		if ( scm_is_symbol(tag) ) {
+			if ( symbol_eq(tag, "patched-fixtures") ) {
+				handle_patched_fixtures(fixd, contents);
+			}
+		}
+	}
 }
 
 
@@ -318,8 +369,8 @@ int main(int argc, char *argv[])
 
 	g_timeout_add(50, redraw_cb, &fixd);
 
-	fixd.repl = repl_connection_new(socket);
-	get_fixture_list(&fixd);
+	fixd.repl = repl_connection_new(socket, process_line, &fixd);
+	repl_send(fixd.repl, "(list 'patched-fixtures (patched-fixture-names))");
 
 	gtk_main();
 
