@@ -348,6 +348,7 @@ int main(int argc, char *argv[])
 	gtk_window_set_default_size(GTK_WINDOW(mainwindow), 1024, 768);
 	g_signal_connect_swapped(G_OBJECT(mainwindow), "destroy",
 	                         gtk_main_quit, NULL);
+	gtk_window_set_title(GTK_WINDOW(mainwindow), "Starlet fixture display");
 
 	da = gtk_drawing_area_new();
 
