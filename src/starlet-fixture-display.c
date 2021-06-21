@@ -198,6 +198,10 @@ static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_
 		repl_send(fixd->repl, "(go! pb)");
 		break;
 
+		case GDK_KEY_KP_Add :
+		repl_send(fixd->repl, "(back! pb)");
+		break;
+
 		default :
 		claim = 0;
 		break;
