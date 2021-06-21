@@ -129,6 +129,21 @@ static void input_ready(GObject *source, GAsyncResult *res, gpointer vp)
 	char *remaining;
 
 	len = g_input_stream_read_finish(G_INPUT_STREAM(source), res, &error);
+
+	if ( len == 0 ) {
+		printf("%p: EOF\n", repl);
+		g_object_unref(repl->conn);
+		repl->conn = NULL;
+		return;
+	}
+
+	if ( len == -1 ) {
+		printf("%p: Error: %s\n", repl, error->message);
+		g_object_unref(repl->conn);
+		repl->conn = NULL;
+		return;
+	}
+
 	repl->inbuf[len] = '\0';
 
 	for ( i=0; i<len; i++ ) {
@@ -219,4 +234,16 @@ int repl_send(ReplConnection *repl, const char *line)
 		return 1;
 	}
 	return 0;
+}
+
+
+int repl_closed(ReplConnection *repl)
+{
+	return repl->conn == NULL;
+}
+
+
+void repl_connection_close(ReplConnection *repl)
+{
+	repl_send(repl, ",q");
 }

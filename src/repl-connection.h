@@ -30,5 +30,7 @@ extern ReplConnection *repl_connection_new(const char *socket,
                                            void (*process_func)(SCM sexp, void *data),
                                            void *data);
 extern int repl_send(ReplConnection *repl, const char *line);
+extern void repl_connection_close(ReplConnection *repl);
+extern int repl_closed(ReplConnection *repl);
 
 #endif /* REPL_CONNECTION_H */

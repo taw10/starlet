@@ -53,6 +53,7 @@ struct fixture_display
 	int n_fixtures;
 	GtkWidget *da;
 	ReplConnection *repl;
+	int shutdown;
 };
 
 
@@ -176,6 +177,13 @@ static void redraw(struct fixture_display *fixd)
 }
 
 
+static void shutdown_sig(GtkWidget *window, struct fixture_display *fixd)
+{
+	repl_connection_close(fixd->repl);
+	fixd->shutdown = TRUE;
+}
+
+
 static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_display *fixd)
 {
 	int claim = 1;
@@ -215,8 +223,19 @@ static gint realise_sig(GtkWidget *da, struct fixture_display *fixd)
 
 static gboolean redraw_cb(gpointer data)
 {
-	redraw((struct fixture_display *)data);
-	return G_SOURCE_CONTINUE;
+	struct fixture_display *fixd = data;
+	if ( !fixd->shutdown ) {
+		redraw(fixd);
+		return G_SOURCE_CONTINUE;
+	} else {
+		if ( repl_closed(fixd->repl) ) {
+			gtk_main_quit();
+			return G_SOURCE_REMOVE;
+		} else {
+			return G_SOURCE_CONTINUE;
+		}
+	}
+
 }
 
 
@@ -346,8 +365,8 @@ int main(int argc, char *argv[])
 	/* Create main window */
 	mainwindow = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size(GTK_WINDOW(mainwindow), 1024, 768);
-	g_signal_connect_swapped(G_OBJECT(mainwindow), "destroy",
-	                         gtk_main_quit, NULL);
+	g_signal_connect(G_OBJECT(mainwindow), "destroy",
+	                 G_CALLBACK(shutdown_sig), &fixd);
 	gtk_window_set_title(GTK_WINDOW(mainwindow), "Starlet fixture display");
 
 	da = gtk_drawing_area_new();
@@ -356,6 +375,7 @@ int main(int argc, char *argv[])
 	fixd.fixtures = NULL;
 	fixd.n_fixtures = 0;
 	fixd.da = da;
+	fixd.shutdown = FALSE;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
