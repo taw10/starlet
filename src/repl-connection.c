@@ -101,7 +101,7 @@ static void process_line(const char *line_orig, ReplConnection *repl)
 	int eq_pos;
 	char *line = strip_crap(line_orig);
 
-	printf("%p: '%s'\n", repl, line);
+	printf("%p recv: '%s'\n", repl, line);
 	eq_pos = find_reply(line);
 	if ( eq_pos == 0 ) {
 		free(line);
@@ -225,6 +225,7 @@ int repl_send(ReplConnection *repl, const char *line)
 {
 	GError *error = NULL;
 	GOutputStream *out = g_io_stream_get_output_stream(G_IO_STREAM(repl->conn));
+	printf("%p send: %s\n", repl, line);
 	if ( g_output_stream_write(out, line, strlen(line), NULL, &error) == -1 ) {
 		fprintf(stderr, "Couldn't send: %s\n", error->message);
 		return 1;
