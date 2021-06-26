@@ -43,6 +43,8 @@
 struct fixture
 {
 	char *label;
+	char *scheme_name;
+	double intensity;
 };
 
 
@@ -66,7 +68,6 @@ static void draw_fixture(cairo_t *cr,
 	PangoLayout *layout;
 	const double w = 40.0;
 	const double h = 3.0/2.0*w;
-	//char tmp[32];
 
 	/* Pan/tilt (underneath rectangle) */
 //	if ( fix->cls->attributes & PANTILT ) {
@@ -111,16 +112,19 @@ static void draw_fixture(cairo_t *cr,
 	g_object_unref(layout);
 
 	/* Intensity */
-	//snprintf(tmp, 32, "%.0f %%", fix->v.intensity*100.0);
-	//layout = pango_layout_new(pc);
-	//pango_layout_set_text(layout, tmp, -1);
-	//pango_layout_set_width(layout, (w*PANGO_SCALE)-4.0);
-	//pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
-	//pango_layout_set_font_description(layout, fontdesc);
-	//cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-	//cairo_move_to(cr, 0.0, 15.0);
-	//pango_cairo_show_layout(cr, layout);
-	//g_object_unref(layout);
+	if ( fix->intensity >= 0.0 ) {
+		char tmp[32];
+		snprintf(tmp, 32, "%.0f %%", fix->intensity);
+		layout = pango_layout_new(pc);
+		pango_layout_set_text(layout, tmp, -1);
+		pango_layout_set_width(layout, (w*PANGO_SCALE)-4.0);
+		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+		pango_layout_set_font_description(layout, fontdesc);
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_move_to(cr, 0.0, 15.0);
+		pango_cairo_show_layout(cr, layout);
+		g_object_unref(layout);
+	}
 }
 
 
@@ -184,6 +188,21 @@ static void shutdown_sig(GtkWidget *window, struct fixture_display *fixd)
 }
 
 
+static void request_intensities(struct fixture_display *fixd)
+{
+	int i;
+
+	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		char tmp[256];
+		snprintf(tmp, 256, "(list 'fixture-intensity (list \"%s\" "
+		                   "(current-value %s 'intensity)))",
+		                   fixd->fixtures[i].label,
+		                   fixd->fixtures[i].scheme_name);
+		repl_send(fixd->repl, tmp);
+	}
+}
+
+
 static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_display *fixd)
 {
 	int claim = 1;
@@ -229,6 +248,7 @@ static gboolean redraw_cb(gpointer data)
 {
 	struct fixture_display *fixd = data;
 	if ( !fixd->shutdown ) {
+		request_intensities(fixd);
 		redraw(fixd);
 		return G_SOURCE_CONTINUE;
 	} else {
@@ -294,11 +314,42 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 			         scm_to_int(idx));
 			fixd->fixtures[i].label = strdup(tmp);
 
+			snprintf(tmp, 63, "(list-ref %s %i)",
+			         scm_to_locale_string(name),
+			         scm_to_int(idx));
+			fixd->fixtures[i].scheme_name = strdup(tmp);
+
 		} else {
 			SCM name = scm_symbol_to_string(item);
 			fixd->fixtures[i].label = scm_to_locale_string(name);
+			fixd->fixtures[i].scheme_name = scm_to_locale_string(name);
+		}
+
+		fixd->fixtures[i].intensity = -1;
+	}
+}
+
+
+static void handle_fixture_intensity(struct fixture_display *fixd, SCM list)
+{
+	char *fixture_name;
+	int i;
+
+	if ( !is_list(list) || (scm_to_int(scm_length(list)) != 2) ) {
+		fprintf(stderr, "Invalid fixture intensity\n");
+		return;
+	}
+
+	fixture_name = scm_to_locale_string(scm_list_ref(list, scm_from_int(0)));
+
+	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		if ( strcmp(fixd->fixtures[i].label, fixture_name) == 0 ) {
+			fixd->fixtures[i].intensity = scm_to_double(scm_list_ref(list, scm_from_int(1)));
+			break;
 		}
 	}
+
+	free(fixture_name);
 }
 
 
@@ -312,6 +363,8 @@ static void process_line(SCM sexp, void *data)
 		if ( scm_is_symbol(tag) ) {
 			if ( symbol_eq(tag, "patched-fixtures") ) {
 				handle_patched_fixtures(fixd, contents);
+			} else if ( symbol_eq(tag, "fixture-intensity") ) {
+				handle_fixture_intensity(fixd, contents);
 			}
 		}
 	}
