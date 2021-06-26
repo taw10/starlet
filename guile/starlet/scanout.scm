@@ -113,23 +113,23 @@
      (define name (patch-many-real (quote name) stuff ...)))))
 
 
-(define (state-has-fix-attr fix attr tnow state)
+(define (state-has-fix-attr fix attr state)
   (let ((val (state-find fix attr state)))
     (if (eq? 'no-value val)
         #f
         (not (eq? 'no-value (value->number val))))))
 
 
-(define (first-val fix attr tnow state-list)
+(define (first-val fix attr state-list)
   (let ((first-state (find (lambda (state)
-                             (state-has-fix-attr fix attr tnow state))
+                             (state-has-fix-attr fix attr state))
                            state-list)))
     (if first-state
         (state-find fix attr first-state)
         'no-value)))
 
 
-(define-method (current-value (fix <fixture>) (attr-name <symbol>) tnow)
+(define-method (current-value (fix <fixture>) (attr-name <symbol>))
   (let  ((programmer-val (state-find fix attr-name programmer-state)))
     (if (eq? 'no-value programmer-val)
 
@@ -149,7 +149,7 @@
                   (atomic-box-ref state-list))
 
             ;; Priority order for everything else
-            (let ((val (first-val fix attr-name tnow (atomic-box-ref state-list))))
+            (let ((val (first-val fix attr-name (atomic-box-ref state-list))))
               (if (eq? 'no-value val)
                   (get-attr-home-val fix attr-name)
                   (value->number val))))
@@ -158,8 +158,8 @@
         (value->number programmer-val))))
 
 
-(define-method (current-value (fix <fixture>) (attr-name <colour-component-id>) tnow)
-  (let ((colour (current-value fix 'colour tnow)))
+(define-method (current-value (fix <fixture>) (attr-name <colour-component-id>))
+  (let ((colour (current-value fix 'colour)))
     (extract-colour-component colour attr-name)))
 
 
@@ -246,7 +246,7 @@
           ;; Helper function to get a value for this
           ;; fixture in the current state
           (define (get-attr attr-name)
-            (current-value fix attr-name (hirestime)))
+            (current-value fix attr-name))
 
           ;; Helper function to set 8-bit DMX value
           (define (set-chan relative-channel-number value)
