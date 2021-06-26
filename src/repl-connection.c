@@ -75,40 +75,14 @@ static char *strip_crap(const char *line_orig)
 }
 
 
-static int find_reply(const char *line)
-{
-	const char *eq;
-	size_t eq_pos;
-	int i;
-
-	if ( line[0] != '$' ) return 0;
-
-	eq = strstr(line, " = ");
-	if ( eq == NULL ) return 0;
-	eq_pos = eq - line;
-
-	for ( i=1; i<eq_pos; i++ ) {
-		if ( !isdigit(line[i]) ) return 0;
-	}
-
-	return eq_pos+3;
-}
-
-
 static void process_line(const char *line_orig, ReplConnection *repl)
 {
 	SCM port, str, sexp;
-	int eq_pos;
 	char *line = strip_crap(line_orig);
 
 	printf("%p recv: '%s'\n", repl, line);
-	eq_pos = find_reply(line);
-	if ( eq_pos == 0 ) {
-		free(line);
-		return;
-	}
 
-	str = scm_from_utf8_string(line+eq_pos);
+	str = scm_from_utf8_string(line);
 	port = scm_open_input_string(str);
 	sexp = scm_read(port);
 
@@ -213,6 +187,15 @@ ReplConnection *repl_connection_new(const char *socket,
 	repl->process_func = process_func;
 	repl->process_func_data = data;
 
+	repl_send(repl, "(let loop ()"
+	                "  (let ((line (read)))"
+	                "    (unless (eq? line 'exit)"
+	                "      (let ((res (eval line (interaction-environment))))"
+	                "        (unless (unspecified? res)"
+	                "          (write res)"
+	                "          (newline)))"
+	                "      (loop))))");
+
 	g_input_stream_read_async(g_io_stream_get_input_stream(G_IO_STREAM(repl->conn)),
 	                          repl->inbuf, 1023, G_PRIORITY_DEFAULT, NULL,
 	                          input_ready, repl);
@@ -246,5 +229,6 @@ int repl_closed(ReplConnection *repl)
 
 void repl_connection_close(ReplConnection *repl)
 {
+	repl_send(repl, "exit");
 	repl_send(repl, ",q");
 }
