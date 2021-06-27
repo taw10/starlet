@@ -49,6 +49,7 @@
             blackout!
             sel
             selection-hook
+            get-selection
             value->number
             atomically-overlay-state!
             update-state!))
@@ -354,6 +355,9 @@ pre-existing contents."
 (define selection-hook (make-hook 1))
 
 (define selection '())
+
+(define (get-selection)
+  selection)
 
 
 (define (sel . fixture-list)

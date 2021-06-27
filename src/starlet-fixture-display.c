@@ -45,6 +45,7 @@ struct fixture
 	char *label;
 	char *scheme_name;
 	double intensity;
+	int selected;
 };
 
 
@@ -90,11 +91,11 @@ static void draw_fixture(cairo_t *cr,
 //	}
 
 	cairo_rectangle(cr, 0.0, 0.0, w, h);
-	//if ( fixture_selected(fixd, fix) ) {
-	//	cairo_set_source_rgba(cr, 0.3, 0.3, 0.9, 0.9);
-	//} else {
+	if ( fix->selected ) {
+		cairo_set_source_rgba(cr, 0.3, 0.3, 0.9, 0.9);
+	} else {
 		cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.9);
-	//}
+	}
 	cairo_fill_preserve(cr);
 	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
 	cairo_set_line_width(cr, 1.0);
@@ -203,6 +204,12 @@ static void request_intensities(struct fixture_display *fixd)
 }
 
 
+static void request_selection(struct fixture_display *fixd)
+{
+	repl_send(fixd->repl, "(list 'selection (map get-fixture-name (get-selection)))");
+}
+
+
 static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_display *fixd)
 {
 	int claim = 1;
@@ -249,6 +256,7 @@ static gboolean redraw_cb(gpointer data)
 	struct fixture_display *fixd = data;
 	if ( !fixd->shutdown ) {
 		request_intensities(fixd);
+		request_selection(fixd);
 		redraw(fixd);
 		return G_SOURCE_CONTINUE;
 	} else {
@@ -260,6 +268,19 @@ static gboolean redraw_cb(gpointer data)
 		}
 	}
 
+}
+
+
+static struct fixture *find_fixture(struct fixture_display *fixd,
+                                    const char *name)
+{
+	int i;
+	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		if ( strcmp(fixd->fixtures[i].label, name) == 0 ) {
+			return &fixd->fixtures[i];
+		}
+	}
+	return NULL;
 }
 
 
@@ -281,6 +302,17 @@ static int is_list(SCM list)
 static int symbol_eq(SCM symbol, const char *val)
 {
 	return scm_is_true(scm_eq_p(symbol, scm_from_utf8_symbol(val)));
+}
+
+
+static char *symbol_to_str(SCM symbol)
+{
+	if ( scm_is_symbol(symbol) ) {
+		SCM str = scm_symbol_to_string(symbol);
+		return scm_to_locale_string(str);
+	} else {
+		return NULL;
+	}
 }
 
 
@@ -326,6 +358,7 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 		}
 
 		fixd->fixtures[i].intensity = -1;
+		fixd->fixtures[i].selected = 0;
 	}
 }
 
@@ -333,7 +366,7 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 static void handle_fixture_intensity(struct fixture_display *fixd, SCM list)
 {
 	char *fixture_name;
-	int i;
+	struct fixture *fix;
 
 	if ( !is_list(list) || (scm_to_int(scm_length(list)) != 2) ) {
 		fprintf(stderr, "Invalid fixture intensity\n");
@@ -342,14 +375,50 @@ static void handle_fixture_intensity(struct fixture_display *fixd, SCM list)
 
 	fixture_name = scm_to_locale_string(scm_list_ref(list, scm_from_int(0)));
 
-	for ( i=0; i<fixd->n_fixtures; i++ ) {
-		if ( strcmp(fixd->fixtures[i].label, fixture_name) == 0 ) {
-			fixd->fixtures[i].intensity = scm_to_double(scm_list_ref(list, scm_from_int(1)));
-			break;
-		}
+	fix = find_fixture(fixd, fixture_name);
+	if ( fix != NULL ) {
+		fix->intensity = scm_to_double(scm_list_ref(list, scm_from_int(1)));
+	} else {
+		fprintf(stderr, "Unrecognised fixture '%s' (intensity)\n",
+		        fixture_name);
 	}
 
 	free(fixture_name);
+}
+
+
+static void handle_selection(struct fixture_display *fixd, SCM list)
+{
+	int i;
+	int nfix;
+
+	if ( !is_list(list) ) {
+		fprintf(stderr, "Invalid selection list\n");
+		return;
+	}
+
+	nfix = scm_to_int(scm_length(list));
+
+	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		fixd->fixtures[i].selected = 0;
+	}
+
+	for ( i=0; i<nfix; i++ ) {
+		SCM item = scm_list_ref(list, scm_from_int(i));
+		char *name_str = symbol_to_str(item);
+		if ( name_str != NULL ) {
+			struct fixture *fix = find_fixture(fixd, name_str);
+			if ( fix != NULL ) {
+				fix->selected = 1;
+			} else {
+				fprintf(stderr, "Fixture '%s' not found (selection)\n",
+				        name_str);
+			}
+			free(name_str);
+		} else {
+			fprintf(stderr, "Unrecognised symbol in selection list\n");
+		}
+	}
 }
 
 
@@ -365,6 +434,8 @@ static void process_line(SCM sexp, void *data)
 				handle_patched_fixtures(fixd, contents);
 			} else if ( symbol_eq(tag, "fixture-intensity") ) {
 				handle_fixture_intensity(fixd, contents);
+			} else if ( symbol_eq(tag, "selection") ) {
+				handle_selection(fixd, contents);
 			}
 		}
 	}
