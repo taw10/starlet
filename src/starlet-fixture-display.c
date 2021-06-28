@@ -316,6 +316,18 @@ static char *symbol_to_str(SCM symbol)
 }
 
 
+static char *group_fixture_name(SCM item)
+{
+	char tmp[64];
+	SCM group_name = scm_list_ref(item, scm_from_int(1));
+	SCM idx = scm_list_ref(item, scm_from_int(2));
+	SCM name = scm_symbol_to_string(group_name);
+	snprintf(tmp, 63, "%s/%i", scm_to_locale_string(name),
+	                           scm_to_int(idx));
+	return strdup(tmp);
+}
+
+
 static void handle_patched_fixtures(struct fixture_display *fixd,
                                     SCM list)
 {
@@ -338,18 +350,16 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 		if ( is_list(item) && (scm_to_int(scm_length(item)) == 3) ) {
 
 			char tmp[64];
-			SCM group_name = scm_list_ref(item, scm_from_int(1));
 			SCM idx = scm_list_ref(item, scm_from_int(2));
+			SCM group_name = scm_list_ref(item, scm_from_int(1));
 			SCM name = scm_symbol_to_string(group_name);
-			snprintf(tmp, 63, "%s/%i",
-			         scm_to_locale_string(name),
-			         scm_to_int(idx));
-			fixd->fixtures[i].label = strdup(tmp);
 
 			snprintf(tmp, 63, "(list-ref %s %i)",
 			         scm_to_locale_string(name),
 			         scm_to_int(idx));
 			fixd->fixtures[i].scheme_name = strdup(tmp);
+
+			fixd->fixtures[i].label = group_fixture_name(item);
 
 		} else {
 			SCM name = scm_symbol_to_string(item);
@@ -405,7 +415,16 @@ static void handle_selection(struct fixture_display *fixd, SCM list)
 
 	for ( i=0; i<nfix; i++ ) {
 		SCM item = scm_list_ref(list, scm_from_int(i));
-		char *name_str = symbol_to_str(item);
+		char *name_str;
+		if ( scm_is_symbol(item) ) {
+			name_str = symbol_to_str(item);
+		} else if ( is_list(item) ) {
+			name_str = group_fixture_name(item);
+		} else {
+			fprintf(stderr, "Unrecognised type in selection list\n");
+			name_str = NULL;
+		}
+
 		if ( name_str != NULL ) {
 			struct fixture *fix = find_fixture(fixd, name_str);
 			if ( fix != NULL ) {
@@ -415,8 +434,6 @@ static void handle_selection(struct fixture_display *fixd, SCM list)
 				        name_str);
 			}
 			free(name_str);
-		} else {
-			fprintf(stderr, "Unrecognised symbol in selection list\n");
 		}
 	}
 }
