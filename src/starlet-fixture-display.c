@@ -287,8 +287,9 @@ static struct fixture *find_fixture(struct fixture_display *fixd,
 static void show_help(const char *s)
 {
 	printf(_("Syntax: %s [options]\n\n"), s);
-	printf(_("Show fixtures in Starlet"
+	printf(_("Show fixtures in Starlet\n"
 	         "  -s, --socket  REPL socket for Starlet process (default guile.socket).\n"
+	         "  -v, --verbose Show all REPL communications.\n"
 	         "  -h, --help    Display this help message.\n"));
 }
 
@@ -466,16 +467,18 @@ int main(int argc, char *argv[])
 	GtkWidget *mainwindow;
 	GtkWidget *da;
 	char *socket = NULL;
+	int verbose = 0;
 
 	gtk_init(&argc, &argv);
 
 	const struct option longopts[] = {
 		{"help",               0, NULL,               'h'},
 		{"socket",             1, NULL,               's'},
+		{"verbose",            0, NULL,               'v'},
 		{0, 0, NULL, 0}
 	};
 
-	while ((c = getopt_long(argc, argv, "h", longopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "hvs:", longopts, NULL)) != -1) {
 
 		switch (c)
 		{
@@ -485,6 +488,10 @@ int main(int argc, char *argv[])
 
 			case 's' :
 			socket = strdup(optarg);
+			break;
+
+			case 'v' :
+			verbose = 1;
 			break;
 
 			case 0 :
@@ -535,7 +542,7 @@ int main(int argc, char *argv[])
 
 	g_timeout_add(50, redraw_cb, &fixd);
 
-	fixd.repl = repl_connection_new(socket, process_line, &fixd);
+	fixd.repl = repl_connection_new(socket, process_line, &fixd, verbose);
 	repl_send(fixd.repl, "(list 'patched-fixtures (patched-fixture-names))");
 
 	gtk_main();

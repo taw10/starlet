@@ -42,6 +42,7 @@ struct _replconnection
 	char input[2048];
 	void (*process_func)(SCM sexp, void *data);
 	void *process_func_data;
+	int verbose;
 };
 
 
@@ -80,7 +81,9 @@ static void process_line(const char *line_orig, ReplConnection *repl)
 	SCM port, str, sexp;
 	char *line = strip_crap(line_orig);
 
-	printf("%p recv: '%s'\n", repl, line);
+	if ( repl->verbose ) {
+		printf("%p recv: '%s'\n", repl, line);
+	}
 
 	str = scm_from_utf8_string(line);
 	port = scm_open_input_string(str);
@@ -160,7 +163,8 @@ static void input_ready(GObject *source, GAsyncResult *res, gpointer vp)
 
 ReplConnection *repl_connection_new(const char *socket,
                                     void (*process_func)(SCM sexp, void *data),
-                                    void *data)
+                                    void *data,
+                                    int verbose)
 {
 	ReplConnection *repl;
 	GSocketClient *client;
@@ -186,6 +190,7 @@ ReplConnection *repl_connection_new(const char *socket,
 
 	repl->process_func = process_func;
 	repl->process_func_data = data;
+	repl->verbose = verbose;
 
 	repl_send(repl, "(let loop ()"
 	                "  (let ((line (read)))"
@@ -208,7 +213,9 @@ int repl_send(ReplConnection *repl, const char *line)
 {
 	GError *error = NULL;
 	GOutputStream *out = g_io_stream_get_output_stream(G_IO_STREAM(repl->conn));
-	printf("%p send: %s\n", repl, line);
+	if ( repl->verbose ) {
+		printf("%p send: %s\n", repl, line);
+	}
 	if ( g_output_stream_write(out, line, strlen(line), NULL, &error) == -1 ) {
 		fprintf(stderr, "Couldn't send: %s\n", error->message);
 		return 1;
