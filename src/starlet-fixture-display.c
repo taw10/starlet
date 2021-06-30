@@ -323,7 +323,7 @@ static char *group_fixture_name(SCM item)
 	SCM group_name = scm_list_ref(item, scm_from_int(1));
 	SCM idx = scm_list_ref(item, scm_from_int(2));
 	SCM name = scm_symbol_to_string(group_name);
-	snprintf(tmp, 63, "%s/%i", scm_to_locale_string(name),
+	snprintf(tmp, 63, "%s.%i", scm_to_locale_string(name),
 	                           scm_to_int(idx));
 	return strdup(tmp);
 }
