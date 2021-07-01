@@ -540,6 +540,8 @@ int main(int argc, char *argv[])
 	g_timeout_add(50, redraw_cb, &fixd);
 
 	fixd.repl = repl_connection_new(socket, process_line, &fixd, verbose);
+	if ( fixd.repl == NULL ) return 1;
+
 	repl_send(fixd.repl, "(list 'patched-fixtures (patched-fixture-names))");
 
 	gtk_main();
