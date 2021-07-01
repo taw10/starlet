@@ -212,10 +212,18 @@ ReplConnection *repl_connection_new(const char *socket,
 int repl_send(ReplConnection *repl, const char *line)
 {
 	GError *error = NULL;
-	GOutputStream *out = g_io_stream_get_output_stream(G_IO_STREAM(repl->conn));
+	GOutputStream *out;
+
+	if ( repl->conn == NULL ) {
+		fprintf(stderr, "No REPL to send to!\n");
+		return 1;
+	}
+
 	if ( repl->verbose ) {
 		printf("%p send: %s\n", repl, line);
 	}
+
+	out = g_io_stream_get_output_stream(G_IO_STREAM(repl->conn));
 	if ( g_output_stream_write(out, line, strlen(line), NULL, &error) == -1 ) {
 		fprintf(stderr, "Couldn't send: %s\n", error->message);
 		return 1;

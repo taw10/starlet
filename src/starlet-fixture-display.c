@@ -254,20 +254,17 @@ static gint realise_sig(GtkWidget *da, struct fixture_display *fixd)
 static gboolean redraw_cb(gpointer data)
 {
 	struct fixture_display *fixd = data;
-	if ( !fixd->shutdown ) {
-		request_intensities(fixd);
-		request_selection(fixd);
-		redraw(fixd);
-		return G_SOURCE_CONTINUE;
+	if ( repl_closed(fixd->repl) ) {
+		gtk_main_quit();
+		return G_SOURCE_REMOVE;
 	} else {
-		if ( repl_closed(fixd->repl) ) {
-			gtk_main_quit();
-			return G_SOURCE_REMOVE;
-		} else {
-			return G_SOURCE_CONTINUE;
+		if ( !fixd->shutdown ) {
+			request_intensities(fixd);
+			request_selection(fixd);
+			redraw(fixd);
 		}
+		return G_SOURCE_CONTINUE;
 	}
-
 }
 
 
