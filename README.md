@@ -39,7 +39,7 @@ With Starlet, a cue list looks like this:
 Creating a playback object and running a cue list looks like this:
 
 ```
-(define pb (make-playback my-cue-list))
+(define pb (make-playback #:cue-list my-cue-list))
 
 (cut-to-cue-number! pb 1)
 (go! pb)

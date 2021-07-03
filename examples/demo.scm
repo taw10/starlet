@@ -241,7 +241,8 @@
 
 
 (define pb
-  (make-playback my-cue-list))
+  (make-playback
+    #:cue-list my-cue-list))
 
 (cut-to-cue-number! pb 0)
 

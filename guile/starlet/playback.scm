@@ -44,7 +44,7 @@
             stop!
             back!
             cue-list
-            set-playback-cue-list!
+            reload-cue-list!
             print-playback
             state-change-hook))
 
@@ -56,6 +56,11 @@
     #:init-keyword #:cue-list
     #:getter get-playback-cue-list
     #:setter set-playback-cue-list!)
+
+  (cue-list-file
+    #:init-keyword #:cue-list-file
+    #:getter get-playback-cue-list-file
+    #:setter set-playback-cue-list-file!)
 
   (next-cue-index
     #:init-value 0
@@ -135,9 +140,43 @@
   (/ (inexact->exact (* a 1000)) 1000))
 
 
-(define (make-playback cue-list)
+(define (read-cue-list-file filename)
+  (call-with-input-file
+    filename
+    (lambda (port)
+      (eval (read port) (interaction-environment)))))
+
+
+(define (reload-cue-list! pb)
+  (let ((filename (get-playback-cue-list-file pb)))
+    (if filename
+
+      (let ((new-cue-list (read-cue-list-file filename))
+            (current-cue-number (get-playback-cue-number pb)))
+        (set-playback-cue-list! pb new-cue-list)
+        (let ((new-current-cue-index (cue-number-to-index
+                                       new-cue-list
+                                       current-cue-number)))
+          (if new-current-cue-index
+            (set-next-cue-index! pb (+ new-current-cue-index 1))
+            (begin
+              (display "Current cue no longer exists!\n")
+              (display "Use run-cue-number! or cut-to-cue-number! to resume.\n")
+              (set-next-cue-index! pb #f))))
+
+        'cue-list-reloaded)
+
+      'playback-without-cue-list-file)))
+
+
+(define* (make-playback #:key
+                        (cue-list-file #f)
+                        (cue-list #f))
   (let ((new-playback (make <starlet-playback>
-                        #:cue-list cue-list)))
+                            #:cue-list (if cue-list-file
+                                         (read-cue-list-file cue-list-file)
+                                         cue-list)
+                            #:cue-list-file cue-list-file)))
     (register-state! new-playback)
     new-playback))
 
@@ -219,18 +258,22 @@
     (if (and clock
              (clock-stopped? clock))
 
-        ;; Restart paused cue
-        (begin (start-clock! clock)
-               (set-playback-state! pb 'running))
+      ;; Restart paused cue
+      (begin (start-clock! clock)
+             (set-playback-state! pb 'running))
 
-        ;; Run next cue
+      ;; Run next cue
+      (if (get-next-cue-index pb)
+
         (let ((next-cue-index (get-next-cue-index pb)))
           (if (< next-cue-index (vector-length (get-playback-cue-list pb)))
-              (begin
-                (run-cue-index! pb next-cue-index)
-                (set-next-cue-index! pb (+ next-cue-index 1))
-                *unspecified*)
-              'no-more-cues-in-list)))))
+            (begin
+              (run-cue-index! pb next-cue-index)
+              (set-next-cue-index! pb (+ next-cue-index 1))
+              *unspecified*)
+            'no-more-cues-in-list))
+
+        'next-cue-unspecified))))
 
 
 (define (cut! pb)
@@ -246,11 +289,13 @@
 
 
 (define (back! pb)
-  (let ((prev-cue-index (- (get-next-cue-index pb) 2)))
-    (if (>= prev-cue-index 0)
+  (if (get-next-cue-index pb)
+    (let ((prev-cue-index (- (get-next-cue-index pb) 2)))
+      (if (>= prev-cue-index 0)
         (begin (cut-to-cue-index! pb prev-cue-index)
                (set-playback-state! pb 'ready))
-        'already-at-cue-zero)))
+        'already-at-cue-zero))
+    'next-cue-unspecified))
 
 
 (define (snap-fade start-val
@@ -548,14 +593,16 @@
 (define (print-playback pb)
   (format #t "Playback ~a:\n" pb)
   ;;(format #t "        Cue list ~a\n" (get-playback-cue-list pb))
-  (if (< (get-next-cue-index pb)
-         (vector-length (get-playback-cue-list pb)))
+  (if (get-next-cue-index pb)
+    (if (< (get-next-cue-index pb)
+           (vector-length (get-playback-cue-list pb)))
       (let ((the-cue (vector-ref (get-playback-cue-list pb)
                                  (get-next-cue-index pb))))
         (format #t "  Next cue index ~a (~a)\n"
                 (get-next-cue-index pb)
                 the-cue))
       (format #t "  End of cue list.\n"))
+    (format #t "  Next cue index is unspecified.\n"))
   *unspecified*)
 
 
