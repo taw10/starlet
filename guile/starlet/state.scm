@@ -52,7 +52,8 @@
             get-selection
             value->number
             atomically-overlay-state!
-            update-state!))
+            update-state!
+            add-update-hook!))
 
 
 ;; A "state" is an atomically-updating container for an immutable
@@ -63,11 +64,19 @@
 (define-class <starlet-state> (<object>)
   (hash-table-box
     #:init-form (make-atomic-box (make-hash-table))
-    #:getter get-ht-box))
+    #:getter get-ht-box)
+  (update-hook
+    #:init-form (make-hook 4)
+    #:getter get-update-hook))
 
 
 ;; The state used to build a new scene for recording
 (define programmer-state (make <starlet-state>))
+
+
+(define (add-update-hook! state proc)
+  (add-hook! (get-update-hook state)
+             proc))
 
 
 (define (find-colour state fix)
@@ -93,7 +102,8 @@
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
                               (attr <colour-component-id>)
-                              new-val)
+                              new-val
+                              source)
   (let ((current-colour (find-colour state fix))
         (colour-component (get-colour-component attr)))
 
@@ -104,48 +114,55 @@
          (set-in-state! state fix 'colour
                         (make-colour-cmy new-val
                                          (magenta orig-colour)
-                                         (yellow orig-colour)))))
+                                         (yellow orig-colour))
+                        source)))
 
       ((eq? colour-component 'magenta)
        (let ((orig-colour (colour-as-cmy current-colour)))
          (set-in-state! state fix 'colour
                         (make-colour-cmy (cyan orig-colour)
                                          new-val
-                                         (yellow orig-colour)))))
+                                         (yellow orig-colour))
+                        source)))
 
       ((eq? colour-component 'yellow)
        (let ((orig-colour (colour-as-cmy current-colour)))
          (set-in-state! state fix 'colour
                         (make-colour-cmy (cyan orig-colour)
                                          (magenta orig-colour)
-                                         new-val))))
+                                         new-val)
+                        source)))
 
       ((eq? colour-component 'red)
        (let ((orig-colour (colour-as-rgb current-colour)))
          (set-in-state! state fix 'colour
                         (make-colour-rgb new-val
                                          (green orig-colour)
-                                         (blue orig-colour)))))
+                                         (blue orig-colour))
+                        source)))
 
       ((eq? colour-component 'green)
        (let ((orig-colour (colour-as-rgb current-colour)))
          (set-in-state! state fix 'colour
                         (make-colour-rgb (red orig-colour)
                                          new-val
-                                         (blue orig-colour)))))
+                                         (blue orig-colour))
+                        source)))
 
       ((eq? colour-component 'blue)
        (let ((orig-colour (colour-as-rgb current-colour)))
          (set-in-state! state fix 'colour
                         (make-colour-rgb (red orig-colour)
                                          (green orig-colour)
-                                         new-val)))))))
+                                         new-val)
+                        source))))))
 
 
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
                               (attr <symbol>)
-                              value)
+                              value
+                              source)
   (let* ((old-ht (atomic-box-ref (get-ht-box state)))
          (new-ht (copy-hash-table old-ht)))
     (hash-set! new-ht
@@ -156,7 +173,27 @@
                    old-ht
                    new-ht)
                  old-ht)
-      (set-in-state! state fix attr))))  ;; Try again
+      (set-in-state! state fix attr))  ;; Try again
+
+    (run-hook (get-update-hook state)
+              fix
+              attr
+              value
+              source)))
+
+
+(define-method (set-in-state! (state <starlet-state>)
+                              (fix <fixture>)
+                              (attr <symbol>)
+                              value)
+  (set-in-state! state fix attr value #f))
+
+
+(define-method (set-in-state! (state <starlet-state>)
+                              (fix <fixture>)
+                              (attr <colour-component-id>)
+                              new-val)
+  (set-in-state! state fix attr new-val #f))
 
 
 ;; Set any intensity attributes in the current state to zero

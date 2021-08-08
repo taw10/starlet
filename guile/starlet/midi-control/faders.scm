@@ -128,7 +128,8 @@
                                                   attr
                                                   (clamp-to-attr-range
                                                     attr-obj
-                                                    (+ old-val offset))))))
+                                                    (+ old-val offset))
+                                                  controller))))
                              fixtures old-vals)))))))
 
 
@@ -177,13 +178,15 @@
                      attr-name
                      gradients
                      initial-vals
-                     fixtures)
+                     fixtures
+                     controller)
   (for-each (lambda (fix initial-val gradient)
               (set-in-state! programmer-state
                              fix
                              attr-name
                              (+ initial-val
-                                (* gradient cc-offset))))
+                                (* gradient cc-offset))
+                             controller))
             fixtures
             initial-vals
             gradients))
@@ -225,13 +228,15 @@
                                        attr-name
                                        up-gradients
                                        initial-vals
-                                       fixtures))
+                                       fixtures
+                                       controller))
                          ((<= new-cc-value congruent-val)
                           (apply-fader (- new-cc-value congruent-val)
                                        attr-name
                                        dn-gradients
                                        initial-vals
-                                       fixtures)))
+                                       fixtures
+                                       controller)))
 
                        (when (or (and (not prev-cc-val)
                                       (= new-cc-value congruent-val))
