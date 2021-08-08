@@ -15,8 +15,7 @@
   (starlet midi-control faders))
 
 ;; Start MIDI control
-(start-midi-control "/dev/snd/midiC1D0"
-            #:channel 14)
+(define controller (make-midi-controller "/dev/snd/midiC0D0" 14))
 
 ;; Fixtures are normal GOOPS objects, fixture types are GOOPS classes
 (patch-fixture! led <generic-rgb> 1 #:universe 4)
@@ -70,7 +69,22 @@
 
 
 ;; Put a lighting state on a MIDI fader
-(state-on-fader 19 my-state)
+(state-on-fader controller 19 my-state)
+
+
+(use-midi-control-map
+  controller
+  (list
+    (list 'intensity                     'fader    16 '(108 72))
+    (list 'pan                           'jogwheel 0  124)
+    (list 'tilt                          'jogwheel 1  125)
+    (list (colour-component-id 'cyan)    'fader    4  '(120 84))
+    (list (colour-component-id 'magenta) 'fader    5  '(121 85))
+    (list (colour-component-id 'yellow)  'fader    6  '(122 86))
+    (list 'cto                           'fader    7  '(123 87))
+    (list 'iris                          'fader    8  '(116 80))
+    (list 'zoom                          'fader    9  '(117 81))
+    (list 'focus                         'fader    10 '(118 82))))
 
 
 (define pb
@@ -79,37 +93,37 @@
 
 
 ;; Set up MIDI controller buttons to run cues
-(make-go-button pb 12
+(make-go-button controller pb 12
                 #:ready-note 20
                 #:pause-note 16)
-(make-stop-button pb 24
+(make-stop-button controller pb 24
                   #:ready-note 24)
-(make-back-button pb 28
+(make-back-button controller pb 28
                   #:ready-note 28)
 
 ;; A second set of go/stop buttons, because this works well on my controller
-(make-go-button pb 15
+(make-go-button controller pb 15
                 #:ready-note 23
                 #:pause-note 19)
-(make-stop-button pb 27
+(make-stop-button controller pb 27
                   #:ready-note 27)
-(make-back-button pb 31
+(make-back-button controller pb 31
                   #:ready-note 31)
 
 
 ;; Set up some buttons for quick access to fixtures
-(select-on-button 32 ltruss
+(select-on-button controller 32 ltruss
                   #:ready-note 68)
-(select-on-button 33 rtruss
+(select-on-button controller 33 rtruss
                   #:ready-note 69)
-(select-on-button 34 foh
+(select-on-button controller 34 foh
                   #:ready-note 70)
-(select-on-button 35 floor
+(select-on-button controller 35 floor
                   #:ready-note 71)
 
 
 ;; Red button de-selects everything
-(select-on-button 26 #f
+(select-on-button controller 26 #f
                   #:ready-note 26)
 
 (cut-to-cue-number! pb 0)

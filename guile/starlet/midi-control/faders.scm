@@ -26,27 +26,21 @@
   #:use-module (starlet scanout)
   #:use-module (starlet utils)
   #:use-module (srfi srfi-1)
-  #:export (state-on-fader))
+  #:export (use-midi-control-map
+             state-on-fader))
 
 
-(define (channel-number->string channel)
-  (if channel
-      (number->string channel)
-      "default"))
+(define (name-for-fader-state controller cc-number)
+  (call-with-output-string
+    (lambda (port)
+      (format port "faderstate-~a-cc~a"
+              controller
+              cc-number))))
 
 
-(define (name-for-fader-state channel cc-number)
-  (string->symbol
-    (string-append
-      "faderstate-ch"
-      (channel-number->string channel)
-      "-cc"
-      (number->string cc-number))))
-
-
-(define* (state-on-fader cc-number
-                         state
-                         #:key (channel #f))
+(define* (state-on-fader controller
+                         cc-number
+                         state)
   (register-state!
     (lighting-state
       (state-for-each
@@ -54,7 +48,7 @@
           (at fix attr
               (lambda ()
 
-                (let ((cc-val (get-cc-value cc-number #:channel channel)))
+                (let ((cc-val (get-cc-value controller cc-number)))
 
                   ;; Fader position known?
                   (if cc-val
@@ -74,7 +68,7 @@
                       'no-value)))))
 
         state))
-    #:unique-name (name-for-fader-state channel cc-number)))
+    #:unique-name (name-for-fader-state controller cc-number)))
 
 
 (define (current-values fixture-list attr-name)
@@ -101,7 +95,10 @@
               val))))
 
 
-(define* (at-midi-jogwheel fixture-list attr cc-number
+(define* (at-midi-jogwheel controller
+                           fixture-list
+                           attr
+                           cc-number
                            #:key (led #f))
 
   (define (ccval->offset a)
@@ -113,11 +110,12 @@
     (unless (null? fixtures)
 
       (when led
-        (send-note-on led))
+        (send-note-on controller led))
 
       (let ((old-vals (current-values fixtures attr))
             (offset 0))
         (register-midi-cc-callback!
+          controller
           #:cc-number cc-number
           #:func (lambda (prev-cc-val new-cc-value)
                    (set! offset (+ offset (ccval->offset new-cc-value)))
@@ -191,7 +189,8 @@
             gradients))
 
 
-(define* (at-midi-fader fixture-list
+(define* (at-midi-fader controller
+                        fixture-list
                         attr-name
                         cc-number
                         #:key
@@ -206,14 +205,15 @@
              (congruent-val (fader-congruent initial-vals attrs))
              (up-gradients (fader-up-gradients initial-vals attrs congruent-val))
              (dn-gradients (fader-down-gradients initial-vals attrs congruent-val))
-             (cc-val (get-cc-value cc-number))
+             (cc-val (get-cc-value controller cc-number))
              (congruent (and cc-val (= cc-val congruent-val))))
 
         (if congruent
-            (send-note-on led)
-            (send-note-on led-incongruent))
+            (send-note-on controller led)
+            (send-note-on controller led-incongruent))
 
         (register-midi-cc-callback!
+          controller
           #:cc-number cc-number
           #:func (lambda (prev-cc-val new-cc-value)
 
@@ -240,65 +240,55 @@
                                                 prev-cc-val
                                                 new-cc-value)))
                          (set! congruent #t)
-                         (send-note-on led)))))))))
+                         (send-note-on controller led)))))))))
 
 
-(define control-map
-  (list
-    (list 'intensity                     'fader    16 '(108 72))
-    (list 'pan                           'jogwheel 0  124)
-    (list 'tilt                          'jogwheel 1  125)
-    (list (colour-component-id 'cyan)    'fader    4  '(120 84))
-    (list (colour-component-id 'magenta) 'fader    5  '(121 85))
-    (list (colour-component-id 'yellow)  'fader    6  '(122 86))
-    (list 'cto                           'fader    7  '(123 87))
-    (list 'iris                          'fader    8  '(116 80))
-    (list 'zoom                          'fader    9  '(117 81))
-    (list 'focus                         'fader    10 '(118 82))))
-
-
-(define (midi-control-attr control-spec fixture-list)
+(define (midi-control-attr controller control-spec fixture-list)
   (cond
 
    ((eq? 'jogwheel (cadr control-spec))
-    (at-midi-jogwheel fixture-list
+    (at-midi-jogwheel controller
+                      fixture-list
                       (car control-spec)
                       (caddr control-spec)
                       #:led (cadddr control-spec)))
 
    ((eq? 'fader (cadr control-spec))
-    (at-midi-fader fixture-list
+    (at-midi-fader controller
+                   fixture-list
                    (car control-spec)
                    (caddr control-spec)
                    #:led (car (cadddr control-spec))
                    #:led-incongruent (cadr (cadddr control-spec))))))
 
 
-;; Stuff to clear up when we're done with selected fixtures
-(define midi-callbacks '())
+(define (led-off controller leds)
+  (cond
+    ((list? leds)
+     (for-each (lambda (note)
+                 (send-note-off controller note))
+               leds))
+    ((number? leds)
+     (send-note-off controller leds))))
 
 
-(define (select-midi fixture-list)
+(define (use-midi-control-map controller control-map)
+  (let ((midi-callbacks '()))
+    (add-hook! selection-hook
+               (lambda (fixture-list)
 
-  (define (led-off leds)
-    (cond
-      ((list? leds)
-       (for-each send-note-off leds))
-      ((number? leds)
-       (send-note-off leds))))
+                 (for-each (lambda (callback)
+                             (remove-midi-callback! controller callback))
+                           midi-callbacks)
 
-  (for-each remove-midi-callback! midi-callbacks)
+                 (for-each (lambda (control-spec)
+                             (led-off controller (cadddr control-spec)))
+                           control-map)
 
-  (for-each (lambda (control-spec)
-              (led-off (cadddr control-spec)))
-            control-map)
+                 (set! midi-callbacks '())
 
-  (set! midi-callbacks '())
-
-  (unless (nil? fixture-list)
-    (set! midi-callbacks
-      (map (partial midi-control-attr fixture-list)
-           control-map))))
-
-
-(add-hook! selection-hook select-midi)
+                 (unless (nil? fixture-list)
+                   (set! midi-callbacks
+                     (map (lambda (control-spec)
+                            (midi-control-attr controller control-spec fixture-list))
+                          control-map)))))))

@@ -28,13 +28,12 @@
             select-on-button))
 
 
-(define* (make-go-button pb button
+(define* (make-go-button controller pb button
                          #:key
-                         (channel #f)
                          (ready-note #f)
                          (pause-note #f))
   (register-midi-note-callback!
-    #:channel channel
+    controller
     #:note-number button
     #:func (lambda () (go! pb)))
 
@@ -44,21 +43,20 @@
       (lambda (new-state)
         (cond
           ((eq? new-state 'pause)
-           (send-note-on pause-note))
+           (send-note-on controller pause-note))
           ((eq? new-state 'ready)
-           (send-note-on ready-note))
+           (send-note-on controller ready-note))
           ((eq? new-state 'running)
-           (send-note-on ready-note))
+           (send-note-on controller ready-note))
           (else
-            (send-note-off ready-note)))))))
+            (send-note-off controller ready-note)))))))
 
 
-(define* (make-stop-button pb button
+(define* (make-stop-button controller pb button
                            #:key
-                           (channel #f)
                            (ready-note #f))
   (register-midi-note-callback!
-    #:channel channel
+    controller
     #:note-number button
     #:func (lambda () (stop! pb)))
 
@@ -67,31 +65,29 @@
       (state-change-hook pb)
       (lambda (new-state)
         (if (eq? new-state 'running)
-            (send-note-on ready-note)
-            (send-note-off ready-note))))))
+            (send-note-on controller ready-note)
+            (send-note-off controller ready-note))))))
 
 
-(define* (make-back-button pb button
+(define* (make-back-button controller pb button
                            #:key
-                           (channel #f)
                            (ready-note #f))
   (register-midi-note-callback!
-    #:channel channel
+    controller
     #:note-number button
     #:func (lambda () (back! pb)))
 
   (when ready-note
-    (send-note-on ready-note)))
+    (send-note-on controller ready-note)))
 
 
-(define* (select-on-button button fixture
+(define* (select-on-button controller button fixture
                            #:key
-                           (channel #f)
                            (ready-note #f))
   (register-midi-note-callback!
-    #:channel channel
+    controller
     #:note-number button
     #:func (lambda () (sel fixture)))
 
   (when ready-note
-    (send-note-on ready-note)))
+    (send-note-on controller ready-note)))
