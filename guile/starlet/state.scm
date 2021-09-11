@@ -330,7 +330,10 @@ pre-existing contents."
                    old-ht
                    new-ht)
                  old-ht)
-      (clear-state! state))))  ;; Try again
+      (clear-state! state))) ;; Try again
+
+  (run-hook (get-update-hook state)
+            '() #f #f #f))
 
 
 (define (partition3 pred1 pred2 input)
