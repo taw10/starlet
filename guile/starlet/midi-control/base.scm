@@ -33,7 +33,9 @@
             send-note-off
             register-midi-note-callback!
             register-midi-cc-callback!
-            remove-midi-callback!))
+            remove-midi-callback!
+            get-parameter-controller
+            set-parameter-controller!))
 
 
 (define-class <midi-control-surface> (<object>)
@@ -52,7 +54,12 @@
 
   (send-queue
     #:init-form (make-atomic-box '())
-    #:getter get-send-queue))
+    #:getter get-send-queue)
+
+  (parameter-controller
+    #:init-value #f
+    #:getter get-parameter-controller
+    #:setter set-parameter-controller!))
 
 
 (define-class <midi-callback> (<object>)

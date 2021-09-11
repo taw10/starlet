@@ -72,7 +72,7 @@
 (state-on-fader controller 19 my-state)
 
 
-(use-midi-control-map
+(set-midi-control-map!
   controller
   (list
     (list 'intensity                     'fader    16 '(108 72))

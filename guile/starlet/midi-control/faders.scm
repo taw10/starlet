@@ -26,8 +26,20 @@
   #:use-module (starlet scanout)
   #:use-module (starlet utils)
   #:use-module (srfi srfi-1)
-  #:export (use-midi-control-map
+  #:use-module (oop goops)
+  #:export (set-midi-control-map!
              state-on-fader))
+
+
+(define-class <parameter-controller> (<object>)
+  (callbacks
+    #:init-keyword #:callbacks
+    #:getter get-callbacks
+    #:setter set-callbacks!)
+
+  (control-map
+    #:init-keyword #:control-map
+    #:getter get-control-map))
 
 
 (define (name-for-fader-state controller cc-number)
@@ -277,23 +289,60 @@
      (send-note-off controller leds))))
 
 
-(define (use-midi-control-map controller control-map)
-  (let ((midi-callbacks '()))
-    (add-hook! selection-hook
-               (lambda (fixture-list)
+(define (scrub-parameter-controller! controller parameter-controller)
 
-                 (for-each (lambda (callback)
-                             (remove-midi-callback! controller callback))
-                           midi-callbacks)
+  ;; Remove all the old callbacks
+  (for-each (lambda (callback)
+              (remove-midi-callback! controller callback))
+            (get-callbacks parameter-controller))
 
-                 (for-each (lambda (control-spec)
-                             (led-off controller (cadddr control-spec)))
-                           control-map)
+  ;; Switch off all the old LEDs
+  (for-each (lambda (control-spec)
+              (led-off controller (cadddr control-spec)))
+            (get-control-map parameter-controller)))
 
-                 (set! midi-callbacks '())
 
-                 (unless (nil? fixture-list)
-                   (set! midi-callbacks
-                     (map (lambda (control-spec)
-                            (midi-control-attr controller control-spec fixture-list))
-                          control-map)))))))
+(define (update-midi-controls controller fixture-list)
+
+  (scrub-parameter-controller! controller
+                               (get-parameter-controller controller))
+
+  (set-callbacks!
+    (get-parameter-controller controller)
+    (map (lambda (control-spec)
+           (midi-control-attr controller control-spec fixture-list))
+         (get-control-map (get-parameter-controller controller)))))
+
+
+(define (set-midi-control-map! controller new-control-map)
+  (let ((old-parameter-controller (get-parameter-controller controller)))
+
+    ;; Remove the old parameter controller
+    (when old-parameter-controller
+      (scrub-parameter-controller! controller old-parameter-controller))
+
+    (set-parameter-controller!
+      controller
+      (make <parameter-controller>
+            #:callbacks '()
+            #:control-map new-control-map))
+
+    ;; If this is the first time, add the callbacks
+    (unless old-parameter-controller
+
+      ;; Selection changed
+      (add-hook!
+        selection-hook
+        (lambda (fixture-list)
+          (update-midi-controls controller fixture-list)))
+
+      ;; Value changed
+      (add-update-hook! programmer-state
+                        (lambda (fix attr value source)
+                          (unless (eq? source controller)
+                            (update-midi-controls controller (get-selection))))))
+
+    ;; If there is a selection, run the callback now
+    (let ((current-selection (get-selection)))
+      (when current-selection
+        (update-midi-controls controller current-selection)))))
