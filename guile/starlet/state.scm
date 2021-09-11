@@ -360,7 +360,9 @@ pre-existing contents."
               (set-in-state! (current-state)
                              fix
                              (car attr-name)
-                             (car value)))
+                             (clamp-to-attr-range fix
+                                                  (car attr-name)
+                                                  (car value))))
             fixtures))
 
 
