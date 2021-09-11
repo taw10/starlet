@@ -305,13 +305,24 @@ pre-existing contents."
   (pretty-print (state-source a)))
 
 
+(define (clamp-to-attr-range fix attr val)
+  (if (number? val)
+    (let ((attr-obj (find-attr fix attr)))
+      (if (continuous-attribute? attr-obj)
+        (let ((range (get-attr-range attr-obj)))
+          (max (car range)
+               (min (cadr range) val)))
+        val))
+    val))
+
+
 (define (state-source a)
   (cons 'lighting-state
         (state-map (lambda (fix attr val)
                      (list 'at
                            (get-fixture-name fix)
                            (list 'quote attr)
-                           val))
+                           (clamp-to-attr-range fix attr val)))
                    a)))
 
 
