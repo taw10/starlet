@@ -35,7 +35,9 @@
             register-midi-cc-callback!
             remove-midi-callback!
             get-parameter-controller
-            set-parameter-controller!))
+            get-controller-sensitivity
+            set-parameter-controller!
+            make-sensitivity-knob))
 
 
 (define-class <midi-control-surface> (<object>)
@@ -59,7 +61,12 @@
   (parameter-controller
     #:init-value #f
     #:getter get-parameter-controller
-    #:setter set-parameter-controller!))
+    #:setter set-parameter-controller!)
+
+  (sensitivity
+    #:init-value 3
+    #:getter get-controller-sensitivity
+    #:setter set-controller-sensitivity!))
 
 
 (define-class <midi-callback> (<object>)
@@ -271,3 +278,17 @@
       (make-midi-controller-real device-name channel))
 
     #:unwind? #t))
+
+
+(define (set-sensitivity controller prev new)
+  (set-controller-sensitivity!
+    controller
+    (min 5 (max 1 (+ (if (= new 127) -1 1)
+                     (get-controller-sensitivity controller))))))
+
+
+(define (make-sensitivity-knob controller cc-num)
+  (register-midi-callback!
+    controller 'cc cc-num
+    (lambda (prev new)
+      (set-sensitivity controller prev new))))

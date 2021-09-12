@@ -87,6 +87,9 @@
     (list 'focus                         'fader    10 '(118 82))))
 
 
+(make-sensitivity-knob controller 20)
+
+
 (define pb
   (make-playback
     #:cue-list-file "examples/show.qlist.scm"))

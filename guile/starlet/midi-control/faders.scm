@@ -107,16 +107,26 @@
               val))))
 
 
+(define (attr-scale controller attr)
+  (let ((sens-level (get-controller-sensitivity controller)))
+    (cond
+      ((= sens-level 1) 0.02)
+      ((= sens-level 2) 0.1)
+      ((= sens-level 3) 0.5)
+      ((= sens-level 4) 1.5)
+      ((= sens-level 5) 3.0))))
+
+
 (define* (at-midi-jogwheel controller
                            fixture-list
                            attr
                            cc-number
                            #:key (led #f))
 
-  (define (ccval->offset a)
+  (define (ccval->offset controller a)
     (if (eq? a 127)
-        -1
-        1))
+        (- (attr-scale controller attr))
+        (attr-scale controller attr)))
 
   (let ((fixtures (car (fixtures-with-attr fixture-list attr))))
     (unless (null? fixtures)
@@ -130,7 +140,8 @@
           controller
           #:cc-number cc-number
           #:func (lambda (prev-cc-val new-cc-value)
-                   (set! offset (+ offset (ccval->offset new-cc-value)))
+                   (set! offset (+ offset (ccval->offset controller
+                                                         new-cc-value)))
                    (for-each (lambda (fix old-val)
                                (let ((attr-obj (find-attr fix attr)))
                                  (when (and attr-obj
