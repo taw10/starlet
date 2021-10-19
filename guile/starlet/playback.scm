@@ -26,6 +26,7 @@
   #:use-module (ice-9 atomic)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-26)
   #:use-module (srfi srfi-43)
   #:use-module (starlet fixture)
   #:use-module (starlet state)
@@ -516,9 +517,9 @@
 
 (define (make-fade-for-attribute-type type)
   (cond
-    ((eq? type 'continuous) (partial-start make-general-fade simple-fade))
+    ((eq? type 'continuous) (cut make-general-fade simple-fade <...>))
     ((eq? type 'list) make-list-attr-fade)
-    ((eq? type 'colour) (partial-start make-general-fade colour-fade))
+    ((eq? type 'colour) (cut make-general-fade colour-fade <...>))
     (else
       (raise-exception (make-exception
                          (make-exception-with-message

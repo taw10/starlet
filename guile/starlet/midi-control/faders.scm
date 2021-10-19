@@ -26,6 +26,7 @@
   #:use-module (starlet scanout)
   #:use-module (starlet utils)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-26)
   #:use-module (oop goops)
   #:export (set-midi-control-map!
              state-on-fader))
@@ -90,7 +91,7 @@
 
 
 (define (fixtures-with-attr fixture-list attr-name)
-  (let ((attrs (map (partial find-attr attr-name) fixture-list)))
+  (let ((attrs (map (cut find-attr <> attr-name) fixture-list)))
     (fold (lambda (fix attr old)
             (if attr
               (cons (cons fix (car old))
