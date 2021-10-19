@@ -52,7 +52,7 @@
 ;; Fixtures can be grouped together
 (define ltruss (list ltruss1 ltruss2 ltruss3 ltruss4 ltruss5 ltruss6))
 (define rtruss (list rtruss1 rtruss2 rtruss3 rtruss4 rtruss5 rtruss6))
-(define floor (list floor1 floor2 floor3 floor4 floor5 floor6))
+(define all-floor (list floor1 floor2 floor3 floor4 floor5 floor6))
 
 
 (define my-state
@@ -121,7 +121,7 @@
                   #:ready-note 69)
 (select-on-button controller 34 foh
                   #:ready-note 70)
-(select-on-button controller 35 floor
+(select-on-button controller 35 all-floor
                   #:ready-note 71)
 
 
