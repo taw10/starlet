@@ -46,6 +46,7 @@
             back!
             cue-list
             reload-cue-list!
+            reassert-current-cue!
             print-playback
             state-change-hook))
 
@@ -732,3 +733,7 @@
        (track-all-cues! the-cue-list)
        (preset-all-cues! the-cue-list)
        the-cue-list))))
+
+
+(define (reassert-current-cue! pb)
+  (cut-to-cue-number! pb (get-playback-cue-number pb)))
