@@ -327,34 +327,35 @@
 
 
 (define (set-midi-control-map! controller new-control-map)
-  (let ((old-parameter-controller (get-parameter-controller controller)))
+  (when controller
+    (let ((old-parameter-controller (get-parameter-controller controller)))
 
-    ;; Remove the old parameter controller
-    (when old-parameter-controller
-      (scrub-parameter-controller! controller old-parameter-controller))
+      ;; Remove the old parameter controller
+      (when old-parameter-controller
+        (scrub-parameter-controller! controller old-parameter-controller))
 
-    (set-parameter-controller!
-      controller
-      (make <parameter-controller>
-            #:callbacks '()
-            #:control-map new-control-map))
+      (set-parameter-controller!
+        controller
+        (make <parameter-controller>
+              #:callbacks '()
+              #:control-map new-control-map))
 
-    ;; If this is the first time, add the callbacks
-    (unless old-parameter-controller
+      ;; If this is the first time, add the callbacks
+      (unless old-parameter-controller
 
-      ;; Selection changed
-      (add-hook!
-        selection-hook
-        (lambda (fixture-list)
-          (update-midi-controls controller fixture-list)))
+        ;; Selection changed
+        (add-hook!
+          selection-hook
+          (lambda (fixture-list)
+            (update-midi-controls controller fixture-list)))
 
-      ;; Value changed
-      (add-update-hook! programmer-state
-                        (lambda (fix attr value source)
-                          (unless (eq? source controller)
-                            (update-midi-controls controller (get-selection))))))
+        ;; Value changed
+        (add-update-hook! programmer-state
+                          (lambda (fix attr value source)
+                            (unless (eq? source controller)
+                              (update-midi-controls controller (get-selection))))))
 
-    ;; If there is a selection, run the callback now
-    (let ((current-selection (get-selection)))
-      (when current-selection
-        (update-midi-controls controller current-selection)))))
+      ;; If there is a selection, run the callback now
+      (let ((current-selection (get-selection)))
+        (when current-selection
+          (update-midi-controls controller current-selection))))))
