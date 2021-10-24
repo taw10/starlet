@@ -409,18 +409,18 @@
            (not (eq? target-val 'no-value))
            (not (eq? start-val 'no-value)))
 
-      ;; It makes sense to do a fade
-      (let ((real-start-val (value->number start-val)))
-        (lambda ()
-          (fade-func real-start-val
-                         target-val
-                         clock)))
-
-      ;; A fade doesn't make sense, so make do with a snap transition
+    ;; It makes sense to do a fade
+    (let ((real-start-val (value->number start-val)))
       (lambda ()
-        (snap-fade start-val
+        (fade-func real-start-val
                    target-val
-                   clock))))
+                   clock)))
+
+    ;; A fade doesn't make sense, so make do with a snap transition
+    (lambda ()
+      (snap-fade start-val
+                 target-val
+                 clock))))
 
 
 (define (match-fix-attr attr-el fix attr)
@@ -638,31 +638,31 @@
 (define cue
   (lambda (number state . rest)
     (receive (cue-parts rest-minus-cue-parts)
-        (partition cue-part? rest)
-      (let-keywords rest-minus-cue-parts #f
-                    ((up-time 5)
-                     (down-time 5)
-                     (attr-time 0)
-                     (up-delay 0)
-                     (down-delay 0)
-                     (attr-delay 0)
-                     (preset-time 1)
-                     (track-intensities #f))
+             (partition cue-part? rest)
+             (let-keywords rest-minus-cue-parts #f
+                           ((up-time 5)
+                            (down-time 5)
+                            (attr-time 0)
+                            (up-delay 0)
+                            (down-delay 0)
+                            (attr-delay 0)
+                            (preset-time 1)
+                            (track-intensities #f))
 
-                    (make-cue (qnum number)
-                              state
-                              #f   ;; tracked state
-                              #f   ;; preset state
-                              (make-fade-times
-                               up-time
-                               down-time
-                               attr-time
-                               up-delay
-                               down-delay
-                               attr-delay)
-                              preset-time
-                              track-intensities
-                              cue-parts)))))
+                           (make-cue (qnum number)
+                                     state
+                                     #f   ;; tracked state
+                                     #f   ;; preset state
+                                     (make-fade-times
+                                       up-time
+                                       down-time
+                                       attr-time
+                                       up-delay
+                                       down-delay
+                                       attr-delay)
+                                     preset-time
+                                     track-intensities
+                                     cue-parts)))))
 
 
 (define (track-all-cues! the-cue-list)
