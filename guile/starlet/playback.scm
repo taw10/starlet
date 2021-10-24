@@ -48,7 +48,8 @@
             reload-cue-list!
             reassert-current-cue!
             print-playback
-            state-change-hook))
+            state-change-hook
+            current-cue-clock))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -71,8 +72,8 @@
 
   (running-cue-clock
     #:init-value #f
-    #:getter get-cue-clock
-    #:setter set-cue-clock!)
+    #:getter get-pb-cue-clock
+    #:setter set-pb-cue-clock!)
 
   (running-cue
     #:init-value #f
@@ -120,7 +121,8 @@
             fade-times
             preset-time
             track-intensities
-            cue-parts)
+            cue-parts
+            cue-clock)
   cue?
   (number             get-cue-number)
   (state              get-cue-state)
@@ -131,7 +133,8 @@
   (fade-times         get-cue-fade-times)
   (preset-time        get-cue-preset-time)
   (track-intensities  track-intensities)
-  (cue-parts          get-cue-parts))
+  (cue-parts          get-cue-parts)
+  (cue-clock          get-cue-clock))
 
 
 (define (get-playback-cue-number pb)
@@ -202,7 +205,7 @@
 (define (cut-to-cue-index! pb cue-index)
   (clear-state! pb)
   (set-next-cue-index! pb (+ cue-index 1))
-  (set-cue-clock! pb #f)
+  (set-pb-cue-clock! pb #f)
   (set-running-cue! pb #f)
   (set-playback-state! pb 'ready)
 
@@ -256,7 +259,7 @@
 
 
 (define (go! pb)
-  (let ((clock (get-cue-clock pb)))
+  (let ((clock (get-pb-cue-clock pb)))
     (if (and clock
              (clock-stopped? clock))
 
@@ -283,10 +286,10 @@
 
 
 (define (stop! pb)
-  (let ((clock (get-cue-clock pb)))
+  (let ((clock (get-pb-cue-clock pb)))
     (when (and clock
                (not (clock-expired? clock)))
-      (stop-clock! (get-cue-clock pb))
+      (stop-clock! (get-pb-cue-clock pb))
       (set-playback-state! pb 'pause))))
 
 
@@ -532,7 +535,7 @@
   (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
          (this-cue-state (get-tracked-state the-cue))
          (overlay-state (make-empty-state))
-         (cue-clock (make-clock #:expiration-time (cue-total-time the-cue))))
+         (cue-clock (get-cue-clock the-cue)))
 
     (for-each
       (lambda (fix-attr)
@@ -587,8 +590,9 @@
       (fix-attrs-involved pb this-cue-state))
 
     (atomically-overlay-state! pb overlay-state)
-    (set-cue-clock! pb cue-clock)
+    (set-pb-cue-clock! pb cue-clock)
     (set-running-cue! pb the-cue)
+    (start-clock! cue-clock)
     (set-playback-state! pb 'running)))
 
 
@@ -635,7 +639,7 @@
                   attr-delay)))
 
 
-(define cue
+(define cue-proc
   (lambda (number state . rest)
     (receive (cue-parts rest-minus-cue-parts)
              (partition cue-part? rest)
@@ -649,20 +653,34 @@
                             (preset-time 1)
                             (track-intensities #f))
 
-                           (make-cue (qnum number)
-                                     state
-                                     #f   ;; tracked state
-                                     #f   ;; preset state
-                                     (make-fade-times
-                                       up-time
-                                       down-time
-                                       attr-time
-                                       up-delay
-                                       down-delay
-                                       attr-delay)
-                                     preset-time
-                                     track-intensities
-                                     cue-parts)))))
+                           (let ((the-cue (make-cue (qnum number)
+                                                    state
+                                                    #f   ;; tracked state
+                                                    #f   ;; preset state
+                                                    (make-fade-times
+                                                      up-time
+                                                      down-time
+                                                      attr-time
+                                                      up-delay
+                                                      down-delay
+                                                      attr-delay)
+                                                    preset-time
+                                                    track-intensities
+                                                    cue-parts
+                                                    (current-cue-clock))))
+
+                             (set-clock-expiration-time! (current-cue-clock)
+                                                         (cue-total-time the-cue))
+                             the-cue)))))
+
+
+(define current-cue-clock (make-parameter #f))
+
+(define-syntax cue
+  (syntax-rules ()
+    ((_ body ...)
+     (parameterize ((current-cue-clock (make-clock #:stopped #t)))
+       (cue-proc body ...)))))
 
 
 (define (track-all-cues! the-cue-list)
@@ -705,8 +723,8 @@
 
 
 (define-method (update-state! (pb <starlet-playback>))
-  (when (and (get-cue-clock pb)
-             (clock-expired? (get-cue-clock pb))
+  (when (and (get-pb-cue-clock pb)
+             (clock-expired? (get-pb-cue-clock pb))
              (eq? 'running (atomic-box-ref (state-box pb))))
     (when (eq? 'running (atomic-box-compare-and-swap! (state-box pb)
                                                       'running
