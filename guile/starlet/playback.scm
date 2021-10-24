@@ -592,6 +592,7 @@
     (atomically-overlay-state! pb overlay-state)
     (set-pb-cue-clock! pb cue-clock)
     (set-running-cue! pb the-cue)
+    (reset-clock! cue-clock)
     (start-clock! cue-clock)
     (set-playback-state! pb 'running)))
 

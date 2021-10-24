@@ -26,6 +26,7 @@
             stop-clock!
             start-clock!
             reverse-clock!
+            reset-clock!
             clock-expired?
 
             set-clock-expiration-time!
@@ -119,6 +120,13 @@
 ;; Start the clock running (forwards)
 (define-method (start-clock! (clock <starlet-clock>))
   (set-start-elapsed-time! clock (elapsed-time clock))
+  (set-start-real-time! clock (time-now))
+  (set-clock-reversed! clock #f)
+  (set-clock-stopped! clock #f))
+
+
+(define-method (reset-clock! (clock <starlet-clock>))
+  (set-start-elapsed-time! clock 0)
   (set-start-real-time! clock (time-now))
   (set-clock-reversed! clock #f)
   (set-clock-stopped! clock #f))
