@@ -43,5 +43,17 @@ executable('starlet-fixture-display',
            install: true)
 
 
+# Playback display tool
+executable('starlet-playback-display',
+           ['src/starlet-playback-display.c',
+            'src/repl-connection.c'],
+           dependencies: [gtk_dep,
+                          cairo_dep,
+                          pango_dep,
+                          pangocairo_dep,
+                          guile_dep],
+           install: true)
+
+
 # Install Scheme source files (all at once)
 install_subdir('guile/starlet', install_dir: guile_sitedir)
