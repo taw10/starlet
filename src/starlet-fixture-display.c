@@ -45,6 +45,7 @@ struct fixture
 	char *label;
 	char *scheme_name;
 	double intensity;
+	double rgb[3];
 	int selected;
 };
 
@@ -126,6 +127,15 @@ static void draw_fixture(cairo_t *cr,
 		pango_cairo_show_layout(cr, layout);
 		g_object_unref(layout);
 	}
+
+	/* Mimic */
+	cairo_set_source_rgba(cr,
+	                      fix->intensity * fix->rgb[0] / 100.0,
+	                      fix->intensity * fix->rgb[1] / 100.0,
+	                      fix->intensity * fix->rgb[2] / 100.0,
+	                      1.0);
+	cairo_rectangle(cr, 3.0, 2.0*h/3.0-3.0, w-6.0, h/3.0);
+	cairo_fill(cr);
 }
 
 
@@ -195,9 +205,16 @@ static void request_intensities(struct fixture_display *fixd)
 
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
 		char tmp[256];
-		snprintf(tmp, 256, "(list 'fixture-intensity (list \"%s\" "
-		                   "(current-value %s 'intensity)))",
+		snprintf(tmp, 256, "(list"
+		                   "  'fixture-parameters"
+		                   "  (list \"%s\" "
+		                   "    (current-value %s 'intensity) "
+		                   "    (let ((col (current-value %s 'colour)))"
+		                   "      (if (colour? col)"
+		                   "        (colour-as-rgb col)"
+		                   "        #f))))",
 		                   fixd->fixtures[i].label,
+		                   fixd->fixtures[i].scheme_name,
 		                   fixd->fixtures[i].scheme_name);
 		repl_send(fixd->repl, tmp);
 	}
@@ -371,13 +388,31 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 }
 
 
-static void handle_fixture_intensity(struct fixture_display *fixd, SCM list)
+static void read_rgb(double *rgb, SCM rgb_obj)
+{
+	if ( scm_is_false(rgb_obj)  ) {
+		rgb[0] = 1.0;
+		rgb[1] = 1.0;
+		rgb[2] = 1.0;
+	} else {
+		if ( is_list(rgb_obj) ) {
+			rgb[0] = scm_to_double(scm_list_ref(rgb_obj, scm_from_int(0)))/100.0;
+			rgb[1] = scm_to_double(scm_list_ref(rgb_obj, scm_from_int(1)))/100.0;
+			rgb[2] = scm_to_double(scm_list_ref(rgb_obj, scm_from_int(2)))/100.0;
+		} else {
+			fprintf(stderr, "Colour isn't a list\n");
+		}
+	}
+}
+
+
+static void handle_fixture_parameters(struct fixture_display *fixd, SCM list)
 {
 	char *fixture_name;
 	struct fixture *fix;
 
-	if ( !is_list(list) || (scm_to_int(scm_length(list)) != 2) ) {
-		fprintf(stderr, "Invalid fixture intensity\n");
+	if ( !is_list(list) || (scm_to_int(scm_length(list)) != 3) ) {
+		fprintf(stderr, "Invalid fixture parameters\n");
 		return;
 	}
 
@@ -386,8 +421,9 @@ static void handle_fixture_intensity(struct fixture_display *fixd, SCM list)
 	fix = find_fixture(fixd, fixture_name);
 	if ( fix != NULL ) {
 		fix->intensity = scm_to_double(scm_list_ref(list, scm_from_int(1)));
+		read_rgb(fix->rgb, scm_list_ref(list, scm_from_int(2)));
 	} else {
-		fprintf(stderr, "Unrecognised fixture '%s' (intensity)\n",
+		fprintf(stderr, "Unrecognised fixture '%s' (parameters)\n",
 		        fixture_name);
 	}
 
@@ -447,8 +483,8 @@ static void process_line(SCM sexp, void *data)
 		if ( scm_is_symbol(tag) ) {
 			if ( symbol_eq(tag, "patched-fixtures") ) {
 				handle_patched_fixtures(fixd, contents);
-			} else if ( symbol_eq(tag, "fixture-intensity") ) {
-				handle_fixture_intensity(fixd, contents);
+			} else if ( symbol_eq(tag, "fixture-parameters") ) {
+				handle_fixture_parameters(fixd, contents);
 			} else if ( symbol_eq(tag, "selection") ) {
 				handle_selection(fixd, contents);
 			}
