@@ -63,11 +63,11 @@ struct fixture_display
 static void draw_fixture(cairo_t *cr,
                          PangoContext *pc,
                          PangoFontDescription *fontdesc,
+                         double w,
                          struct fixture_display *fixd,
                          struct fixture *fix)
 {
 	PangoLayout *layout;
-	const double w = 40.0;
 	const double h = 3.0/2.0*w;
 
 	/* Pan/tilt (underneath rectangle) */
@@ -122,7 +122,7 @@ static void draw_fixture(cairo_t *cr,
 		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
 		pango_layout_set_font_description(layout, fontdesc);
 		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-		cairo_move_to(cr, 0.0, 15.0);
+		cairo_move_to(cr, 0.0, 25.0);
 		pango_cairo_show_layout(cr, layout);
 		g_object_unref(layout);
 	}
@@ -153,12 +153,12 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	/* Fixtures */
 	x = FIXTURE_BORDER;
 	y = FIXTURE_BORDER;
-	fontdesc = pango_font_description_from_string("Comfortaa Bold 8");
+	fontdesc = pango_font_description_from_string("Comfortaa Bold 12");
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
 		cairo_save(cr);
 		cairo_translate(cr, x, y);
-		cairo_scale(cr, fixd->fixture_tile_width/40.0, fixd->fixture_tile_width/40.0);
-		draw_fixture(cr, pc, fontdesc, fixd, &fixd->fixtures[i]);
+		draw_fixture(cr, pc, fontdesc, fixd->fixture_tile_width,
+		             fixd, &fixd->fixtures[i]);
 		cairo_restore(cr);
 		x += fixd->fixture_tile_width + FIXTURE_BORDER*2;
 		if ( x + fixd->fixture_tile_width + FIXTURE_BORDER*2 > w ) {
@@ -520,7 +520,7 @@ int main(int argc, char *argv[])
 
 	da = gtk_drawing_area_new();
 
-	fixd.fixture_tile_width = 60.0;
+	fixd.fixture_tile_width = 100.0;
 	fixd.fixtures = NULL;
 	fixd.n_fixtures = 0;
 	fixd.da = da;
