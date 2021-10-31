@@ -578,7 +578,7 @@ int main(int argc, char *argv[])
 	fixd.repl = repl_connection_new(socket, process_line, &fixd, verbose);
 	if ( fixd.repl == NULL ) return 1;
 
-	repl_send(fixd.repl, "(list 'patched-fixtures (patched-fixture-names))");
+	repl_send(fixd.repl, "(list 'patched-fixtures (reverse (patched-fixture-names)))");
 
 	gtk_main();
 
