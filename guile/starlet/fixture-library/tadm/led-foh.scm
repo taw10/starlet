@@ -1,5 +1,5 @@
 ;;
-;; starlet/fixture-library/tadm/led-bar.scm
+;; starlet/fixture-library/tadm/led-foh.scm
 ;;
 ;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
 ;;
@@ -18,29 +18,29 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library tadm led-bar)
+(define-module (starlet fixture-library tadm led-foh)
   #:use-module (oop goops)
   #:use-module (starlet fixture)
   #:use-module (starlet colours)
-  #:export (<tadm-led-bar>))
+  #:export (<tadm-led-foh>))
 
 
-(define-class <tadm-led-bar> (<fixture>)
+(define-class <tadm-led-foh> (<fixture>)
   (attributes
    #:init-form (list
                 (attr-continuous 'intensity '(0 100) 0)
                 (attr-colour 'colour white))))
 
 
-(define-method (scanout-fixture (fixture <tadm-led-bar>)
+(define-method (scanout-fixture (fixture <tadm-led-foh>)
                                 get-attr set-chan8 set-chan16)
 
   (let ((intensity (get-attr 'intensity))
         (rgb (colour-as-rgb (get-attr 'colour))))
-    (set-chan8 1 17)
-    (set-chan8 2 (percent->dmxval8 intensity))
-    (set-chan8 3 0)
-    (set-chan8 4 (percent->dmxval8 (car rgb)))
-    (set-chan8 5 (percent->dmxval8 (cadr rgb)))
-    (set-chan8 6 (percent->dmxval8 (caddr rgb)))))
+    (set-chan8 1 (percent->dmxval8 intensity))
+    (set-chan8 2 255)
+    (set-chan8 3 (percent->dmxval8 (car rgb)))
+    (set-chan8 4 (percent->dmxval8 (cadr rgb)))
+    (set-chan8 5 (percent->dmxval8 (caddr rgb)))
+    (set-chan8 6 0)))
 
