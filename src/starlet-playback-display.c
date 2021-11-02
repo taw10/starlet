@@ -47,6 +47,8 @@ struct playback_display
 	const char *playback_name;
 	double current_cue_number;
 	double scanout_rate;
+	char *socket;
+	int verbose;
 };
 
 
@@ -77,8 +79,14 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr,
 	fontdesc = pango_font_description_from_string("Comfortaa Bold 12");
 
 	/* Overall background */
-	cairo_set_source_rgb(cr, 0.0, 0.0, 0.2);
-	cairo_paint(cr);
+	if ( pbd->repl == NULL ) {
+		cairo_set_source_rgb(cr, 0.2, 0.0, 0.0);
+		cairo_paint(cr);
+		return FALSE;
+	} else {
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.2);
+		cairo_paint(cr);
+	}
 
 	cairo_save(cr);
 	cairo_translate(cr, OVERALL_BORDER, OVERALL_BORDER);
@@ -105,7 +113,9 @@ static void redraw(struct playback_display *pbd)
 
 static void shutdown_sig(GtkWidget *window, struct playback_display *pbd)
 {
-	repl_connection_close(pbd->repl);
+	if ( pbd->repl != NULL ) {
+		repl_connection_close(pbd->repl);
+	}
 	pbd->shutdown = TRUE;
 }
 
@@ -166,9 +176,18 @@ static gint realise_sig(GtkWidget *da, struct playback_display *pbd)
 static gboolean redraw_cb(gpointer data)
 {
 	struct playback_display *pbd = data;
+	if ( pbd->repl == NULL ) {
+		return G_SOURCE_CONTINUE;
+	}
 	if ( repl_closed(pbd->repl) ) {
-		gtk_main_quit();
-		return G_SOURCE_REMOVE;
+		if ( pbd->shutdown ) {
+			gtk_main_quit();
+			return G_SOURCE_REMOVE;
+		} else {
+			pbd->repl = NULL;
+			redraw(pbd);
+			return G_SOURCE_CONTINUE;
+		}
 	} else {
 		if ( !pbd->shutdown ) {
 			request_playback_status(pbd);
@@ -221,6 +240,17 @@ static void process_line(SCM sexp, void *data)
 			}
 		}
 	}
+}
+
+
+static gboolean try_connect_cb(gpointer data)
+{
+	struct playback_display *pbd = data;
+	if ( pbd->repl == NULL ) {
+		pbd->repl = repl_connection_new(pbd->socket, process_line,
+		                                 pbd, pbd->verbose);
+	}
+	return G_SOURCE_CONTINUE;
 }
 
 
@@ -296,6 +326,9 @@ int main(int argc, char *argv[])
 	pbd.da = da;
 	pbd.shutdown = FALSE;
 	pbd.playback_name = playback_name;
+	pbd.socket = socket;
+	pbd.verbose = verbose;
+	pbd.repl = NULL;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
@@ -310,8 +343,7 @@ int main(int argc, char *argv[])
 
 	g_timeout_add(50, redraw_cb, &pbd);
 
-	pbd.repl = repl_connection_new(socket, process_line, &pbd, verbose);
-	if ( pbd.repl == NULL ) return 1;
+	g_timeout_add(1000, try_connect_cb, &pbd);
 
 	gtk_main();
 
