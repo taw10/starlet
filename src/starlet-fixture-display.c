@@ -58,6 +58,8 @@ struct fixture_display
 	GtkWidget *da;
 	ReplConnection *repl;
 	int shutdown;
+	char *socket;
+	int verbose;
 };
 
 
@@ -152,8 +154,14 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	pc = gtk_widget_get_pango_context(widget);
 
 	/* Overall background */
-	cairo_set_source_rgb(cr, 0.0, 0.0, 0.2);
-	cairo_paint(cr);
+	if ( fixd->repl == NULL ) {
+		cairo_set_source_rgb(cr, 0.2, 0.0, 0.0);
+		cairo_paint(cr);
+		return FALSE;
+	} else {
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.2);
+		cairo_paint(cr);
+	}
 
 	cairo_save(cr);
 	cairo_translate(cr, OVERALL_BORDER, OVERALL_BORDER);
@@ -194,7 +202,9 @@ static void redraw(struct fixture_display *fixd)
 
 static void shutdown_sig(GtkWidget *window, struct fixture_display *fixd)
 {
-	repl_connection_close(fixd->repl);
+	if ( fixd->repl != NULL ) {
+		repl_connection_close(fixd->repl);
+	}
 	fixd->shutdown = TRUE;
 }
 
@@ -271,9 +281,18 @@ static gint realise_sig(GtkWidget *da, struct fixture_display *fixd)
 static gboolean redraw_cb(gpointer data)
 {
 	struct fixture_display *fixd = data;
+	if ( fixd->repl == NULL ) {
+		return G_SOURCE_CONTINUE;
+	}
 	if ( repl_closed(fixd->repl) ) {
-		gtk_main_quit();
-		return G_SOURCE_REMOVE;
+		if ( fixd->shutdown ) {
+			gtk_main_quit();
+			return G_SOURCE_REMOVE;
+		} else {
+			fixd->repl = NULL;
+			redraw(fixd);
+			return G_SOURCE_CONTINUE;
+		}
 	} else {
 		if ( !fixd->shutdown ) {
 			request_intensities(fixd);
@@ -493,6 +512,20 @@ static void process_line(SCM sexp, void *data)
 }
 
 
+static gboolean try_connect_cb(gpointer data)
+{
+	struct fixture_display *fixd = data;
+	if ( fixd->repl == NULL ) {
+		fixd->repl = repl_connection_new(fixd->socket, process_line,
+		                                 fixd, fixd->verbose);
+		if ( fixd->repl != NULL ) {
+			repl_send(fixd->repl, "(list 'patched-fixtures (reverse (patched-fixture-names)))");
+		}
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+
 int main(int argc, char *argv[])
 {
 	struct fixture_display fixd;
@@ -561,6 +594,9 @@ int main(int argc, char *argv[])
 	fixd.n_fixtures = 0;
 	fixd.da = da;
 	fixd.shutdown = FALSE;
+	fixd.socket = socket;
+	fixd.verbose = verbose;
+	fixd.repl = NULL;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
@@ -574,11 +610,7 @@ int main(int argc, char *argv[])
 	gtk_widget_show_all(mainwindow);
 
 	g_timeout_add(50, redraw_cb, &fixd);
-
-	fixd.repl = repl_connection_new(socket, process_line, &fixd, verbose);
-	if ( fixd.repl == NULL ) return 1;
-
-	repl_send(fixd.repl, "(list 'patched-fixtures (reverse (patched-fixture-names)))");
+	g_timeout_add(1000, try_connect_cb, &fixd);
 
 	gtk_main();
 
