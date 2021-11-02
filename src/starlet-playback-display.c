@@ -91,7 +91,11 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr,
 	cairo_save(cr);
 	cairo_translate(cr, OVERALL_BORDER, OVERALL_BORDER);
 
-	snprintf(tmp, 32, "Current cue number: %.2f", pbd->current_cue_number);
+	if ( pbd->current_cue_number < 0.0 ) {
+		snprintf(tmp, 32, "Current cue doesn't exist!");
+	} else {
+		snprintf(tmp, 32, "Current cue number: %.2f", pbd->current_cue_number);
+	}
 	plot_text(cr, tmp, pc, fontdesc, 0.0, 0.0);
 	snprintf(tmp, 32, "Scanout rate: %.2f per second", pbd->scanout_rate);
 	plot_text(cr, tmp, pc, fontdesc, 0.0, 32.0);
@@ -222,7 +226,12 @@ static int symbol_eq(SCM symbol, const char *val)
 
 static void handle_playback_status(struct playback_display *pbd, SCM list)
 {
-	pbd->current_cue_number = scm_to_double(scm_list_ref(list, scm_from_int(0)));
+	SCM cue_number = scm_list_ref(list, scm_from_int(0));
+	if ( scm_is_false(cue_number) ) {
+		pbd->current_cue_number = -1.0;
+	} else {
+		pbd->current_cue_number = scm_to_double(cue_number);
+	}
 	pbd->scanout_rate = scm_to_double(scm_list_ref(list, scm_from_int(1)));
 }
 
