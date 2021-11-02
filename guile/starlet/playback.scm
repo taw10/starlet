@@ -138,8 +138,11 @@
 
 
 (define (get-playback-cue-number pb)
-  (cue-index-to-number (get-playback-cue-list pb)
-                       (max 0 (- (get-next-cue-index pb) 1))))
+  (let ((cue-idx (get-next-cue-index pb)))
+    (if cue-idx
+      (cue-index-to-number (get-playback-cue-list pb)
+                           (max 0 (- cue-idx 1)))
+      #f)))
 
 (define (qnum a)
   (/ (inexact->exact (* a 1000)) 1000))
