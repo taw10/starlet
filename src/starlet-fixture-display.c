@@ -295,6 +295,9 @@ static gboolean redraw_cb(gpointer data)
 			return G_SOURCE_REMOVE;
 		} else {
 			fixd->repl = NULL;
+			free(fixd->fixtures);
+			fixd->fixtures = NULL;
+			fixd->n_fixtures = 0;
 			redraw(fixd);
 			return G_SOURCE_CONTINUE;
 		}
