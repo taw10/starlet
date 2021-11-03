@@ -137,10 +137,12 @@ static void draw_fixture(cairo_t *cr,
 	                      fix->intensity * fix->rgb[2] / 100.0,
 	                      1.0);
 	cairo_rectangle(cr, 3.0, 2.0*h/3.0-3.0, w-6.0, h/3.0);
-	cairo_fill_preserve(cr);
+	cairo_fill(cr);
+
+	/* Colour */
+	cairo_rectangle(cr, 3.0, 4.0*h/8.0-3.0, w-6.0, h/8.0);
 	cairo_set_source_rgba(cr, fix->rgb[0], fix->rgb[1], fix->rgb[2], 1.0);
-	cairo_set_line_width(cr, 3.0);
-	cairo_stroke(cr);
+	cairo_fill(cr);
 }
 
 
