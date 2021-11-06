@@ -27,6 +27,7 @@
              make-colour-rgb
              colour-as-cmy
              colour-as-rgb
+             colour-as-rgbw
 
              cyan
              magenta
@@ -115,6 +116,15 @@
         (raise-exception (make-exception
                            (make-exception-with-message "Unrecognised colour type")
                            (make-exception-with-irritants (colour-type col))))))))
+
+
+(define (colour-as-rgbw col)
+  (let ((rgb (colour-as-rgb col)))
+    (let ((w (apply min rgb)))
+      (list (- (red rgb) w)
+            (- (green rgb) w)
+            (- (blue rgb) w)
+            w))))
 
 
 (define (colour-as-cmy col)
