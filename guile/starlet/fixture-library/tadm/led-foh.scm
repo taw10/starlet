@@ -36,11 +36,11 @@
                                 get-attr set-chan8 set-chan16)
 
   (let ((intensity (get-attr 'intensity))
-        (rgb (colour-as-rgb (get-attr 'colour))))
+        (rgbw (colour-as-rgbw (get-attr 'colour))))
     (set-chan8 1 (percent->dmxval8 intensity))
     (set-chan8 2 255)
-    (set-chan8 3 (percent->dmxval8 (car rgb)))
-    (set-chan8 4 (percent->dmxval8 (cadr rgb)))
-    (set-chan8 5 (percent->dmxval8 (caddr rgb)))
-    (set-chan8 6 0)))
+    (set-chan8 3 (percent->dmxval8 (car rgbw)))
+    (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
+    (set-chan8 5 (percent->dmxval8 (caddr rgbw)))
+    (set-chan8 6 (percent->dmxval8 (cadddr rgbw)))))
 
