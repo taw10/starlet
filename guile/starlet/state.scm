@@ -30,6 +30,7 @@
   #:use-module (srfi srfi-1)
   #:export (<starlet-state>
             make-empty-state
+            lighting-state?
             get-state-name
             state-for-each
             state-map
@@ -68,6 +69,10 @@
   (update-hook
     #:init-form (make-hook 4)
     #:getter get-update-hook))
+
+
+(define (lighting-state? a)
+  (is-a? a <starlet-state>))
 
 
 ;; The state used to build a new scene for recording
