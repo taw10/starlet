@@ -37,8 +37,6 @@
   #:use-module (starlet colours)
   #:use-module (starlet transition-effect)
   #:export (make-playback
-            cue
-            cue-part
             cut-to-cue-number!
             get-playback-cue-number
             run-cue-number!
@@ -46,12 +44,10 @@
             cut!
             stop!
             back!
-            cue-list
             reload-cue-list!
             reassert-current-cue!
             print-playback
-            state-change-hook
-            current-cue-clock))
+            state-change-hook))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -91,51 +87,12 @@
     #:getter state-change-hook))
 
 
-(define-class <transition-effect> (<object>)
-  (func
-    #:init-value #f))
-
-
-(define (transition-effect? a)
-  (is-a? a <transition-effect>))
-
-
-(define-record-type <cue-part>
-  (make-cue-part attr-list transition)
-  cue-part?
-  (attr-list    get-cue-part-attr-list)
-  (transition   get-cue-part-transition))
-
-
-(define-record-type <cue>
-  (make-cue number
-            state
-            tracked-state
-            preset-state
-            track-intensities
-            cue-parts
-            cue-clock)
-  cue?
-  (number             get-cue-number)
-  (state              get-cue-state)
-  (tracked-state      get-tracked-state
-                      set-tracked-state!)
-  (preset-state       get-preset-state
-                      set-preset-state!)
-  (track-intensities  track-intensities)
-  (cue-parts          get-cue-parts)
-  (cue-clock          get-cue-clock))
-
-
 (define (get-playback-cue-number pb)
   (let ((cue-idx (get-next-cue-index pb)))
     (if cue-idx
       (cue-index-to-number (get-playback-cue-list pb)
                            (max 0 (- cue-idx 1)))
       #f)))
-
-(define (qnum a)
-  (/ (inexact->exact (* a 1000)) 1000))
 
 
 (define (reload-cue-list! pb)
@@ -170,17 +127,6 @@
                             #:cue-list-file cue-list-file)))
     (register-state! new-playback)
     new-playback))
-
-
-(define (cue-index-to-number cue-list cue-index)
-  (get-cue-number (vector-ref cue-list cue-index)))
-
-
-(define (cue-number-to-index cue-list cue-number)
-  (vector-index (lambda (a)
-                  (eqv? (get-cue-number a)
-                        cue-number))
-                cue-list))
 
 
 (define (set-playback-state! pb state)
@@ -294,59 +240,27 @@
     'next-cue-unspecified))
 
 
-(define (match-fix-attr attr-el fix attr)
-  (cond
-
-   ((fixture? attr-el)
-    (eq? attr-el fix))
-
-   ((and (pair? attr-el)
-         (fixture? (car attr-el))
-         (symbol? (cdr attr-el)))
-    (and (eq? (car attr-el) fix)
-         (eq? (cdr attr-el) attr)))
-
-   ((list? attr-el)
-    (and (memq fix attr-el)
-         (memq attr attr-el)))
-
-   (else #f)))
-
-
-(define (in-cue-part? cue-part fix attr)
-  (find (lambda (p) (match-fix-attr p fix attr))
-        (get-cue-part-attr-list cue-part)))
-
-
-(define (fix-attr-eq fa1 fa2)
-  (and (eq? (car fa1) (car fa2))
-       (eq? (cdr fa1) (cdr fa2))))
-
-
-(define (fix-attrs-in-state state)
-  (state-map (lambda (fix attr val) (cons fix attr))
-             state))
-
-
-(define (add-fix-attrs-to-list state old-list)
-  (lset-union fix-attr-eq
-              old-list
-              (fix-attrs-in-state state)))
-
-
-(define (fix-attrs-involved . states)
-  (fold add-fix-attrs-to-list '() states))
-
-
 (define (run-cue-index! pb cue-index)
   (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
          (this-cue-state (get-tracked-state the-cue))
          (overlay-state (make-empty-state))
          (cue-clock (get-cue-clock the-cue)))
 
-    ;; FIXME: Use transition effect
+    (atomically-overlay-state!
+      pb
+      ((transition-func (get-transition-effect the-cue))
+       this-cue-state
+       cue-clock))
 
-    (atomically-overlay-state! pb overlay-state)
+    (for-each
+      (lambda (cue-part)
+        (atomically-overlay-state!
+          pb
+          ((transition-func (get-transition-effect the-cue))
+           this-cue-state
+           cue-clock)))
+      (get-cue-parts the-cue))
+
     (set-pb-cue-clock! pb cue-clock)
     (set-running-cue! pb the-cue)
     (reset-clock! cue-clock)

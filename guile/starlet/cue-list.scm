@@ -37,6 +37,12 @@
   #:export (cue
             cue-part
             cue-list
+            qnum
+            get-cue-parts
+            get-cue-clock
+            get-tracked-state
+            get-preset-state
+            get-transition-effect
             cue-number-to-index
             cue-index-to-number
             current-cue-clock
@@ -86,30 +92,6 @@
                   (eqv? (get-cue-number a)
                         cue-number))
                 cue-list))
-
-
-(define (match-fix-attr attr-el fix attr)
-  (cond
-
-   ((fixture? attr-el)
-    (eq? attr-el fix))
-
-   ((and (pair? attr-el)
-         (fixture? (car attr-el))
-         (symbol? (cdr attr-el)))
-    (and (eq? (car attr-el) fix)
-         (eq? (cdr attr-el) attr)))
-
-   ((list? attr-el)
-    (and (memq fix attr-el)
-         (memq attr attr-el)))
-
-   (else #f)))
-
-
-(define (in-cue-part? cue-part fix attr)
-  (find (lambda (p) (match-fix-attr p fix attr))
-        (get-cue-part-attr-list cue-part)))
 
 
 (define (fix-attr-eq fa1 fa2)

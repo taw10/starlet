@@ -21,7 +21,8 @@
 (define-module (starlet transition-effect)
   #:use-module (oop goops)
   #:export (<transition-effect>
-             transition-effect?))
+             transition-effect?
+             transition-func))
 
 
 (define-class <transition-effect> (<object>)
