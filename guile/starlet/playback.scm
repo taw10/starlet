@@ -268,7 +268,12 @@
 
 
 (define (cut! pb)
-  (cut-to-cue-index! pb (get-next-cue-index pb)))
+  (let ((nci (get-next-cue-index pb)))
+    (if nci
+      (if (< nci (vector-length (get-playback-cue-list pb)))
+        (cut-to-cue-index! pb (get-next-cue-index pb))
+        'no-more-cues-in-list)
+      'next-cue-unspecified)))
 
 
 (define (stop! pb)
