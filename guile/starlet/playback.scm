@@ -247,7 +247,7 @@
          (cue-clock (get-cue-clock the-cue)))
 
     (atomically-overlay-state!
-      pb
+      overlay-state
       ((transition-func (get-transition-effect the-cue))
        this-cue-state
        cue-clock))
@@ -255,12 +255,13 @@
     (for-each
       (lambda (cue-part)
         (atomically-overlay-state!
-          pb
+          overlay-state
           ((transition-func (get-transition-effect the-cue))
            this-cue-state
            cue-clock)))
       (get-cue-parts the-cue))
 
+    (atomically-overlay-state! pb overlay-state)
     (set-pb-cue-clock! pb cue-clock)
     (set-running-cue! pb the-cue)
     (reset-clock! cue-clock)
