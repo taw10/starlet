@@ -22,7 +22,8 @@
   #:use-module (oop goops)
   #:export (<transition-effect>
              transition-effect?
-             transition-func))
+             transition-func
+             make-transition))
 
 
 (define-class <transition-effect> (<object>)
@@ -35,3 +36,10 @@
 (define (transition-effect? a)
   (is-a? a <transition-effect>))
 
+
+(define-syntax make-transition
+  (syntax-rules ()
+    ((_ (a b) expr ...)
+     (make <transition-effect>
+           #:func (lambda (a b)
+                    expr ...)))))

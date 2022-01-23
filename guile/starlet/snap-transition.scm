@@ -25,6 +25,6 @@
   #:export (snap))
 
 (define (snap)
-  (make <transition-effect>
-        #:func (lambda (incoming-state clock)
-                 incoming-state)))
+  (make-transition
+    (incoming-state clock)
+    incoming-state))
