@@ -269,6 +269,22 @@
     (set-playback-state! pb 'running)))
 
 
+(define-method (update-state! (pb <starlet-playback>))
+  (when (and (get-pb-cue-clock pb)
+             (clock-expired? (get-pb-cue-clock pb))
+             (eq? 'running (atomic-box-ref (state-box pb))))
+    (when (eq? 'running (atomic-box-compare-and-swap! (state-box pb)
+                                                      'running
+                                                      'ready))
+      (run-hook (state-change-hook pb) 'ready)
+      (let ((st (get-preset-state (get-running-cue pb))))
+        (state-for-each
+          (lambda (fix attr val)
+            (set-in-state! pb fix attr (lambda () val)))
+          st))
+      (set-running-cue! pb #f))))
+
+
 (define-method (write (pb <starlet-playback>) port)
   (format port
           "#<<starlet-playback> state: ~a current-cue-number: ~a next-cue-index: ~a of ~a>"
