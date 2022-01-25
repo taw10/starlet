@@ -244,23 +244,22 @@
   (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
          (this-cue-state (get-tracked-state the-cue))
          (overlay-state (make-empty-state))
-         (cue-clock (get-cue-clock the-cue)))
+         (cue-clock (get-cue-clock the-cue))
+         (fade-time 0))
 
-    (atomically-overlay-state!
-      overlay-state
-      ((transition-func (get-transition-effect the-cue))
-       this-cue-state
-       cue-clock))
+    (receive
+      (overlay-part transition-time)
+      ((transition-func (get-transition-effect the-cue)) this-cue-state
+                                                         pb
+                                                         cue-clock)
+      (atomically-overlay-state!
+        overlay-state
+        overlay-part)
+      (set! fade-time (max fade-time transition-time)))
 
-    (for-each
-      (lambda (cue-part)
-        (atomically-overlay-state!
-          overlay-state
-          ((transition-func (get-transition-effect the-cue))
-           this-cue-state
-           cue-clock)))
-      (get-cue-parts the-cue))
+    ;; FIXME: Same, for each cue part
 
+    (set-clock-expiration-time! cue-clock fade-time)
     (atomically-overlay-state! pb overlay-state)
     (set-pb-cue-clock! pb cue-clock)
     (set-running-cue! pb the-cue)

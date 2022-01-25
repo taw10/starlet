@@ -117,10 +117,6 @@
                         params ...))))
 
 
-;; FIXME!
-(define (cue-total-time the-cue)
-  100)
-
 (define (cue-proc number . args)
   (receive
     (states transition-effects cue-parts rest)
@@ -145,8 +141,6 @@
                                cue-parts
                                (current-cue-clock))))
 
-        (set-clock-expiration-time! (current-cue-clock)
-                                    (cue-total-time the-cue))
         the-cue))))
 
 

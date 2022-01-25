@@ -21,10 +21,19 @@
 (define-module (starlet snap-transition)
   #:use-module (oop goops)
   #:use-module (starlet playback)
+  #:use-module (starlet state)
   #:use-module (starlet transition-effect)
   #:export (snap))
 
 (define (snap)
   (make-transition
-    (incoming-state clock)
-    incoming-state))
+    (incoming-state current-state clock)
+    (let ((overlay-state (make-empty-state)))
+      (state-for-each
+        (lambda (fix attr val)
+          (set-in-state! overlay-state
+                         fix
+                         attr
+                         (lambda () val)))
+        incoming-state)
+      (values overlay-state 0))))

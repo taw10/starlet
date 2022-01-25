@@ -39,7 +39,7 @@
 
 (define-syntax make-transition
   (syntax-rules ()
-    ((_ (a b) expr ...)
+    ((_ (a b c) expr ...)
      (make <transition-effect>
-           #:func (lambda (a b)
+           #:func (lambda (a b c)
                     expr ...)))))
