@@ -269,20 +269,13 @@
     (set-playback-state! pb 'running)))
 
 
-(define (print-playback pb)
-  (format #t "Playback ~a:\n" pb)
-  ;;(format #t "        Cue list ~a\n" (get-playback-cue-list pb))
-  (if (get-next-cue-index pb)
-    (if (< (get-next-cue-index pb)
-           (vector-length (get-playback-cue-list pb)))
-      (let ((the-cue (vector-ref (get-playback-cue-list pb)
-                                 (get-next-cue-index pb))))
-        (format #t "  Next cue index ~a (~a)\n"
-                (get-next-cue-index pb)
-                the-cue))
-      (format #t "  End of cue list.\n"))
-    (format #t "  Next cue index is unspecified.\n"))
-  *unspecified*)
+(define-method (write (pb <starlet-playback>) port)
+  (format port
+          "#<<starlet-playback> state: ~a current-cue-number: ~a next-cue-index: ~a of ~a>"
+          (atomic-box-ref (state-box pb))
+          (exact->inexact (get-playback-cue-number pb))
+          (get-next-cue-index pb)
+          (vector-length (get-playback-cue-list pb))))
 
 
 (define (reassert-current-cue! pb)
