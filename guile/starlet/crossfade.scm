@@ -20,7 +20,17 @@
 ;;
 (define-module (starlet crossfade)
   #:use-module (oop goops)
+  #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-26)
+  #:use-module (ice-9 exceptions)
   #:use-module (starlet playback)
+  #:use-module (starlet clock)
+  #:use-module (starlet cue-list)
+  #:use-module (starlet colours)
+  #:use-module (starlet fixture)
+  #:use-module (starlet state)
+  #:use-module (starlet transition-effect)
   #:export (crossfade))
 
 
@@ -163,41 +173,6 @@
                  clock))))
 
 
-(define (match-fix-attr attr-el fix attr)
-  (cond
-
-   ((fixture? attr-el)
-    (eq? attr-el fix))
-
-   ((and (pair? attr-el)
-         (fixture? (car attr-el))
-         (symbol? (cdr attr-el)))
-    (and (eq? (car attr-el) fix)
-         (eq? (cdr attr-el) attr)))
-
-   ((list? attr-el)
-    (and (memq fix attr-el)
-         (memq attr attr-el)))
-
-   (else #f)))
-
-
-(define (in-cue-part? cue-part fix attr)
-  (find (lambda (p) (match-fix-attr p fix attr))
-        (get-cue-part-attr-list cue-part)))
-
-
-(define (cue-part-fade-times the-cue fix attr)
-
-  (let ((the-cue-part
-         (find (lambda (p) (in-cue-part? p fix attr))
-               (get-cue-parts the-cue))))
-
-    (if (cue-part? the-cue-part)
-      (get-cue-part-fade-times the-cue-part)
-      (get-cue-fade-times the-cue))))
-
-
 (define (fade-start-val pb fix attr)
   (let ((val-in-pb (state-find fix attr pb)))
     (if (eq? val-in-pb 'no-value)
@@ -214,26 +189,6 @@
   (or (eq? a 'no-value)
       (and (number? a)
            (< a 1))))
-
-
-(define (longest-fade-time fade-times)
-  (max
-    (+ (get-fade-down-time fade-times)
-       (get-fade-down-delay fade-times))
-    (+ (get-fade-up-time fade-times)
-       (get-fade-up-delay fade-times))
-    (+ (get-fade-attr-time fade-times)
-       (get-fade-attr-delay fade-times))))
-
-
-;; Work out how long it will take before we can forget about this cue
-(define (cue-total-time the-cue)
-  (let ((fade-times (cons (get-cue-fade-times the-cue)
-                          (map get-cue-part-fade-times
-                               (get-cue-parts the-cue)))))
-    (fold max
-          0
-          (map longest-fade-time fade-times))))
 
 
 (define (fix-attr-eq fa1 fa2)
@@ -268,68 +223,54 @@
                          (make-exception-with-irritants type))))))
 
 
-(define (run-cue-index! pb cue-index)
-  (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
-         (this-cue-state (get-tracked-state the-cue))
-         (overlay-state (make-empty-state))
-         (cue-clock (get-cue-clock the-cue)))
+(define* (crossfade up-time
+                    down-time
+                    #:key
+                    (attr-time 0)
+                    (up-delay 0)
+                    (down-delay 0)
+                    (attr-delay 0))
+  (make-transition
+    (incoming-state current-state clock)
+    (let ((overlay-state (make-empty-state)))
+      (state-for-each
+        (lambda (fixture attr target-val)
 
-    (for-each
-      (lambda (fix-attr)
+          (let ((start-val (fade-start-val current-state fixture attr))
+                (up-clock (make-delayed-clock clock up-delay up-time))
+                (down-clock (make-delayed-clock clock down-delay down-time))
+                (attribute-clock (make-delayed-clock clock attr-delay attr-time)))
 
-        (let* ((fix (car fix-attr))
-               (attr (cdr fix-attr))
-               (fade-times (cue-part-fade-times the-cue fix attr))
-
-               ;; The values for fading
-               (start-val (fade-start-val pb fix attr))
-               (target-val (state-find fix attr this-cue-state))
-               ;; The clocks for things in this cue part
-               (up-clock (make-delayed-clock cue-clock
-                                             (get-fade-up-delay fade-times)
-                                             (get-fade-up-time fade-times)))
-
-               (down-clock (make-delayed-clock cue-clock
-                                               (get-fade-down-delay fade-times)
-                                               (get-fade-down-time fade-times)))
-
-               (attribute-clock (make-delayed-clock cue-clock
-                                                    (get-fade-attr-delay fade-times)
-                                                    (get-fade-attr-time fade-times))))
-
-          (if (intensity? attr)
+            (if (intensity? attr)
 
               ;; Intensity attribute
-              (set-in-state! overlay-state fix attr
+              (set-in-state! overlay-state fixture attr
                              (make-intensity-fade start-val
                                                   target-val
                                                   up-clock
                                                   down-clock))
 
               ;; Non-intensity attribute
-              (let ((attribute-obj (find-attr fix attr)))
+              (let ((attribute-obj (find-attr fixture attr)))
 
                 (unless attribute-obj
                   (raise-exception (make-exception
                                      (make-exception-with-message
                                        "Attribute not found")
                                      (make-exception-with-irritants
-                                       (list fix attr)))))
+                                       (list fixture attr)))))
 
                 (let* ((atype (get-attr-type attribute-obj))
                        (make-fade-func (make-fade-for-attribute-type atype)))
 
-                  (set-in-state! overlay-state fix attr
+                  (set-in-state! overlay-state fixture attr
                                  (make-fade-func start-val
                                                  target-val
                                                  attribute-clock)))))))
 
-      (fix-attrs-involved pb this-cue-state))
-
-    (atomically-overlay-state! pb overlay-state)
-    (set-pb-cue-clock! pb cue-clock)
-    (set-running-cue! pb the-cue)
-    (reset-clock! cue-clock)
-    (start-clock! cue-clock)
-    (set-playback-state! pb 'running)))
-
+        incoming-state)
+      (values overlay-state
+              (max
+                (+ up-time up-delay)
+                (+ down-time down-delay)
+                (+ attr-time attr-delay))))))

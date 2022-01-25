@@ -34,6 +34,7 @@
   #:use-module (starlet utils)
   #:use-module (starlet transition-effect)
   #:use-module (starlet snap-transition)
+  #:use-module (starlet crossfade)
   #:export (cue
             cue-part
             cue-list
@@ -47,7 +48,7 @@
             cue-index-to-number
             current-cue-clock
             read-cue-list-file)
-  #:re-export (snap))
+  #:re-export (snap crossfade))
 
 
 (define-record-type <cue-part>
