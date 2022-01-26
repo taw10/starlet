@@ -276,11 +276,14 @@
                                                       'running
                                                       'ready))
       (run-hook (state-change-hook pb) 'ready)
+
+      ;; Pre-set fixtures
       (let ((st (get-preset-state (get-running-cue pb))))
         (state-for-each
           (lambda (fix attr val)
             (set-in-state! pb fix attr (lambda () val)))
           st))
+
       (set-running-cue! pb #f))))
 
 
