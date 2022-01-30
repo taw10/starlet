@@ -141,19 +141,22 @@
   (set-running-cue! pb #f)
   (set-playback-state! pb 'ready)
 
-  ;; Set the actual state
-  (state-for-each
-    (lambda (fix attr val)
-      (set-in-state! pb fix attr (lambda () val)))
-    (get-tracked-state (vector-ref (get-playback-cue-list pb)
-                                   cue-index)))
+  (let ((the-cue (vector-ref (get-playback-cue-list pb)
+                             cue-index)))
+    ;; Set the actual state
+    (for-each
+      (lambda (part)
+        (state-for-each
+          (lambda (fix attr val)
+            (set-in-state! pb fix attr (lambda () val)))
+          (get-cue-part-state part)))
+      (get-cue-parts the-cue))
 
-  ;; Set the preset state on top
-  (state-for-each
-    (lambda (fix attr val)
-      (set-in-state! pb fix attr (lambda () val)))
-    (get-preset-state (vector-ref (get-playback-cue-list pb)
-                                  cue-index))))
+    ;; Set the preset state on top
+    (state-for-each
+      (lambda (fix attr val)
+        (set-in-state! pb fix attr (lambda () val)))
+      (get-preset-state the-cue))))
 
 
 (define (cut-to-cue-number! pb cue-number)
@@ -242,22 +245,23 @@
 
 (define (run-cue-index! pb cue-index)
   (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
-         (this-cue-state (get-tracked-state the-cue))
          (overlay-state (make-empty-state))
          (cue-clock (get-cue-clock the-cue))
          (fade-time 0))
 
-    (receive
-      (overlay-part transition-time)
-      ((transition-func (get-transition-effect the-cue)) this-cue-state
-                                                         pb
-                                                         cue-clock)
-      (atomically-overlay-state!
-        overlay-state
-        overlay-part)
-      (set! fade-time (max fade-time transition-time)))
-
-    ;; FIXME: Same, for each cue part
+    (for-each
+      (lambda (part)
+        (receive
+          (overlay-part transition-time)
+          ((transition-func (get-cue-part-transition part))
+           (get-cue-part-state part)
+           pb
+           cue-clock)
+          (atomically-overlay-state!
+            overlay-state
+            overlay-part)
+          (set! fade-time (max fade-time transition-time))))
+      (get-cue-parts the-cue))
 
     (set-clock-expiration-time! cue-clock fade-time)
     (atomically-overlay-state! pb overlay-state)

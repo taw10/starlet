@@ -1,7 +1,7 @@
 ;;
 ;; starlet/cue-list.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -41,9 +41,9 @@
             qnum
             get-cue-parts
             get-cue-clock
-            get-tracked-state
             get-preset-state
-            get-transition-effect
+            get-cue-part-state
+            get-cue-part-transition
             cue-number-to-index
             cue-index-to-number
             current-cue-clock
@@ -52,29 +52,23 @@
 
 
 (define-record-type <cue-part>
-  (make-cue-part attr-list transition)
+  (cue-part state transition)
   cue-part?
-  (attr-list    get-cue-part-attr-list)
+  (state        get-cue-part-state
+                set-cue-part-state!)
   (transition   get-cue-part-transition))
 
 
 (define-record-type <cue>
   (make-cue number
-            state
-            tracked-state
             preset-state
-            transition-effect
             track-intensities
             cue-parts
             cue-clock)
   cue?
   (number             get-cue-number)
-  (state              get-cue-state)
-  (tracked-state      get-tracked-state
-                      set-tracked-state!)
   (preset-state       get-preset-state
                       set-preset-state!)
-  (transition-effect  get-transition-effect)
   (track-intensities  track-intensities)
   (cue-parts          get-cue-parts)
   (cue-clock          get-cue-clock))
@@ -111,13 +105,6 @@
               (fix-attrs-in-state state)))
 
 
-(define-syntax cue-part
-  (syntax-rules ()
-    ((_ (fixtures ...) params ...)
-     (make-cue-part-obj (list fixtures ...)
-                        params ...))))
-
-
 (define (cue-proc number . args)
   (receive
     (states transition-effects cue-parts rest)
@@ -134,12 +121,12 @@
         (error "A cue can only contain one transition effect"))
 
       (let ((the-cue (make-cue (qnum number)
-                               (car states)
-                               #f   ;; tracked state, to be filled later
                                #f   ;; preset state, to be filled later
-                               (car transition-effects)
                                track-intensities
-                               cue-parts
+                               (cons
+                                 (cue-part (car states)
+                                           (car transition-effects))
+                                 cue-parts)
                                (current-cue-clock))))
 
         the-cue))))
@@ -161,8 +148,15 @@
                                  (apply-state prev-state)
                                  (unless (track-intensities the-cue)
                                    (blackout!))
-                                 (apply-state (get-cue-state the-cue)))))
-        (set-tracked-state! the-cue the-tracked-state)
+                                 (apply-state
+                                   (get-cue-part-state
+                                     (car (get-cue-parts the-cue)))))))
+        (set-cue-part-state! (car (get-cue-parts the-cue))
+                             the-tracked-state)
+        (for-each
+          (lambda (part)
+            (apply-state (get-cue-part-state part)))
+          (cdr (get-cue-parts the-cue)))
         the-tracked-state))
     (make-empty-state)
     the-cue-list))
@@ -174,29 +168,49 @@
            (< a 1))))
 
 
-(define (fixture-dark-in-state? fix state)
-  (dark? (state-find fix 'intensity state)))
+(define (fixture-dark-in-cue? fix the-cue)
+  (every
+    (lambda (part)
+      (dark? (state-find fix 'intensity (get-cue-part-state part))))
+    (get-cue-parts the-cue)))
+
+
+(define-syntax for-each-cue-part
+  (syntax-rules ()
+    ((_ the-cue (part) body ...)
+     (for-each
+       (lambda (part)
+         body ...)
+       (get-cue-parts the-cue)))))
+
+
+(define-syntax for-every-attr-in-cue
+  (syntax-rules ()
+    ((_ the-cue (fix attr val) body ...)
+     (for-each-cue-part
+       the-cue (part)
+       (state-for-each
+         (lambda (fix attr val)
+           body ...)
+         (get-cue-part-state part))))))
 
 
 (define (preset-all-cues! the-cue-list)
-  (vector-fold-right
-    (lambda (idx next-state the-cue)
-      (let ((preset-state (make-empty-state)))
-
-        (state-for-each
-          (lambda (fix attr val)
-            (unless (intensity? attr)
-              (when (fixture-dark-in-state? fix (get-tracked-state the-cue))
-                (set-in-state! preset-state fix attr val))))
-          next-state)
-
-        (set-preset-state! the-cue preset-state))
-
-      ;; Pass the raw state from this cue to the previous one
-      (get-cue-state the-cue))
-
-    (make-empty-state)
-    the-cue-list))
+  (let loop ((idx 0))
+    (let ((the-cue (vector-ref the-cue-list idx))
+          (next-cue (vector-ref the-cue-list (1+ idx)))
+          (preset-state (make-empty-state)))
+      (for-every-attr-in-cue
+        next-cue (fix attr val)
+        (unless (intensity? attr)
+          (when (fixture-dark-in-cue? fix the-cue)
+            (set-in-state! preset-state fix attr val))))
+      (set-preset-state! the-cue preset-state))
+    (if (< (+ 2 idx) (vector-length the-cue-list))
+      (loop (1+ idx))
+      (set-preset-state!
+        (vector-ref the-cue-list (1+ idx))
+        (make-empty-state)))))
 
 
 (define-syntax cue-list
