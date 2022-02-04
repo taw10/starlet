@@ -224,53 +224,57 @@
 
 
 (define* (crossfade up-time
-                    down-time
+                    #:optional
+                    inp-down-time
                     #:key
                     (attr-time 0)
                     (up-delay 0)
                     (down-delay 0)
                     (attr-delay 0))
-  (make-transition
-    (incoming-state current-state clock)
-    (let ((overlay-state (make-empty-state)))
-      (state-for-each
-        (lambda (fixture attr target-val)
+  (let ((down-time (if inp-down-time
+                     inp-down-time
+                     up-time)))
+    (make-transition
+      (incoming-state current-state clock)
+      (let ((overlay-state (make-empty-state)))
+        (state-for-each
+          (lambda (fixture attr target-val)
 
-          (let ((start-val (fade-start-val current-state fixture attr))
-                (up-clock (make-delayed-clock clock up-delay up-time))
-                (down-clock (make-delayed-clock clock down-delay down-time))
-                (attribute-clock (make-delayed-clock clock attr-delay attr-time)))
+            (let ((start-val (fade-start-val current-state fixture attr))
+                  (up-clock (make-delayed-clock clock up-delay up-time))
+                  (down-clock (make-delayed-clock clock down-delay down-time))
+                  (attribute-clock (make-delayed-clock clock attr-delay attr-time)))
 
-            (if (intensity? attr)
+              (if (intensity? attr)
 
-              ;; Intensity attribute
-              (set-in-state! overlay-state fixture attr
-                             (make-intensity-fade start-val
-                                                  target-val
-                                                  up-clock
-                                                  down-clock))
+                ;; Intensity attribute
+                (set-in-state! overlay-state fixture attr
+                               (make-intensity-fade start-val
+                                                    target-val
+                                                    up-clock
+                                                    down-clock))
 
-              ;; Non-intensity attribute
-              (let ((attribute-obj (find-attr fixture attr)))
+                ;; Non-intensity attribute
+                (let ((attribute-obj (find-attr fixture attr)))
 
-                (unless attribute-obj
-                  (raise-exception (make-exception
-                                     (make-exception-with-message
-                                       "Attribute not found")
-                                     (make-exception-with-irritants
-                                       (list fixture attr)))))
+                  (unless attribute-obj
+                    (raise-exception (make-exception
+                                       (make-exception-with-message
+                                         "Attribute not found")
+                                       (make-exception-with-irritants
+                                         (list fixture attr)))))
 
-                (let* ((atype (get-attr-type attribute-obj))
-                       (make-fade-func (make-fade-for-attribute-type atype)))
+                  (let* ((atype (get-attr-type attribute-obj))
+                         (make-fade-func (make-fade-for-attribute-type atype)))
 
-                  (set-in-state! overlay-state fixture attr
-                                 (make-fade-func start-val
-                                                 target-val
-                                                 attribute-clock)))))))
+                    (set-in-state! overlay-state fixture attr
+                                   (make-fade-func start-val
+                                                   target-val
+                                                   attribute-clock)))))))
 
-        incoming-state)
-      (values overlay-state
-              (max
-                (+ up-time up-delay)
-                (+ down-time down-delay)
-                (+ attr-time attr-delay))))))
+          incoming-state)
+        (values overlay-state
+                (max
+                  (+ up-time up-delay)
+                  (+ down-time down-delay)
+                  (+ attr-time attr-delay)))))))
