@@ -126,6 +126,7 @@
                                          cue-list)
                             #:cue-list-file cue-list-file)))
     (register-state! new-playback)
+    (cut-to-cue-index! new-playback 0)
     new-playback))
 
 
