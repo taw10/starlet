@@ -153,11 +153,12 @@
                                      (car (get-cue-parts the-cue)))))))
         (set-cue-part-state! (car (get-cue-parts the-cue))
                              the-tracked-state)
-        (for-each
-          (lambda (part)
-            (apply-state (get-cue-part-state part)))
-          (cdr (get-cue-parts the-cue)))
-        the-tracked-state))
+        (lighting-state
+          (apply-state the-tracked-state)
+          (for-each
+            (lambda (part)
+              (apply-state (get-cue-part-state part)))
+            (cdr (get-cue-parts the-cue))))))
     (make-empty-state)
     the-cue-list))
 
