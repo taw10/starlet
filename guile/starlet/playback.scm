@@ -46,7 +46,6 @@
             back!
             reload-cue-list!
             reassert-current-cue!
-            print-playback
             state-change-hook))
 
 
