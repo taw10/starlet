@@ -293,11 +293,11 @@
 
 (define-method (write (pb <starlet-playback>) port)
   (format port
-          "#<<starlet-playback> state: ~a current-cue-number: ~a next-cue-index: ~a of ~a>"
+          "#<<starlet-playback> state: ~a current-cue: ~a next-cue: ~a>"
           (atomic-box-ref (state-box pb))
           (exact->inexact (get-playback-cue-number pb))
-          (get-next-cue-index pb)
-          (vector-length (get-playback-cue-list pb))))
+          (exact->inexact (cue-index-to-number (get-playback-cue-list pb)
+                                               (get-next-cue-index pb)))))
 
 
 (define (reassert-current-cue! pb)
