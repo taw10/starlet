@@ -75,13 +75,15 @@
           (colour-type col)
           (colour-value col)))
 
+(define (three-sf n)
+  (/ (round (* (exact->inexact n) 10)) 10))
 
 (define-method (write (col <colour>) port)
   (let ((cmy (colour-as-cmy col)))
     (format port "(make-colour-cmy ~a ~a ~a)"
-            (cyan cmy)
-            (magenta cmy)
-            (yellow cmy))))
+            (three-sf (cyan cmy))
+            (three-sf (magenta cmy))
+            (three-sf (yellow cmy)))))
 
 
 (define (make-colour-cmy c m y)
