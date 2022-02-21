@@ -291,13 +291,23 @@
       (set-running-cue! pb #f))))
 
 
+(define (next-cue-number pb)
+  (let ((next-cue-index (get-next-cue-index pb))
+        (the-cue-list (get-playback-cue-list pb)))
+    (if (< next-cue-index (vector-length the-cue-list))
+      (exact->inexact
+        (cue-index-to-number
+          the-cue-list
+          next-cue-index))
+      'no-more-cues-in-list)))
+
+
 (define-method (write (pb <starlet-playback>) port)
   (format port
           "#<<starlet-playback> state: ~a current-cue: ~a next-cue: ~a>"
           (atomic-box-ref (state-box pb))
           (exact->inexact (get-playback-cue-number pb))
-          (exact->inexact (cue-index-to-number (get-playback-cue-list pb)
-                                               (get-next-cue-index pb)))))
+          (next-cue-number pb)))
 
 
 (define (reassert-current-cue! pb)
