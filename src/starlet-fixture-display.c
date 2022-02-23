@@ -55,6 +55,9 @@ struct fixture_display
 	double fixture_tile_width;
 	struct fixture *fixtures;
 	int n_fixtures;
+	double current_cue_number;
+	double scanout_rate;
+	char *playback_name;
 	GtkWidget *da;
 	ReplConnection *repl;
 	int shutdown;
@@ -146,6 +149,22 @@ static void draw_fixture(cairo_t *cr,
 }
 
 
+static void plot_text(cairo_t *cr, const char *text,
+                      PangoContext *pc, PangoFontDescription *fontdesc,
+                      double x, double y)
+{
+	PangoLayout *layout;
+
+	layout = pango_layout_new(pc);
+	pango_layout_set_text(layout, text, -1);
+	pango_layout_set_font_description(layout, fontdesc);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	cairo_move_to(cr, x, y);
+	pango_cairo_show_layout(cr, layout);
+	g_object_unref(layout);
+}
+
+
 static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display *fixd)
 {
 	int w, h;
@@ -153,10 +172,12 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	PangoContext *pc;
 	PangoFontDescription *fontdesc;
 	double x, y;
+	char tmp[128];
 
 	w = gtk_widget_get_allocated_width(widget);
 	h = gtk_widget_get_allocated_height(widget);
 	pc = gtk_widget_get_pango_context(widget);
+	fontdesc = pango_font_description_from_string("Comfortaa Bold 12");
 
 	/* Overall background */
 	if ( fixd->repl == NULL ) {
@@ -173,10 +194,24 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	w -= OVERALL_BORDER*2.0;
 	h -= OVERALL_BORDER*2.0;
 
+	/* Playback status */
+	cairo_save(cr);
+
+	if ( fixd->current_cue_number < 0.0 ) {
+		snprintf(tmp, 128, "Current cue doesn't exist!   "
+		                   "Scanout %.2f per second",
+		                   fixd->scanout_rate);
+	} else {
+		snprintf(tmp, 128, "Current cue number: %.2f     "
+		                   "Scanout %.2f per second",
+		                   fixd->current_cue_number, fixd->scanout_rate);
+	}
+	plot_text(cr, tmp, pc, fontdesc, 0.0, 0.0);
+	cairo_restore(cr);
+
 	/* Fixtures */
 	x = FIXTURE_BORDER;
-	y = FIXTURE_BORDER;
-	fontdesc = pango_font_description_from_string("Comfortaa Bold 12");
+	y = FIXTURE_BORDER + 40.0;
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
 		cairo_save(cr);
 		cairo_translate(cr, x, y);
@@ -211,6 +246,18 @@ static void shutdown_sig(GtkWidget *window, struct fixture_display *fixd)
 		repl_connection_close(fixd->repl);
 	}
 	fixd->shutdown = TRUE;
+}
+
+
+static void request_playback_status(struct fixture_display *fixd)
+{
+	char tmp[256];
+	snprintf(tmp, 256, "(list 'playback-status (list "
+	                   "(get-playback-cue-number %s)"
+	                   "scanout-freq"
+	                   "))",
+	                   fixd->playback_name);
+	repl_send(fixd->repl, tmp);
 }
 
 
@@ -305,6 +352,7 @@ static gboolean redraw_cb(gpointer data)
 		if ( !fixd->shutdown ) {
 			request_intensities(fixd);
 			request_selection(fixd);
+			request_playback_status(fixd);
 			redraw(fixd);
 		}
 		return G_SOURCE_CONTINUE;
@@ -500,6 +548,18 @@ static void handle_selection(struct fixture_display *fixd, SCM list)
 }
 
 
+static void handle_playback_status(struct fixture_display *fixd, SCM list)
+{
+	SCM cue_number = scm_list_ref(list, scm_from_int(0));
+	if ( scm_is_false(cue_number) ) {
+		fixd->current_cue_number = -1.0;
+	} else {
+		fixd->current_cue_number = scm_to_double(cue_number);
+	}
+	fixd->scanout_rate = scm_to_double(scm_list_ref(list, scm_from_int(1)));
+}
+
+
 static void process_line(SCM sexp, void *data)
 {
 	struct fixture_display *fixd = data;
@@ -514,6 +574,8 @@ static void process_line(SCM sexp, void *data)
 				handle_fixture_parameters(fixd, contents);
 			} else if ( symbol_eq(tag, "selection") ) {
 				handle_selection(fixd, contents);
+			} else if ( symbol_eq(tag, "playback-status") ) {
+				handle_playback_status(fixd, contents);
 			}
 		}
 	}
@@ -605,6 +667,7 @@ int main(int argc, char *argv[])
 	fixd.socket = socket;
 	fixd.verbose = verbose;
 	fixd.repl = NULL;
+	fixd.playback_name = strdup("pb");
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
