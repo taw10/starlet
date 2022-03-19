@@ -22,13 +22,26 @@
   #:use-module (oop goops)
   #:use-module (starlet playback)
   #:use-module (starlet state)
+  #:use-module (starlet fixture)
   #:use-module (starlet transition-effect)
   #:export (snap))
+
+
+(define (blank-everything in-state)
+  (let ((out-state (make-empty-state)))
+    (state-for-each
+      (lambda (fix attr val)
+        (if (intensity? attr)
+          (set-in-state! out-state fix attr (lambda () 0.0))
+          (set-in-state! out-state fix attr (lambda () 'no-value))))
+      in-state)
+    out-state))
+
 
 (define (snap)
   (make-transition
     (incoming-state current-state clock)
-    (let ((overlay-state (make-empty-state)))
+    (let ((overlay-state (blank-everything current-state)))
       (state-for-each
         (lambda (fix attr val)
           (set-in-state! overlay-state
