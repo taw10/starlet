@@ -191,26 +191,6 @@
            (< a 1))))
 
 
-(define (fix-attr-eq fa1 fa2)
-  (and (eq? (car fa1) (car fa2))
-       (eq? (cdr fa1) (cdr fa2))))
-
-
-(define (fix-attrs-in-state state)
-  (state-map (lambda (fix attr val) (cons fix attr))
-             state))
-
-
-(define (add-fix-attrs-to-list state old-list)
-  (lset-union fix-attr-eq
-              old-list
-              (fix-attrs-in-state state)))
-
-
-(define (fix-attrs-involved . states)
-  (fold add-fix-attrs-to-list '() states))
-
-
 (define (blank-everything in-state down-clock)
   (let ((out-state (make-empty-state)))
     (state-for-each
