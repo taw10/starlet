@@ -680,7 +680,7 @@ int main(int argc, char *argv[])
 	gtk_widget_grab_focus(GTK_WIDGET(da));
 	gtk_widget_show_all(mainwindow);
 
-	g_timeout_add(50, redraw_cb, &fixd);
+	g_timeout_add(200, redraw_cb, &fixd);
 	g_timeout_add(1000, try_connect_cb, &fixd);
 
 	gtk_main();
