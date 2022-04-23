@@ -42,6 +42,7 @@
             intensity?
 
             scale-to-range
+            scale-and-clamp-to-range
             round-dmx
             percent->dmxval8
             percent->dmxval16))
@@ -202,3 +203,16 @@
         (/ (- val (car orig-range))
            (range orig-range)))))
 
+
+(define (clamp-to-range val val1 val2)
+  (let ((minval (min val1 val2))
+        (maxval (max val1 val2)))
+  (max minval
+       (min val maxval))))
+
+;; Like scale-to-range, but result is clamped within dest-range
+(define (scale-and-clamp-to-range val orig-range dest-range)
+  (clamp-to-range
+    (scale-to-range val orig-range dest-range)
+    (car dest-range)
+    (cadr dest-range)))
