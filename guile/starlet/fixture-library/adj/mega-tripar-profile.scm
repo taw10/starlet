@@ -19,7 +19,6 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library adj mega-tripar-profile)
-  #:use-module (oop goops)
   #:use-module (starlet fixture)
   #:use-module (starlet colours)
   #:export (<adj-mega-tripar-profile-3ch>
@@ -28,14 +27,16 @@
 
 ;; 3 channel mode (RGB direct control)
 
-(define-class <adj-mega-tripar-profile-3ch> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-colour 'colour white))))
+(define-fixture
 
-(define-method (scanout-fixture (fixture <adj-mega-tripar-profile-3ch>)
-                                get-attr set-chan8 set-chan16)
+  <adj-mega-tripar-profile-3ch>
+
+  (list
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-colour 'colour white))
+
+  (get-attr set-chan8)
+
   (let ((intensity (/ (get-attr 'intensity) 100))
         (rgb (colour-as-rgb (get-attr 'colour))))
     (set-chan8 1 (percent->dmxval8 (* intensity (car rgb))))
@@ -45,17 +46,18 @@
 
 ;; 4 channel mode (RGB + separate intensity)
 
-(define-class <adj-mega-tripar-profile-4ch> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-colour 'colour white))))
+(define-fixture
 
-(define-method (scanout-fixture (fixture <adj-mega-tripar-profile-4ch>)
-                                get-attr set-chan8 set-chan16)
-  (let ((intensity (/ (get-attr 'intensity) 100))
-        (rgb (colour-as-rgb (get-attr 'colour))))
-    (set-chan8 1 (percent->dmxval8 intensity))
+  <adj-mega-tripar-profile-4ch>
+
+  (list
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-colour 'colour white))
+
+  (get-attr set-chan8)
+
+  (let ((rgb (colour-as-rgb (get-attr 'colour))))
+    (set-chan8 1 (percent->dmxval8 (get-attr 'intensity)))
     (set-chan8 2 (percent->dmxval8 (car rgb)))
     (set-chan8 3 (percent->dmxval8 (cadr rgb)))
     (set-chan8 4 (percent->dmxval8 (caddr rgb)))))

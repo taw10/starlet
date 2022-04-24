@@ -19,27 +19,22 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library stairville octagon-theater-cw-ww)
-  #:use-module (oop goops)
   #:use-module (starlet fixture)
-  #:use-module (starlet colours)
   #:export (<stairville-octagon-theater-cw-ww>))
 
+(define-fixture
 
-(define-class <stairville-octagon-theater-cw-ww> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-continuous 'colour-temperature '(2800 6400) 4600))))
+  <stairville-octagon-theater-cw-ww>
 
+  (list
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-continuous 'colour-temperature '(2800 6400) 4600))
 
-(define-method (scanout-fixture (fixture <stairville-octagon-theater-cw-ww>)
-                                get-attr set-chan8 set-chan16)
+  (get-attr set-chan8 set-chan16)
 
-  (let ((intensity (get-attr 'intensity))
-        (coltemp (get-attr 'colour-temperature)))
+  (let ((coltemp (get-attr 'colour-temperature)))
     (set-chan8 1 (scale-and-clamp-to-range coltemp '(2800 6400) '(0 255)))
-    (set-chan8 2 (scale-and-clamp-to-range coltemp '(2800 6400) '(255 0)))
-    (set-chan8 3 0)  ;; Strobe
-    (set-chan8 4 0)  ;; Mode (0-15 = direct control)
-    (set-chan8 5 (percent->dmxval8 intensity))))
-
+    (set-chan8 2 (scale-and-clamp-to-range coltemp '(2800 6400) '(255 0))))
+  (set-chan8 3 0)  ;; Strobe
+  (set-chan8 4 0)  ;; Mode (0-15 = direct control)
+  (set-chan8 5 (percent->dmxval8 (get-attr 'intensity))))
