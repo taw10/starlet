@@ -21,6 +21,7 @@
 (define-module (starlet fixture)
   #:use-module (starlet colours)
   #:use-module (oop goops)
+  #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
   #:export (<fixture>
             get-fixture-name
@@ -151,6 +152,13 @@
 
 (define-method (find-attr (fix <fixture>) (attr-name <colour-component-id>))
   (find-attr fix 'colour))
+
+
+(define-method (find-attr fix attr-name)
+  (raise-exception
+    (make-exception
+      (make-exception-with-message "Invalid parameters")
+      (make-exception-with-irritants fix))))
 
 
 (define-method (get-attr-home-val (fix <fixture>) (attr <symbol>))
