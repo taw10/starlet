@@ -45,7 +45,9 @@
             scale-and-clamp-to-range
             round-dmx
             percent->dmxval8
-            percent->dmxval16))
+            percent->dmxval16
+
+            define-fixture))
 
 
 (define-class <fixture-attribute> (<object>)
@@ -216,3 +218,35 @@
     (scale-to-range val orig-range dest-range)
     (car dest-range)
     (cadr dest-range)))
+
+
+(define-syntax define-fixture
+  (syntax-rules ()
+
+    ((_ classname
+        attrs
+        (get-attr set-chan8)
+        scanout-code ...)
+
+     (begin
+       (define-class classname (<fixture>)
+         (attributes #:init-form attrs))
+
+       (define-method (scanout-fixture (fixture classname)
+                                       get-attr set-chan8 dummy)
+
+         scanout-code ...)))
+
+    ((_ classname
+        attrs
+        (get-attr set-chan8 set-chan16)
+        scanout-code ...)
+
+     (begin
+       (define-class classname (<fixture>)
+         (attributes #:init-form attrs))
+
+       (define-method (scanout-fixture (fixture classname)
+                                       get-attr set-chan8 set-chan16)
+
+         scanout-code ...)))))
