@@ -62,15 +62,12 @@
 
 
 (define (flatten-sublists l)
-
-  (define (listify a)
-    (if (list? a)
-        a
-        (list a)))
-
-  (fold (lambda (a prev)
-          (append prev (listify a)))
-        '() l))
+  (fold
+    (lambda (el prev)
+      (if (list? el)
+        (append (flatten-sublists el) prev)
+        (cons el prev)))
+    '() l))
 
 
 (define (more-than-one a)
