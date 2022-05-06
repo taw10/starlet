@@ -19,6 +19,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library stairville octagon-theater-cw-ww)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
   #:use-module (starlet utils)
   #:export (<stairville-octagon-theater-cw-ww>))
@@ -27,11 +28,9 @@
 
   <stairville-octagon-theater-cw-ww>
 
-  (list
+  (fixture-attributes
     (attr-continuous 'intensity '(0 100) 0)
-    (attr-continuous 'colour-temperature '(2800 6400) 4600))
-
-  (get-attr set-chan8 set-chan16)
+    (attr-continuous 'colour-temperature '(2800 6400) 3200))
 
   (let ((coltemp (get-attr 'colour-temperature)))
     (set-chan8 1 (scale-and-clamp-to-range coltemp '(2800 6400) '(0 255)))

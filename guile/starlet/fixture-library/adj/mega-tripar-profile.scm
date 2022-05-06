@@ -19,6 +19,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library adj mega-tripar-profile)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
@@ -32,11 +33,9 @@
 
   <adj-mega-tripar-profile-3ch>
 
-  (list
+  (fixture-attributes
     (attr-continuous 'intensity '(0 100) 0)
     (attr-colour 'colour white))
-
-  (get-attr set-chan8)
 
   (let ((intensity (/ (get-attr 'intensity) 100))
         (rgb (colour-as-rgb (get-attr 'colour))))
@@ -51,11 +50,9 @@
 
   <adj-mega-tripar-profile-4ch>
 
-  (list
+  (fixture-attributes
     (attr-continuous 'intensity '(0 100) 0)
     (attr-colour 'colour white))
-
-  (get-attr set-chan8)
 
   (let ((rgb (colour-as-rgb (get-attr 'colour))))
     (set-chan8 1 (percent->dmxval8 (get-attr 'intensity)))

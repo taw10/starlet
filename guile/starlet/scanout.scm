@@ -35,7 +35,11 @@
             total-num-attrs
             register-state!
             current-value
-            patched-fixture-names))
+            patched-fixture-names
+            get-attr
+            set-chan8
+            set-chan16
+            scanout-fixture))
 
 
 ;; The list of patched fixtures
@@ -46,6 +50,9 @@
 
 ;; Association list of names to states
 (define state-names (make-atomic-box '()))
+
+;; Method for scanning out fixtures
+(define-generic scanout-fixture)
 
 
 (define (patched-fixture-names)
@@ -202,51 +209,72 @@
 
 (define scanout-freq 0)
 (define ola-thread #f)
+(define current-scanout-fixture (make-parameter #f))
+(define current-scanout-universe (make-parameter #f))
+(define current-scanout-addr (make-parameter #f))
+
+
+(define (get-attr attr-name)
+  (current-value
+    (current-scanout-fixture)
+    attr-name))
+
+
+(define (set-dmx universe addr value)
+  (ensure-number value (list universe addr value))
+
+  ;; Create DMX array for universe if it doesn't exist already
+  (set-ola-dmx-buffer! universe
+                       (- addr 1)              ; OLA indexing starts from zero
+                       (round-dmx value)))
+
+
+(define (set-chan8 relative-channel-number value)
+  (ensure-number
+    value
+    (list (current-scanout-fixture)
+          relative-channel-number
+          value))
+  (set-dmx
+    (current-scanout-universe)
+    (+ (current-scanout-addr)
+       relative-channel-number
+       -1)
+    value))
+
+
+(define (set-chan16 relative-channel-number value)
+  (ensure-number
+    value
+    (list (current-scanout-fixture)
+          relative-channel-number
+          value))
+  (set-chan8 relative-channel-number (msb value))
+  (set-chan8 (+ relative-channel-number 1) (lsb value)))
+
 
 (define (scanout-loop ola-client start-time count previous-universes)
 
   (let ((universes '()))
-
-    ;; Helper function for scanout functions to set individual DMX values
-    (define (set-dmx universe addr value)
-      (ensure-number value (list universe addr value))
-
-      ;; Create DMX array for universe if it doesn't exist already
-      (unless (assq universe universes)
-        (set! universes (acons universe
-                               (make-ola-dmx-buffer)
-                               universes)))
-
-      (set-ola-dmx-buffer! (assq-ref universes universe)
-                           (- addr 1)                   ; OLA indexing starts from zero
-                           (round-dmx value)))
 
     (for-each update-state! (atomic-box-ref state-list))
 
     (for-each
       (lambda (fix)
 
-        (let ((univ (get-fixture-universe fix))
-              (addr (get-fixture-addr fix)))
+        ;; Ensure the DMX array exists for this fixture's universe
+        (unless (assq (get-fixture-universe fix) universes)
+          (set! universes (acons (get-fixture-universe fix)
+                                 (make-ola-dmx-buffer)
+                                 universes)))
 
-          ;; Helper function to get a value for this
-          ;; fixture in the current state
-          (define (get-attr attr-name)
-            (current-value fix attr-name))
-
-          ;; Helper function to set 8-bit DMX value
-          (define (set-chan relative-channel-number value)
-            (ensure-number value (list fix relative-channel-number value))
-            (set-dmx univ (+ addr relative-channel-number -1) value))
-
-          ;; Helper function to set 16-bit DMX value
-          (define (set-chan-16bit relative-channel-number value)
-            (ensure-number value (list fix relative-channel-number value))
-            (set-chan relative-channel-number (msb value))
-            (set-chan (+ relative-channel-number 1) (lsb value)))
-
-          (scanout-fixture fix get-attr set-chan set-chan-16bit)))
-
+        (parameterize
+          ((current-scanout-fixture fix)
+           (current-scanout-universe (assq-ref
+                                       universes
+                                       (get-fixture-universe fix)))
+           (current-scanout-addr (get-fixture-addr fix)))
+          (scanout-fixture fix)))
       (atomic-box-ref fixtures))
 
     ;; Send everything to OLA

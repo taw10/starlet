@@ -19,6 +19,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library generic dimmer)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
   #:use-module (starlet utils)
   #:export (<generic-dimmer>))
@@ -27,10 +28,8 @@
 
   <generic-dimmer>
 
-  (list
+  (fixture-attributes
     (attr-continuous 'intensity '(0 100) 0))
-
-  (get-attr set-chan8)
 
   (set-chan8 1 (percent->dmxval8 (get-attr 'intensity))))
 

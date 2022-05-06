@@ -31,18 +31,18 @@
             get-fixture-attrs
             find-attr
             fixture?
-            scanout-fixture
 
             attr-continuous
             attr-list
             attr-colour
+            define-fixture
+
             get-attr-type
             get-attr-range
             get-attr-home-val
             continuous-attribute?
             colour-attribute?
-            intensity?
-            define-fixture))
+            intensity?))
 
 
 (define-class <fixture-attribute> (<object>)
@@ -95,9 +95,6 @@
     #:init-value (lambda (universe start-addr value set-dmx) #f)
     #:init-keyword #:scanout-func
     #:getter get-scanout-func))
-
-
-(define-generic scanout-fixture)
 
 
 (define-syntax attr-continuous
@@ -183,32 +180,14 @@
 
 
 (define-syntax define-fixture
-  (syntax-rules ()
+  (syntax-rules (fixture-attributes)
 
     ((_ classname
-        attrs
-        (get-attr set-chan8)
+        (fixture-attributes attr ...)
         scanout-code ...)
 
      (begin
        (define-class classname (<fixture>)
-         (attributes #:init-form attrs))
-
-       (define-method (scanout-fixture (fixture classname)
-                                       get-attr set-chan8 dummy)
-
-         scanout-code ...)))
-
-    ((_ classname
-        attrs
-        (get-attr set-chan8 set-chan16)
-        scanout-code ...)
-
-     (begin
-       (define-class classname (<fixture>)
-         (attributes #:init-form attrs))
-
-       (define-method (scanout-fixture (fixture classname)
-                                       get-attr set-chan8 set-chan16)
-
+         (attributes #:init-form (list attr ...)))
+       (define-method (scanout-fixture (fixture classname))
          scanout-code ...)))))
