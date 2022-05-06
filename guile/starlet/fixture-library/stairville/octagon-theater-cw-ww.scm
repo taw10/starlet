@@ -20,6 +20,7 @@
 ;;
 (define-module (starlet fixture-library stairville octagon-theater-cw-ww)
   #:use-module (starlet fixture)
+  #:use-module (starlet utils)
   #:export (<stairville-octagon-theater-cw-ww>))
 
 (define-fixture

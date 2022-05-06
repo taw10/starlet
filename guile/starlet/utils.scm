@@ -21,6 +21,7 @@
 (define-module (starlet utils)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-8)
+  #:use-module (ice-9 exceptions)
   #:export (print-hash-table
             copy-hash-table
             in-range
@@ -28,7 +29,15 @@
             flatten-sublists
             more-than-one
             hirestime
-            categorize))
+            categorize
+            lsb
+            msb
+            ensure-number
+            round-dmx
+            scale-to-range
+            scale-and-clamp-to-range
+            percent->dmxval8
+            percent->dmxval16))
 
 
 (define (print-hash-table ht)
@@ -96,3 +105,57 @@
 
 (define (categorize items . predicates)
   (apply values (categorize-rec predicates items '())))
+
+
+(define (msb val)
+  (round-dmx (euclidean-quotient val 256)))
+
+(define (lsb val)
+  (round-dmx (euclidean-remainder val 256)))
+
+
+(define (round-dmx a)
+  (inexact->exact
+   (min 255 (max 0 (round a)))))
+
+
+(define (ensure-number value irritating)
+  (unless (number? value)
+    (raise-exception (make-exception
+                       (make-exception-with-message "Value is not a number")
+                       (make-exception-with-irritants irritating)))))
+
+
+(define (percent->dmxval8 val)
+  (round-dmx
+   (scale-to-range val '(0 100) '(0 255))))
+
+
+(define (percent->dmxval16 val)
+  (scale-to-range val '(0 100) '(0 65535)))
+
+
+(define (scale-to-range val orig-range dest-range)
+
+  (define (range r)
+    (- (cadr r) (car r)))
+
+  (+ (car dest-range)
+     (* (range dest-range)
+        (/ (- val (car orig-range))
+           (range orig-range)))))
+
+
+(define (clamp-to-range val val1 val2)
+  (let ((minval (min val1 val2))
+        (maxval (max val1 val2)))
+  (max minval
+       (min val maxval))))
+
+
+;; Like scale-to-range, but result is clamped within dest-range
+(define (scale-and-clamp-to-range val orig-range dest-range)
+  (clamp-to-range
+    (scale-to-range val orig-range dest-range)
+    (car dest-range)
+    (cadr dest-range)))

@@ -20,6 +20,7 @@
 ;;
 (define-module (starlet fixture-library adj mega-tripar-profile)
   #:use-module (starlet fixture)
+  #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<adj-mega-tripar-profile-3ch>
              <adj-mega-tripar-profile-4ch>))

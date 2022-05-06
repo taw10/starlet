@@ -194,24 +194,10 @@
                                (list new-state)))))
 
 
-(define (msb val)
-  (round-dmx (euclidean-quotient val 256)))
-
-(define (lsb val)
-  (round-dmx (euclidean-remainder val 256)))
-
-
 (define (send-to-ola ola-client universe-buffer-pair)
   (let ((uni (car universe-buffer-pair))
         (buf (cdr universe-buffer-pair)))
   (send-streaming-dmx-data! ola-client uni buf)))
-
-
-(define (ensure-number value irritating)
-  (unless (number? value)
-    (raise-exception (make-exception
-                       (make-exception-with-message "Value is not a number")
-                       (make-exception-with-irritants irritating)))))
 
 
 (define scanout-freq 0)

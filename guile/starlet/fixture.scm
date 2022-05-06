@@ -20,6 +20,7 @@
 ;;
 (define-module (starlet fixture)
   #:use-module (starlet colours)
+  #:use-module (starlet utils)
   #:use-module (oop goops)
   #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
@@ -41,13 +42,6 @@
             continuous-attribute?
             colour-attribute?
             intensity?
-
-            scale-to-range
-            scale-and-clamp-to-range
-            round-dmx
-            percent->dmxval8
-            percent->dmxval16
-
             define-fixture))
 
 
@@ -186,46 +180,6 @@
 (define (colour-attribute? aobj)
   (eq? 'colour
        (get-attr-type aobj)))
-
-
-;; Helper functions for fixture scanout routines
-(define (percent->dmxval8 val)
-  (round-dmx
-   (scale-to-range val '(0 100) '(0 255))))
-
-
-(define (percent->dmxval16 val)
-  (scale-to-range val '(0 100) '(0 65535)))
-
-
-(define (round-dmx a)
-  (inexact->exact
-   (min 255 (max 0 (round a)))))
-
-
-(define (scale-to-range val orig-range dest-range)
-
-  (define (range r)
-    (- (cadr r) (car r)))
-
-  (+ (car dest-range)
-     (* (range dest-range)
-        (/ (- val (car orig-range))
-           (range orig-range)))))
-
-
-(define (clamp-to-range val val1 val2)
-  (let ((minval (min val1 val2))
-        (maxval (max val1 val2)))
-  (max minval
-       (min val maxval))))
-
-;; Like scale-to-range, but result is clamped within dest-range
-(define (scale-and-clamp-to-range val orig-range dest-range)
-  (clamp-to-range
-    (scale-to-range val orig-range dest-range)
-    (car dest-range)
-    (cadr dest-range)))
 
 
 (define-syntax define-fixture
