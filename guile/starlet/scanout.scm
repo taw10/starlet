@@ -282,12 +282,12 @@
 
     ;; Update scanout rate every 1000 cycles
     (if (eq? count 100)
-        (begin
-          (set! scanout-freq
-            (exact->inexact (/ 100
-                               (- (hirestime) start-time))))
-          (scanout-loop ola-client (hirestime) 0 universes))
-        (scanout-loop ola-client start-time (+ count 1) universes))))
+      (begin
+        (set! scanout-freq
+          (exact->inexact (/ 100
+                             (- (hirestime) start-time))))
+        (scanout-loop ola-client (hirestime) 0 universes))
+      (scanout-loop ola-client start-time (+ count 1) universes))))
 
 
 (define (start-ola-output)
