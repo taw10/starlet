@@ -131,10 +131,10 @@ Documentation index
 
 * [Patching fixtures](docs/patching.rst)
 * [The fixture display tool](docs/fixture-display.rst)
+* [Defining a new type of fixture](docs/new-fixture.rst)
 * More to come:
   - Basic control of attributes, building states
   - Cue lists
-  - Defining a new fixture type
   - Using physical controls via MIDI
 
 
