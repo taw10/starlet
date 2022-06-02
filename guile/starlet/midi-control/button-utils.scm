@@ -22,6 +22,7 @@
   #:use-module (starlet midi-control base)
   #:use-module (starlet state)
   #:use-module (starlet playback)
+  #:use-module (starlet utils)
   #:export (make-go-button
             make-stop-button
             make-back-button
@@ -31,11 +32,18 @@
 (define* (make-go-button controller pb button
                          #:key
                          (ready-note #f)
-                         (pause-note #f))
-  (register-midi-note-callback!
-    controller
-    #:note-number button
-    #:func (lambda () (go! pb)))
+                         (pause-note #f)
+                         (min-time-between-presses 0.2))
+  (let ((time-last-press 0))
+    (register-midi-note-callback!
+      controller
+      #:note-number button
+      #:func (lambda ()
+               (let ((time-this-press (hirestime)))
+                 (if (> time-this-press (+ time-last-press min-time-between-presses))
+                   (go! pb)
+                   (display "Too soon after last press!\n"))
+                 (set! time-last-press time-this-press)))))
 
   (when (or ready-note pause-note)
     (add-hook!
