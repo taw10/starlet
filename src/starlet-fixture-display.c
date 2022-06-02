@@ -52,7 +52,6 @@ struct fixture
 
 struct fixture_display
 {
-	double fixture_tile_width;
 	struct fixture *fixtures;
 	int n_fixtures;
 	double current_cue_number;
@@ -66,16 +65,35 @@ struct fixture_display
 };
 
 
+static void show_vertical_center_log(cairo_t *cr, PangoLayout *layout,
+                                     double x, double h)
+{
+	int layw, layh;
+	pango_layout_get_pixel_size(layout, &layw, &layh);
+	cairo_move_to(cr, x, (h-layh)/2.0);
+	pango_cairo_show_layout(cr, layout);
+}
+
+
 static void draw_fixture(cairo_t *cr,
                          PangoContext *pc,
                          PangoFontDescription *fontdesc,
-                         double w,
                          struct fixture_display *fixd,
-                         struct fixture *fix)
+                         struct fixture *fix,
+                         double *pw, double *ph)
 {
 	PangoLayout *layout;
-	const double h = 3.0/2.0*w;
+	double w = 180.0;
+	const double lh = 20.0;
+	const double inner_margin = 3.0;
+	int n_lines = 2;
 
+	double h = n_lines * lh + 2*inner_margin;
+
+	*pw = w;
+	*ph = h;
+
+	cairo_save(cr);
 	/* Pan/tilt (underneath rectangle) */
 //	if ( fix->cls->attributes & PANTILT ) {
 //
@@ -96,42 +114,40 @@ static void draw_fixture(cairo_t *cr,
 //
 //	}
 
-	cairo_rectangle(cr, 0.0, 0.0, w, h);
+	cairo_rectangle(cr, 0.5, 0.5, w, h);
 	if ( fix->selected ) {
-		cairo_set_source_rgba(cr, 0.3, 0.3, 0.9, 0.9);
+		cairo_set_source_rgba(cr, 0.3, 0.5, 0.2, 1.0);
+		cairo_fill_preserve(cr);
+		cairo_set_line_width(cr, 2.0);
+		cairo_set_source_rgb(cr, 0.0, 1.0, 0.0);
+		cairo_stroke(cr);
 	} else {
-		cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.9);
+		cairo_set_source_rgba(cr, 0.0, 0.0, 0.0, 1.0);
+		cairo_fill_preserve(cr);
+		cairo_set_line_width(cr, 1.0);
+		cairo_set_source_rgb(cr, 0.0, 0.6, 0.0);
+		cairo_stroke(cr);
 	}
-	cairo_fill_preserve(cr);
-	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-	cairo_set_line_width(cr, 1.0);
-	cairo_stroke(cr);
+
+	/* Margin inside fixture rectangle */
+	cairo_translate(cr, inner_margin, inner_margin);
+	w -= 2.0*inner_margin;
+	h -= 2.0*inner_margin;
 
 	/* Label */
 	layout = pango_layout_new(pc);
 	pango_layout_set_text(layout, fix->label, -1);
-	pango_layout_set_width(layout, (w*PANGO_SCALE)-4.0);
-	pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
+	pango_layout_set_height(layout, lh*PANGO_SCALE);
 	pango_layout_set_font_description(layout, fontdesc);
 	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-	cairo_move_to(cr, 0.0, 2.0);
-	pango_cairo_show_layout(cr, layout);
+	show_vertical_center_log(cr, layout, 0.0, lh);
 	g_object_unref(layout);
+	cairo_translate(cr, 0.0, lh);
 
-	/* Intensity */
-	if ( fix->intensity >= 0.0 ) {
-		char tmp[32];
-		snprintf(tmp, 32, "%.0f %%", fix->intensity);
-		layout = pango_layout_new(pc);
-		pango_layout_set_text(layout, tmp, -1);
-		pango_layout_set_width(layout, (w*PANGO_SCALE)-4.0);
-		pango_layout_set_alignment(layout, PANGO_ALIGN_CENTER);
-		pango_layout_set_font_description(layout, fontdesc);
-		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-		cairo_move_to(cr, 0.0, 25.0);
-		pango_cairo_show_layout(cr, layout);
-		g_object_unref(layout);
-	}
+	/* Colour */
+	cairo_rectangle(cr, 1.0, 0.0, w*0.25, lh);
+	cairo_set_source_rgba(cr, fix->rgb[0], fix->rgb[1], fix->rgb[2], 1.0);
+	cairo_fill(cr);
 
 	/* Mimic */
 	cairo_set_source_rgba(cr,
@@ -139,13 +155,27 @@ static void draw_fixture(cairo_t *cr,
 	                      fix->intensity * fix->rgb[1] / 100.0,
 	                      fix->intensity * fix->rgb[2] / 100.0,
 	                      1.0);
-	cairo_rectangle(cr, 3.0, 2.0*h/3.0-3.0, w-6.0, h/3.0);
+	cairo_rectangle(cr, w*0.25+2.0, 0.0, w*0.75-2.0, lh);
 	cairo_fill(cr);
 
-	/* Colour */
-	cairo_rectangle(cr, 3.0, 4.0*h/8.0-3.0, w-6.0, h/8.0);
-	cairo_set_source_rgba(cr, fix->rgb[0], fix->rgb[1], fix->rgb[2], 1.0);
-	cairo_fill(cr);
+	/* Intensity */
+	if ( fix->intensity >= 0.0 ) {
+		char tmp[32];
+		snprintf(tmp, 32, "%.0f%%", fix->intensity);
+		layout = pango_layout_new(pc);
+		pango_layout_set_text(layout, tmp, -1);
+		pango_layout_set_height(layout, lh*PANGO_SCALE);
+		pango_layout_set_font_description(layout, fontdesc);
+		if ( fix->intensity < 50.0 ) {
+			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		} else {
+			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+		}
+		show_vertical_center_log(cr, layout, w*0.3, lh);
+		g_object_unref(layout);
+	}
+
+	cairo_restore(cr);
 }
 
 
@@ -177,7 +207,7 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	w = gtk_widget_get_allocated_width(widget);
 	h = gtk_widget_get_allocated_height(widget);
 	pc = gtk_widget_get_pango_context(widget);
-	fontdesc = pango_font_description_from_string("Comfortaa Bold 12");
+	fontdesc = pango_font_description_from_string("Sans 10");
 
 	/* Overall background */
 	if ( fixd->repl == NULL ) {
@@ -185,7 +215,7 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 		cairo_paint(cr);
 		return FALSE;
 	} else {
-		cairo_set_source_rgb(cr, 0.0, 0.0, 0.2);
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
 		cairo_paint(cr);
 	}
 
@@ -210,18 +240,20 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	cairo_restore(cr);
 
 	/* Fixtures */
-	x = FIXTURE_BORDER;
-	y = FIXTURE_BORDER + 40.0;
+	x = 0.0;
+	y = 40.0;
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		double fw, fh;
 		cairo_save(cr);
 		cairo_translate(cr, x, y);
-		draw_fixture(cr, pc, fontdesc, fixd->fixture_tile_width,
-		             fixd, &fixd->fixtures[i]);
+		draw_fixture(cr, pc, fontdesc, fixd, &fixd->fixtures[i],
+		             &fw, &fh);
 		cairo_restore(cr);
-		x += fixd->fixture_tile_width + FIXTURE_BORDER*2;
-		if ( x + fixd->fixture_tile_width + FIXTURE_BORDER*2 > w ) {
-			x = FIXTURE_BORDER;
-			y += fixd->fixture_tile_width*3.0/2.0 + FIXTURE_BORDER*2;
+		x += fw + FIXTURE_BORDER;
+		if ( x + fw > w) {
+			/* Can't fit another fixture on this row */
+			x = 0.0;
+			y += fh + FIXTURE_BORDER;
 		}
 	}
 
@@ -659,7 +691,6 @@ int main(int argc, char *argv[])
 
 	da = gtk_drawing_area_new();
 
-	fixd.fixture_tile_width = 100.0;
 	fixd.fixtures = NULL;
 	fixd.n_fixtures = 0;
 	fixd.da = da;
