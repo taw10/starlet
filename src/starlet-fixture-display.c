@@ -37,6 +37,7 @@
 
 
 #define OVERALL_BORDER (20.0)
+#define STATUS_HEIGHT (35.0)
 #define FIXTURE_BORDER (5.0)
 
 
@@ -245,7 +246,7 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 
 	/* Fixtures */
 	x = 0.0;
-	y = 40.0;
+	y = STATUS_HEIGHT;
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
 		double fw, fh;
 		cairo_save(cr);
