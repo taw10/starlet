@@ -47,6 +47,10 @@ struct fixture
 	double intensity;
 	double rgb[3];
 	int selected;
+	double min_x;
+	double min_y;
+	double max_x;
+	double max_y;
 };
 
 
@@ -248,6 +252,10 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 		cairo_translate(cr, x, y);
 		draw_fixture(cr, pc, fontdesc, fixd, &fixd->fixtures[i],
 		             &fw, &fh);
+		fixd->fixtures[i].min_x = x;
+		fixd->fixtures[i].min_y = y;
+		fixd->fixtures[i].max_x = x + fw;
+		fixd->fixtures[i].max_y = y + fh;
 		cairo_restore(cr);
 		x += fw + FIXTURE_BORDER;
 		if ( x + fw > w) {
@@ -491,6 +499,10 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 
 		fixd->fixtures[i].intensity = -1;
 		fixd->fixtures[i].selected = 0;
+		fixd->fixtures[i].min_x = 0.0;
+		fixd->fixtures[i].min_y = 0.0;
+		fixd->fixtures[i].max_x = 0.0;
+		fixd->fixtures[i].max_y = 0.0;
 	}
 }
 
@@ -628,6 +640,38 @@ static gboolean try_connect_cb(gpointer data)
 }
 
 
+static struct fixture *which_fixture(struct fixture_display *fixd,
+                                     double x, double y)
+{
+	int i;
+	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		struct fixture *t = &fixd->fixtures[i];
+		if ( (x > t->min_x)
+		  && (x < t->max_x)
+		  && (y > t->min_y)
+		  && (y < t->max_y) ) return t;
+	}
+	return NULL;
+}
+
+
+static gint button_press_sig(GtkWidget *window, GdkEventButton *event,
+                             struct fixture_display *fixd)
+{
+	struct fixture *fix;
+	if ( event->y < STATUS_HEIGHT ) return FALSE;
+	fix = which_fixture(fixd,
+	                    event->x-OVERALL_BORDER,
+	                    event->y-OVERALL_BORDER);
+	if ( fix != NULL ) {
+		char tmp[256];
+		snprintf(tmp, 256, "(sel %s)", fix->scheme_name);
+		repl_send(fixd->repl, tmp);
+	}
+	return FALSE;
+}
+
+
 int main(int argc, char *argv[])
 {
 	struct fixture_display fixd;
@@ -705,8 +749,12 @@ int main(int argc, char *argv[])
 	gtk_widget_add_events(da, GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK
 	                        | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
 	                        | GDK_BUTTON_MOTION_MASK);
-	g_signal_connect(G_OBJECT(da), "draw", G_CALLBACK(draw_sig), &fixd);
-	g_signal_connect(G_OBJECT(da), "realize", G_CALLBACK(realise_sig), &fixd);
+	g_signal_connect(G_OBJECT(da),
+	                 "draw", G_CALLBACK(draw_sig), &fixd);
+	g_signal_connect(G_OBJECT(da), "realize",
+	                 G_CALLBACK(realise_sig), &fixd);
+	g_signal_connect(G_OBJECT(da), "button-press-event",
+	                 G_CALLBACK(button_press_sig), &fixd);
 
 	gtk_widget_grab_focus(GTK_WIDGET(da));
 	gtk_widget_show_all(mainwindow);
