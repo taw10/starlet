@@ -33,6 +33,7 @@
             lighting-state?
             get-state-name
             state-for-each
+            state-map->list
             state-map
             copy-state
             clear-state!
@@ -258,12 +259,27 @@
         (extract-colour-component col attr))))
 
 
-(define (state-map func state)
+(define (state-map->list func state)
   (hash-map->list (lambda (key value)
                     (func (car key)
                           (cdr key)
                           value))
                   (atomic-box-ref (get-ht-box state))))
+
+
+(define (state-map func state)
+  (let ((out-state (make-empty-state)))
+    (hash-for-each
+      (lambda (key value)
+        (set-in-state!
+          out-state
+          (car key)
+          (cdr key)
+          (func (car key)
+                (cdr key)
+                value)))
+      (atomic-box-ref (get-ht-box state)))
+    out-state))
 
 
 (define (apply-state state)
@@ -323,12 +339,12 @@ pre-existing contents."
 
 (define (state-source a)
   (cons 'lighting-state
-        (state-map (lambda (fix attr val)
-                     (list 'at
-                           (get-fixture-name fix)
-                           (list 'quote attr)
-                           (clamp-to-attr-range fix attr val)))
-                   a)))
+        (state-map->list (lambda (fix attr val)
+                           (list 'at
+                                 (get-fixture-name fix)
+                                 (list 'quote attr)
+                                 (clamp-to-attr-range fix attr val)))
+                         a)))
 
 
 ;; Coerce something from a state object into a number for scanout

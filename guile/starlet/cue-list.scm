@@ -95,8 +95,9 @@
 
 
 (define (fix-attrs-in-state state)
-  (state-map (lambda (fix attr val) (cons fix attr))
-             state))
+  (state-map->list
+    (lambda (fix attr val) (cons fix attr))
+    state))
 
 
 (define (add-fix-attrs-to-list state old-list)
