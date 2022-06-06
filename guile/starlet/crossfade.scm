@@ -191,22 +191,6 @@
            (< a 1))))
 
 
-(define (blank-everything in-state down-clock)
-  (let ((out-state (make-empty-state)))
-    (state-for-each
-      (lambda (fix attr val)
-        (when (intensity? attr)
-          (set-in-state! out-state
-                         fix
-                         attr
-                         (lambda ()
-                           (simple-fade (val)
-                                        0.0
-                                        down-clock)))))
-      in-state)
-    out-state))
-
-
 (define (make-fade-for-attribute-type type)
   (cond
     ((eq? type 'continuous) (cut make-general-fade simple-fade <...>))
@@ -235,7 +219,7 @@
       (let ((up-clock (make-delayed-clock clock up-delay up-time))
             (down-clock (make-delayed-clock clock down-delay down-time))
             (attribute-clock (make-delayed-clock clock attr-delay attr-time)))
-        (let ((overlay-state (blank-everything current-state down-clock)))
+        (let ((overlay-state (make-empty-state)))
           (state-for-each
             (lambda (fixture attr target-val)
 

@@ -243,12 +243,36 @@
     'next-cue-unspecified))
 
 
+(define (blank-everything state)
+  (state-map
+    (lambda (fix attr val)
+      (if (intensity? attr)
+        0.0
+        'no-value))
+    state))
+
+
 (define (run-cue-index! pb cue-index)
   (let* ((the-cue (vector-ref (get-playback-cue-list pb) cue-index))
          (overlay-state (make-empty-state))
          (cue-clock (get-cue-clock the-cue))
          (fade-time 0))
 
+    ;; Start by fading the previous contents of the playback down, using the
+    ;; "main" transition effect
+    (receive
+      (overlay-part transition-time)
+      ((transition-func (get-cue-part-transition
+                          (car (get-cue-parts the-cue))))
+       (blank-everything pb)
+       pb
+       cue-clock)
+      (atomically-overlay-state!
+        overlay-state
+        overlay-part)
+      (set! fade-time transition-time))
+
+    ;; Stack all the cue parts on top
     (for-each
       (lambda (part)
         (receive
