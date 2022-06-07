@@ -39,6 +39,7 @@
             cue-part
             cue-list
             qnum
+            get-cue-number
             get-cue-parts
             get-cue-clock
             get-preset-state

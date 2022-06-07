@@ -62,6 +62,10 @@
     #:getter get-playback-cue-list-file
     #:setter set-playback-cue-list-file!)
 
+  (recovery-file
+    #:init-keyword #:recovery-file
+    #:getter get-playback-recovery-file)
+
   (next-cue-index
     #:init-value 0
     #:getter get-next-cue-index
@@ -116,16 +120,49 @@
       'playback-without-cue-list-file)))
 
 
+(define (read-recovery-file! pb)
+  (with-exception-handler
+    (lambda (exn)
+      (display "Failed to read recovery file - going to cue zero\n")
+      (cut-to-cue-index! pb 0))
+    (lambda ()
+      (call-with-input-file
+        (get-playback-recovery-file pb)
+        (lambda (port)
+          (let ((val (read port)))
+            (if (number? val)
+              (cut-to-cue-number! pb val)
+              (cut-to-cue-index! pb 0))))))
+    #:unwind? #t))
+
+
+(define (write-recovery-file! pb the-cue-number)
+  (with-exception-handler
+    (lambda (exn)
+      (display "Failed to write recovery file (just FYI)\n")
+      (display exn))
+    (lambda ()
+      (call-with-output-file
+        (get-playback-recovery-file pb)
+        (lambda (port)
+          (write (qnum the-cue-number) port))))
+    #:unwind? #t))
+
+
 (define* (make-playback #:key
                         (cue-list-file #f)
-                        (cue-list #f))
+                        (cue-list #f)
+                        (recovery-file #f))
   (let ((new-playback (make <starlet-playback>
                             #:cue-list (if cue-list-file
                                          (read-cue-list-file cue-list-file)
                                          cue-list)
-                            #:cue-list-file cue-list-file)))
+                            #:cue-list-file cue-list-file
+                            #:recovery-file recovery-file)))
     (register-state! new-playback)
-    (cut-to-cue-index! new-playback 0)
+    (if recovery-file
+      (read-recovery-file! new-playback)
+      (cut-to-cue-index! new-playback 0))
     new-playback))
 
 
@@ -156,7 +193,9 @@
     (state-for-each
       (lambda (fix attr val)
         (set-in-state! pb fix attr (lambda () val)))
-      (get-preset-state the-cue))))
+      (get-preset-state the-cue))
+
+    (write-recovery-file! pb (get-cue-number the-cue))))
 
 
 (define (cut-to-cue-number! pb cue-number)
@@ -293,7 +332,8 @@
     (set-running-cue! pb the-cue)
     (reset-clock! cue-clock)
     (start-clock! cue-clock)
-    (set-playback-state! pb 'running)))
+    (set-playback-state! pb 'running)
+    (write-recovery-file! pb (get-cue-number the-cue))))
 
 
 (define-method (update-state! (pb <starlet-playback>))
