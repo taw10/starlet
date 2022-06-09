@@ -1,7 +1,7 @@
 ;;
 ;; starlet/fixture-library/tadm/led-bar.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -19,21 +19,19 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library tadm led-bar)
-  #:use-module (oop goops)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
   #:use-module (starlet colours)
+  #:use-module (starlet utils)
   #:export (<tadm-led-bar>))
 
+(define-fixture
 
-(define-class <tadm-led-bar> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-colour 'colour white))))
+  <tadm-led-bar>
 
-
-(define-method (scanout-fixture (fixture <tadm-led-bar>)
-                                get-attr set-chan8 set-chan16)
+  (fixture-attributes
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-colour 'colour white))
 
   (let ((intensity (get-attr 'intensity))
         (rgb (colour-as-rgb (get-attr 'colour))))
