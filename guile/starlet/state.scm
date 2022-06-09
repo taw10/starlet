@@ -48,6 +48,7 @@
             lighting-state
             programmer-state
             home-fixture!
+            blackout
             blackout!
             sel
             selection-hook
@@ -232,6 +233,10 @@
 
 (define (make-empty-state)
   (make <starlet-state>))
+
+
+(define blackout
+  (make-empty-state))
 
 
 (define (state-for-each func state)
