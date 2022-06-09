@@ -348,6 +348,10 @@ static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_
 		repl_send(fixd->repl, "(back! pb)");
 		break;
 
+		case GDK_KEY_F5 :
+		repl_send(fixd->repl, "(exit)");
+		break;
+
 		default :
 		claim = 0;
 		break;
