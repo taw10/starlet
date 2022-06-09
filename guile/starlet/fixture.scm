@@ -31,6 +31,7 @@
             get-fixture-attrs
             find-attr
             fixture?
+            scanout-fixture
 
             attr-continuous
             attr-list
@@ -124,6 +125,9 @@
        #:name attr-name
        #:type 'colour
        #:home-value attr-home-value))))
+
+
+(define-generic scanout-fixture)
 
 
 (define (get-fixture-attrs fix)

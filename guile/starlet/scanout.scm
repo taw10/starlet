@@ -38,8 +38,7 @@
             patched-fixture-names
             get-attr
             set-chan8
-            set-chan16
-            scanout-fixture))
+            set-chan16))
 
 
 ;; The list of patched fixtures
@@ -50,10 +49,6 @@
 
 ;; Association list of names to states
 (define state-names (make-atomic-box '()))
-
-;; Method for scanning out fixtures
-(define-generic scanout-fixture)
-
 
 (define (patched-fixture-names)
   (map get-fixture-name (atomic-box-ref fixtures)))
