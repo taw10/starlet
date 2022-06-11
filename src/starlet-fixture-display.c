@@ -60,6 +60,7 @@ struct fixture_display
 	struct fixture *fixtures;
 	int n_fixtures;
 	double current_cue_number;
+	int cue_running;
 	double scanout_rate;
 	char *playback_name;
 	GtkWidget *da;
@@ -232,14 +233,23 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	/* Playback status */
 	cairo_save(cr);
 
+	if ( fixd->cue_running ) {
+		cairo_rectangle(cr, 0.0, 0.0, w, 18.0);
+		cairo_set_source_rgb(cr, 0.5, 0.0, 0.0);
+		cairo_fill(cr);
+	}
+
 	if ( fixd->current_cue_number < 0.0 ) {
-		snprintf(tmp, 128, "Current cue doesn't exist!   "
+		snprintf(tmp, 128, "Playback %s:  Current cue doesn't exist!   "
 		                   "Scanout %.2f per second",
+		                   fixd->playback_name,
 		                   fixd->scanout_rate);
 	} else {
-		snprintf(tmp, 128, "Current cue number: %.2f     "
+		snprintf(tmp, 128, "Playback %s:  Current cue number: %.2f     "
 		                   "Scanout %.2f per second",
-		                   fixd->current_cue_number, fixd->scanout_rate);
+		                   fixd->playback_name,
+		                   fixd->current_cue_number,
+		                   fixd->scanout_rate);
 	}
 	plot_text(cr, tmp, pc, fontdesc, 0.0, 0.0);
 	cairo_restore(cr);
@@ -296,7 +306,9 @@ static void request_playback_status(struct fixture_display *fixd)
 	snprintf(tmp, 256, "(list 'playback-status (list "
 	                   "(get-playback-cue-number %s)"
 	                   "scanout-freq"
+	                   "(playback-state %s)"
 	                   "))",
+	                   fixd->playback_name,
 	                   fixd->playback_name);
 	repl_send(fixd->repl, tmp);
 }
@@ -606,6 +618,8 @@ static void handle_playback_status(struct fixture_display *fixd, SCM list)
 		fixd->current_cue_number = scm_to_double(cue_number);
 	}
 	fixd->scanout_rate = scm_to_double(scm_list_ref(list, scm_from_int(1)));
+	fixd->cue_running = symbol_eq(scm_list_ref(list, scm_from_int(2)),
+	                              "running");
 }
 
 
@@ -748,6 +762,7 @@ int main(int argc, char *argv[])
 	fixd.verbose = verbose;
 	fixd.repl = NULL;
 	fixd.playback_name = strdup("pb");
+	fixd.cue_running = 0;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);

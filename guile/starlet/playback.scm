@@ -46,7 +46,8 @@
             back!
             reload-cue-list!
             reassert-current-cue!
-            state-change-hook))
+            state-change-hook
+            playback-state))
 
 
 ;; A "playback" is a state which knows how to run cues
@@ -366,10 +367,14 @@
       'no-more-cues-in-list)))
 
 
+(define (playback-state pb)
+  (atomic-box-ref (state-box pb)))
+
+
 (define-method (write (pb <starlet-playback>) port)
   (format port
           "#<<starlet-playback> state: ~a current-cue: ~a next-cue: ~a>"
-          (atomic-box-ref (state-box pb))
+          (playback-state pb)
           (exact->inexact (get-playback-cue-number pb))
           (next-cue-number pb)))
 
