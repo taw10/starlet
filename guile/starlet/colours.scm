@@ -23,8 +23,8 @@
   #:use-module (ice-9 exceptions)
   #:export (<colour>
              colour?
-             make-colour-cmy
-             make-colour-rgb
+             cmy
+             rgb
              colour-as-cmy
              colour-as-rgb
              colour-as-rgbw
@@ -80,26 +80,26 @@
 
 (define-method (write (col <colour>) port)
   (let ((cmy (colour-as-cmy col)))
-    (format port "(make-colour-cmy ~a ~a ~a)"
+    (format port "(cmy ~a ~a ~a)"
             (three-sf (cyan cmy))
             (three-sf (magenta cmy))
             (three-sf (yellow cmy)))))
 
 
-(define (make-colour-cmy c m y)
+(define (cmy c m y)
   (make <colour>
         #:type 'cmy
         #:value (list c m y)))
 
 
-(define (make-colour-rgb r g b)
+(define (rgb r g b)
   (make <colour>
         #:type 'rgb
         #:value (list r g b)))
 
 
 (define white
-  (make-colour-cmy 0 0 0))
+  (cmy 0 0 0))
 
 
 (define (colour-as-rgb col)
@@ -150,7 +150,7 @@
 (define (interpolate-cmy a b frac)
   (let ((cmy1 (colour-as-cmy a))
         (cmy2 (colour-as-cmy b)))
-    (make-colour-cmy
+    (cmy
       (+ (cyan cmy1) (* frac (- (cyan cmy2) (cyan cmy1))))
       (+ (magenta cmy1) (* frac (- (magenta cmy2) (magenta cmy1))))
       (+ (yellow cmy1) (* frac (- (yellow cmy2) (yellow cmy1)))))))

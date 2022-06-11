@@ -119,49 +119,49 @@
       ((eq? colour-component 'cyan)
        (let ((orig-colour (colour-as-cmy current-colour)))
          (set-in-state! state fix 'colour
-                        (make-colour-cmy new-val
-                                         (magenta orig-colour)
-                                         (yellow orig-colour))
+                        (cmy new-val
+                             (magenta orig-colour)
+                             (yellow orig-colour))
                         source)))
 
       ((eq? colour-component 'magenta)
        (let ((orig-colour (colour-as-cmy current-colour)))
          (set-in-state! state fix 'colour
-                        (make-colour-cmy (cyan orig-colour)
-                                         new-val
-                                         (yellow orig-colour))
+                        (cmy (cyan orig-colour)
+                             new-val
+                             (yellow orig-colour))
                         source)))
 
       ((eq? colour-component 'yellow)
        (let ((orig-colour (colour-as-cmy current-colour)))
          (set-in-state! state fix 'colour
-                        (make-colour-cmy (cyan orig-colour)
-                                         (magenta orig-colour)
-                                         new-val)
+                        (cmy (cyan orig-colour)
+                             (magenta orig-colour)
+                             new-val)
                         source)))
 
       ((eq? colour-component 'red)
        (let ((orig-colour (colour-as-rgb current-colour)))
          (set-in-state! state fix 'colour
-                        (make-colour-rgb new-val
-                                         (green orig-colour)
-                                         (blue orig-colour))
+                        (rgb new-val
+                             (green orig-colour)
+                             (blue orig-colour))
                         source)))
 
       ((eq? colour-component 'green)
        (let ((orig-colour (colour-as-rgb current-colour)))
          (set-in-state! state fix 'colour
-                        (make-colour-rgb (red orig-colour)
-                                         new-val
-                                         (blue orig-colour))
+                        (rgb (red orig-colour)
+                             new-val
+                             (blue orig-colour))
                         source)))
 
       ((eq? colour-component 'blue)
        (let ((orig-colour (colour-as-rgb current-colour)))
          (set-in-state! state fix 'colour
-                        (make-colour-rgb (red orig-colour)
-                                         (green orig-colour)
-                                         new-val)
+                        (rgb (red orig-colour)
+                             (green orig-colour)
+                             new-val)
                         source))))))
 
 
