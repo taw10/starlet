@@ -205,6 +205,13 @@
                      fixtures
                      controller)
   (for-each (lambda (fix initial-val gradient)
+              (when (colour-component-id? attr-name)
+                (set-in-state!
+                  programmer-state
+                  fix
+                  'colour
+                  (current-value fix 'colour)
+                  controller))
               (set-in-state! programmer-state
                              fix
                              attr-name
