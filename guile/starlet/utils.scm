@@ -37,7 +37,8 @@
             scale-to-range
             scale-and-clamp-to-range
             percent->dmxval8
-            percent->dmxval16))
+            percent->dmxval16
+            comment))
 
 
 (define (print-hash-table ht)
@@ -159,3 +160,9 @@
     (scale-to-range val orig-range dest-range)
     (car dest-range)
     (cadr dest-range)))
+
+
+(define-syntax comment
+  (syntax-rules ()
+    ((_ body ...)
+     #f)))
