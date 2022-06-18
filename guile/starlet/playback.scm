@@ -376,12 +376,20 @@
 
 
 (define-method (write (pb <starlet-playback>) port)
-  (format port
-          "#<<starlet-playback> state: ~a current-cue: ~a next-cue: ~a>"
-          (playback-state pb)
-          (exact->inexact (get-playback-cue-number pb))
-          (next-cue-number pb)))
+  (let ((cur-cue (get-playback-cue-number pb)))
+    (format port
+            "#<<starlet-playback> state: ~a current-cue: ~a next-cue: ~a>"
+            (playback-state pb)
+            (if cur-cue
+              (exact->inexact cur-cue)
+              'current-cue-unspecified)
+            (if cur-cue
+              (next-cue-number pb)
+              'next-cue-unspecified))))
 
 
 (define (reassert-current-cue! pb)
-  (cut-to-cue-number! pb (get-playback-cue-number pb)))
+  (let ((cur-cue (get-playback-cue-number pb)))
+    (if cur-cue
+      (cut-to-cue-number! pb cur-cue)
+      'current-cue-unspecified)))
