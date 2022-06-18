@@ -337,6 +337,10 @@
     (write-recovery-file! pb (get-cue-number the-cue))))
 
 
+(define-method (num-cues (pb <starlet-playback>))
+  (num-cues (get-playback-cue-list pb)))
+
+
 (define-method (update-state! (pb <starlet-playback>))
   (when (and (get-pb-cue-clock pb)
              (clock-expired? (get-pb-cue-clock pb))

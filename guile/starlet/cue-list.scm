@@ -48,7 +48,8 @@
             cue-number-to-index
             cue-index-to-number
             current-cue-clock
-            read-cue-list-file)
+            read-cue-list-file
+            num-cues)
   #:re-export (snap crossfade))
 
 
@@ -73,6 +74,10 @@
   (track-intensities  track-intensities)
   (cue-parts          get-cue-parts)
   (cue-clock          get-cue-clock))
+
+
+(define-method (num-cues (l <vector>))
+  (vector-length l))
 
 
 (define (qnum a)
