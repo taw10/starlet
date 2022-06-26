@@ -1,5 +1,5 @@
 ;;
-;; starlet/fixture-library/tadm/led-foh.scm
+;; starlet/fixture-library/stairville/z120m.scm
 ;;
 ;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
@@ -18,27 +18,27 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library tadm led-foh)
+(define-module (starlet fixture-library stairville z120m)
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
-  #:export (<tadm-led-foh>))
+  #:export (<stairville-z120m-6ch>))
 
 (define-fixture
 
-  <tadm-led-foh>
+  <stairville-z120m-6ch>
 
   (fixture-attributes
     (attr-continuous 'intensity '(0 100) 0)
     (attr-colour 'colour white))
 
   (let ((intensity (get-attr 'intensity))
-          (rgbw (colour-as-rgbw (get-attr 'colour))))
-      (set-chan8 1 (percent->dmxval8 intensity))
-      (set-chan8 2 255)
-      (set-chan8 3 (percent->dmxval8 (car rgbw)))
-      (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
-      (set-chan8 5 (percent->dmxval8 (caddr rgbw)))
-      (set-chan8 6 (percent->dmxval8 (cadddr rgbw)))))
+        (rgbw (colour-as-rgbw (get-attr 'colour))))
+    (set-chan8 1 (percent->dmxval8 intensity))
+    (set-chan8 2 255)
+    (set-chan8 3 (percent->dmxval8 (car rgbw)))
+    (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
+    (set-chan8 5 (percent->dmxval8 (caddr rgbw)))
+    (set-chan8 6 (percent->dmxval8 (cadddr rgbw)))))
 
