@@ -1,7 +1,7 @@
 ;;
 ;; starlet/fixture-library/generic/rgb.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -19,21 +19,20 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet fixture-library generic rgb)
-  #:use-module (oop goops)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<generic-rgb>))
 
 
-(define-class <generic-rgb> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-colour 'colour white))))
+(define-fixture
 
+  <generic-rgb>
 
-(define-method (scanout-fixture (fixture <generic-rgb>)
-                                get-attr set-chan8 set-chan16)
+  (fixture-attributes
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-colour 'colour white))
 
   (let ((intensity (get-attr 'intensity))
         (rgb (colour-as-rgb (get-attr 'colour))))

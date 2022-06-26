@@ -18,25 +18,25 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library chauvet)
-  #:use-module (oop goops)
+(define-module (starlet fixture-library chauvet mav2)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet utils)
+  #:use-module (starlet colours)
   #:export (<chauvet-mav2-32ch>))
 
 
-(define-class <chauvet-mav2-32ch> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-continuous 'pan '(0 540) 270)
-                (attr-continuous 'tilt '(0 270) 135)
-                (attr-continuous 'cyan '(0 100) 0)
-                (attr-continuous 'magenta '(0 100) 0)
-                (attr-continuous 'yellow '(0 100) 0))))
+(define-fixture
 
+  <chauvet-mav2-32ch>
 
-(define-method (scanout-fixture (fixture <chauvet-mav2-32ch>)
-                                get-attr set-chan set-chan-16bit)
+  (fixture-attributes
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-continuous 'pan '(0 540) 270)
+    (attr-continuous 'tilt '(0 270) 135)
+    (attr-continuous 'cyan '(0 100) 0)
+    (attr-continuous 'magenta '(0 100) 0)
+    (attr-continuous 'yellow '(0 100) 0))
 
   (set-chan-16bit 1 (get-attr 'pan) 540)
   (set-chan-16bit 3 (get-attr 'tilt) 270)

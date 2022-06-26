@@ -1,7 +1,7 @@
 ;;
-;; starlet/fixture-library/robe/mmxwashbeam/mode1.scm
+;; starlet/fixture-library/robe/mmxwashbeam.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -18,35 +18,34 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library robe mmxwashbeam mode1)
-  #:use-module (oop goops)
+(define-module (starlet fixture-library robe mmxwashbeam)
+  #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<robe-mmxwashbeam-mode1>))
 
 
-(define-class <robe-mmxwashbeam-mode1> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-continuous 'pan '(0 540) 270)
-                (attr-continuous 'tilt '(0 270) 135)
-                (attr-list 'strobe '(#t #f) #f)
-                (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
-                (attr-list 'gobo '(#f iris gobo1 gobo2 gobo3 gobo4 gobo5 gobo6) #f)
-                (attr-list 'beamtype '(beam beamwash beamwashext) 'beam)
-                (attr-colour 'colour white)
-                (attr-continuous 'zoom '(0 100) 0)
-                (attr-continuous 'focus '(0 100) 0)
-                (attr-continuous 'barndoor-rot '(0 180) 90)
-                (attr-continuous 'barndoor1 '(0 180) 0)
-                (attr-continuous 'barndoor2 '(0 100) 0)
-                (attr-continuous 'barndoor3 '(0 100) 0)
-                (attr-continuous 'barndoor4 '(0 100) 0))))
+(define-fixture
 
+  <robe-mmxwashbeam-mode1>
 
-(define-method (scanout-fixture (fixture <robe-mmxwashbeam-mode1>)
-                                get-attr set-chan8 set-chan16)
+  (fixture-attributes
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-continuous 'pan '(0 540) 270)
+    (attr-continuous 'tilt '(0 270) 135)
+    (attr-list 'strobe '(#t #f) #f)
+    (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
+    (attr-list 'gobo '(#f iris gobo1 gobo2 gobo3 gobo4 gobo5 gobo6) #f)
+    (attr-list 'beamtype '(beam beamwash beamwashext) 'beam)
+    (attr-colour 'colour white)
+    (attr-continuous 'zoom '(0 100) 0)
+    (attr-continuous 'focus '(0 100) 0)
+    (attr-continuous 'barndoor-rot '(0 180) 90)
+    (attr-continuous 'barndoor1 '(0 180) 0)
+    (attr-continuous 'barndoor2 '(0 100) 0)
+    (attr-continuous 'barndoor3 '(0 100) 0)
+    (attr-continuous 'barndoor4 '(0 100) 0))
 
   (set-chan16 33 (percent->dmxval16 (get-attr 'intensity)))
 
