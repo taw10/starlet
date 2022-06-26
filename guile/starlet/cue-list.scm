@@ -116,27 +116,40 @@
   (receive
     (states transition-effects cue-parts rest)
     (categorize args lighting-state? transition-effect? cue-part?)
+
     (let-keywords
       rest
       #f  ;; allow-other-keys?
       ((track-intensities #f))
 
-      (when (> (length states) 1)
-        (error "A cue can only contain one state"))
+      (let ((n-tr-effs (length transition-effects))
+            (n-states (length states)))
 
-      (when (> (length transition-effects) 1)
-        (error "A cue can only contain one transition effect"))
+        (make-cue (qnum number)
+                  #f   ;; preset state, to be filled later
+                  track-intensities
 
-      (let ((the-cue (make-cue (qnum number)
-                               #f   ;; preset state, to be filled later
-                               track-intensities
-                               (cons
-                                 (cue-part (car states)
-                                           (car transition-effects))
-                                 cue-parts)
-                               (current-cue-clock))))
+                  ;; Create the list of cue parts
+                  (cond
 
-        the-cue))))
+                    ;; Only explicitly-stated cue parts
+                    [(= 0 n-tr-effs n-states)
+                     cue-parts]
+
+                    ;; Implicit first cue part
+                    [(= 1 n-tr-effs n-states)
+                     (cons
+                       (cue-part (car states)
+                                 (car transition-effects))
+                       cue-parts)]
+
+                    ;; Wrong number of states or transition effects
+                    [(not (= n-states 1))
+                     (error "A cue can only contain one state")]
+                    [(not (= n-tr-effs 1))
+                     (error "A cue can only contain one transition effect")])
+
+                  (current-cue-clock))))))
 
 
 (define current-cue-clock (make-parameter #f))
