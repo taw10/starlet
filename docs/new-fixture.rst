@@ -126,7 +126,8 @@ We will totally ignore the pre-programmed colour temperatures in favour of
 having direct control over the cold and warm LED values.  The manual does not
 even say what the pre-programmed temperatures are, so this is no loss at all.
 
-The strobe channel is not implemented in this example.
+Unfortunately, the manual doesn't say what frequencies are meant be 'slow' and
+'fast' strobe.  We'll assume that 'slow' is 1 Hz, and 'fast' is 25 Hz.
 
 Here is the code::
 
@@ -146,13 +147,22 @@ Here is the code::
     ;; List of attributes
     (fixture-attributes
       (attr-continuous 'intensity '(0 100) 0)
-      (attr-continuous 'colour-temperature '(2800 6400) 3200))
+      (attr-continuous 'colour-temperature '(2800 6400) 3200)
+      (attr-list 'strobe '(#f #t) #f)
+      (attr-continuous 'strobe-frequency '(1 25) 1))
 
     ;; Scanout code follows
 
-    ;; Set unused macro and strobe channels to zero
+    ;; Set unused macro channel to zero
     (set-chan8 4 0)
-    (set-chan8 3 0)
+
+    ;; Set strobe channel
+    (if (get-attr 'strobe)
+      (set-chan8 3 (scale-and-clamp-to-range
+                     (get-attr 'strobe-frequency)
+                     '(1 25)
+                     '(16 255)))
+      (set-chan8 3 0))
 
     ;; Set intensity channel
     (set-chan8 5 (percent->dmxval8 (get-attr 'intensity))))

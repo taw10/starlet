@@ -31,12 +31,19 @@
 
   (fixture-attributes
     (attr-continuous 'intensity '(0 100) 0)
-    (attr-colour 'colour white))
+    (attr-colour 'colour white)
+    (attr-continuous 'strobe-frequency '(1 25) 1)
+    (attr-list 'strobe '(#f #t) #f))
 
   (let ((intensity (get-attr 'intensity))
         (rgbw (colour-as-rgbw (get-attr 'colour))))
     (set-chan8 1 (percent->dmxval8 intensity))
-    (set-chan8 2 255)
+    (if (get-attr 'strobe)
+      (set-chan8 2 (scale-and-clamp-to-range
+                     (get-attr 'strobe-frequency)
+                     '(1 25)
+                     '(106 165)))
+      (set-chan8 2 255))
     (set-chan8 3 (percent->dmxval8 (car rgbw)))
     (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
     (set-chan8 5 (percent->dmxval8 (caddr rgbw)))
