@@ -18,34 +18,32 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet fixture-library robe mmxspot mode1)
+(define-module (starlet fixture-library robe mmxspot)
   #:use-module (oop goops)
   #:use-module (starlet fixture)
   #:use-module (starlet colours)
   #:export (<robe-mmxspot-mode1>))
 
 
-(define-class <robe-mmxspot-mode1> (<fixture>)
-  (attributes
-   #:init-form (list
-                (attr-continuous 'intensity '(0 100) 0)
-                (attr-continuous 'pan '(0 540) 270)
-                (attr-continuous 'tilt '(0 270) 135)
-                (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
-                (attr-list 'prism '(#t #f) #f)
-                (attr-list 'strobe '(#f #t random zap) #f)
-                (attr-continuous 'strobe-speed '(0 100) 50)
-                (attr-colour 'colour white)
-                (attr-continuous 'iris '(0 100) 0)
-                (attr-continuous 'zoom '(0 100) 0)
-                (attr-continuous 'focus '(0 100) 0)
-                (attr-continuous 'hotspot '(0 100) 0)
-                (attr-continuous 'frost '(0 100) 0)
-                (attr-continuous 'cto '(3200 6900) 6900))))
+(define-fixture
 
+  <robe-mmxspot-mode1>
 
-(define-method (scanout-fixture (fixture <robe-mmxspot-mode1>)
-                                get-attr set-chan8 set-chan16)
+  (fixture-attributes
+    (attr-continuous 'intensity '(0 100) 0)
+    (attr-continuous 'pan '(0 540) 270)
+    (attr-continuous 'tilt '(0 270) 135)
+    (attr-list 'colwheel '(#f red blue orange green amber uv) #f)
+    (attr-list 'prism '(#t #f) #f)
+    (attr-list 'strobe '(#f #t random zap) #f)
+    (attr-continuous 'strobe-speed '(0 100) 50)
+    (attr-colour 'colour white)
+    (attr-continuous 'iris '(0 100) 0)
+    (attr-continuous 'zoom '(0 100) 0)
+    (attr-continuous 'focus '(0 100) 0)
+    (attr-continuous 'hotspot '(0 100) 0)
+    (attr-continuous 'frost '(0 100) 0)
+    (attr-continuous 'cto '(3200 6900) 6900))
 
   (set-chan16 37 (percent->dmxval16 (get-attr 'intensity)))
 
