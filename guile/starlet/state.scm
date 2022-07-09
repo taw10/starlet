@@ -28,6 +28,7 @@
   #:use-module (ice-9 receive)
   #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-26)
   #:export (<starlet-state>
             make-empty-state
             lighting-state?
@@ -381,15 +382,19 @@ pre-existing contents."
                     (values output1 output2 others))))
 
 
+(define fixture-has-attr? find-attr)
+
+
 (define (set-fixtures fixtures attr-name value)
-  (for-each (lambda (fix)
-              (set-in-state! (current-state)
-                             fix
-                             (car attr-name)
-                             (clamp-to-attr-range fix
-                                                  (car attr-name)
-                                                  (car value))))
-            fixtures))
+  (for-each
+    (lambda (fix)
+      (if (fixture-has-attr? fix attr-name)
+        (set-in-state! (current-state)
+                       fix
+                       attr-name
+                       (clamp-to-attr-range fix attr-name value))
+        (error "Fixture does not have attribute")))
+    fixtures))
 
 
 ;; (at <fixtures/groups> [<attribute>] <level> [<attribute> <level>...])
@@ -417,18 +422,18 @@ pre-existing contents."
                    (nil? attr-name))
               (if (nil? selection)
                   'no-fixtures-selected
-                  (set-fixtures selection '(intensity) value)))
+                  (set-fixtures selection 'intensity (car value))))
 
              ((nil? attr-name)
-              (set-fixtures fixtures '(intensity) value))
+              (set-fixtures fixtures 'intensity (car value)))
 
              ((nil? fixtures)
               (if (nil? selection)
                   'no-fixtures-selected
-                  (set-fixtures selection attr-name value)))
+                  (set-fixtures selection (car attr-name) (car value))))
 
              (else
-               (set-fixtures fixtures attr-name value)))))
+               (set-fixtures fixtures (car attr-name) (car value))))))
 
 
 (define selection-hook (make-hook 1))
