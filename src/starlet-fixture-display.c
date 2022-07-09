@@ -166,17 +166,25 @@ static void draw_fixture(cairo_t *cr,
 
 	/* Intensity */
 	if ( fix->intensity >= 0.0 ) {
+		const double gbw = 40.0;
 		char tmp[32];
+		double grey;
 		snprintf(tmp, 32, "%.0f%%", fix->intensity);
 		layout = pango_layout_new(pc);
 		pango_layout_set_text(layout, tmp, -1);
 		pango_layout_set_height(layout, lh*PANGO_SCALE);
 		pango_layout_set_font_description(layout, fontdesc);
-		if ( fix->intensity < 50.0 ) {
-			cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+
+		double gbl = 50.0 - gbw / 2.0;
+		if ( fix->intensity < gbl ) {
+			grey = 1.0;
+		} else if ( fix->intensity > 50.0 + gbw/2.0) {
+			grey = 0.0;
 		} else {
-			cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+			grey = 1.0 - (fix->intensity - gbl) / gbw;
 		}
+		cairo_set_source_rgb(cr, grey, grey, grey);
+
 		show_vertical_center_log(cr, layout, w*0.3, lh);
 		g_object_unref(layout);
 	}
