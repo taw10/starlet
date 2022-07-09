@@ -341,23 +341,23 @@
   (num-cues (get-playback-cue-list pb)))
 
 
+(define (start-fixture-preset! pb)
+  (let ((st (get-preset-state (get-running-cue pb))))
+    (state-for-each
+      (lambda (fix attr val)
+        (set-in-state! pb fix attr (lambda () val)))
+      st)))
+
+
 (define-method (update-state! (pb <starlet-playback>))
-  (when (and (get-pb-cue-clock pb)
-             (clock-expired? (get-pb-cue-clock pb))
-             (eq? 'running (atomic-box-ref (state-box pb))))
-    (when (eq? 'running (atomic-box-compare-and-swap! (state-box pb)
-                                                      'running
-                                                      'ready))
-      (run-hook (state-change-hook pb) 'ready)
-
-      ;; Pre-set fixtures
-      (let ((st (get-preset-state (get-running-cue pb))))
-        (state-for-each
-          (lambda (fix attr val)
-            (set-in-state! pb fix attr (lambda () val)))
-          st))
-
-      (set-running-cue! pb #f))))
+  (when
+    (and (clock-expired? (get-pb-cue-clock pb))
+         (eq? 'running (atomic-box-compare-and-swap! (state-box pb)
+                                                     'running
+                                                     'ready)))
+    (run-hook (state-change-hook pb) 'ready)
+    (start-fixture-preset! pb)
+    (set-running-cue! pb #f)))
 
 
 (define (next-cue-number pb)

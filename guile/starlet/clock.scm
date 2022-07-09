@@ -92,8 +92,10 @@
 
 
 (define (clock-expired? clock)
-  (> (elapsed-time clock)
-     (expiration-time clock)))
+  (and
+    clock
+    (> (elapsed-time clock)
+       (expiration-time clock))))
 
 
 (define-method (elapsed-time (clock <starlet-clock>))
