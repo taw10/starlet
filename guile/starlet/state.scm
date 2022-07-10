@@ -61,7 +61,8 @@
             add-update-hook!
             state-empty?
             remove-fixtures-from-state!
-            remove-fixture-from-state!))
+            remove-fixture-from-state!
+            remove-selection-from-programmer!))
 
 
 ;; A "state" is an atomically-updating container for an immutable
@@ -477,3 +478,9 @@ pre-existing contents."
 
 (define (remove-fixture-from-state! st fix)
   (remove-fixtures-from-state! st (list fix)))
+
+
+(define (remove-selection-from-programmer!)
+  (remove-fixtures-from-state!
+    programmer-state
+    (get-selection)))
