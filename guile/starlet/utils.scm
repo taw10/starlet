@@ -22,6 +22,7 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-8)
   #:use-module (ice-9 exceptions)
+  #:use-module (ice-9 control)
   #:export (print-hash-table
             copy-hash-table
             in-range
@@ -38,7 +39,8 @@
             scale-and-clamp-to-range
             percent->dmxval8
             percent->dmxval16
-            comment))
+            comment
+            hash-table-empty?))
 
 
 (define (print-hash-table ht)
@@ -166,3 +168,13 @@
   (syntax-rules ()
     ((_ body ...)
      #f)))
+
+
+(define (hash-table-empty? ht)
+  (let/ec
+    return
+    (hash-for-each-handle
+      (lambda (key)
+        (return #f))
+      ht)
+    #t))

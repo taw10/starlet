@@ -57,7 +57,8 @@
             value->number
             atomically-overlay-state!
             update-state!
-            add-update-hook!))
+            add-update-hook!
+            state-empty?))
 
 
 ;; A "state" is an atomically-updating container for an immutable
@@ -452,3 +453,8 @@ pre-existing contents."
           (set! selection (flatten-sublists fixture-list))))
   (run-hook selection-hook selection))
 
+
+(define (state-empty? st)
+  (hash-table-empty?
+    (atomic-box-ref
+      (get-ht-box st))))
