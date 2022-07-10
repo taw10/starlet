@@ -48,6 +48,7 @@
             show-state
             lighting-state
             programmer-state
+            ps
             home-fixture!
             blackout
             blackout!
@@ -83,6 +84,7 @@
 
 ;; The state used to build a new scene for recording
 (define programmer-state (make <starlet-state>))
+(define ps programmer-state)
 
 
 (define (add-update-hook! state proc)
