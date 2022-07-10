@@ -62,6 +62,7 @@ struct fixture_display
 	double current_cue_number;
 	int cue_running;
 	double scanout_rate;
+	int programmer_empty;
 	char *playback_name;
 	GtkWidget *da;
 	ReplConnection *repl;
@@ -262,6 +263,13 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 	plot_text(cr, tmp, pc, fontdesc, 0.0, 0.0);
 	cairo_restore(cr);
 
+	if ( !fixd->programmer_empty ) {
+		cairo_rectangle(cr, w-150.0, 0.0, 150.0, 18.0);
+		cairo_set_source_rgb(cr, 0.8, 0.0, 0.0);
+		cairo_fill(cr);
+		plot_text(cr, "Programmer active", pc, fontdesc, w-150.0, 0.0);
+	}
+
 	/* Fixtures */
 	x = 0.0;
 	y = STATUS_HEIGHT;
@@ -305,6 +313,15 @@ static void shutdown_sig(GtkWidget *window, struct fixture_display *fixd)
 		repl_connection_close(fixd->repl);
 	}
 	fixd->shutdown = TRUE;
+}
+
+
+static void request_programmer_status(struct fixture_display *fixd)
+{
+	char tmp[256];
+	snprintf(tmp, 256, "(list 'programmer-empty "
+	                   "(state-empty? programmer-state))");
+	repl_send(fixd->repl, tmp);
 }
 
 
@@ -418,6 +435,7 @@ static gboolean redraw_cb(gpointer data)
 			request_intensities(fixd);
 			request_selection(fixd);
 			request_playback_status(fixd);
+			request_programmer_status(fixd);
 			redraw(fixd);
 		}
 		return G_SOURCE_CONTINUE;
@@ -631,6 +649,12 @@ static void handle_playback_status(struct fixture_display *fixd, SCM list)
 }
 
 
+static void handle_programmer_status(struct fixture_display *fixd, SCM empty)
+{
+	fixd->programmer_empty = scm_is_true(empty);
+}
+
+
 static void process_line(SCM sexp, void *data)
 {
 	struct fixture_display *fixd = data;
@@ -647,6 +671,8 @@ static void process_line(SCM sexp, void *data)
 				handle_selection(fixd, contents);
 			} else if ( symbol_eq(tag, "playback-status") ) {
 				handle_playback_status(fixd, contents);
+			} else if ( symbol_eq(tag, "programmer-empty") ) {
+				handle_programmer_status(fixd, contents);
 			}
 		}
 	}
@@ -771,6 +797,7 @@ int main(int argc, char *argv[])
 	fixd.repl = NULL;
 	fixd.playback_name = strdup("pb");
 	fixd.cue_running = 0;
+	fixd.programmer_empty = 1;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
