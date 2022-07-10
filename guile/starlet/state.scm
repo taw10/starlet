@@ -58,7 +58,9 @@
             atomically-overlay-state!
             update-state!
             add-update-hook!
-            state-empty?))
+            state-empty?
+            remove-fixtures-from-state!
+            remove-fixture-from-state!))
 
 
 ;; A "state" is an atomically-updating container for an immutable
@@ -453,3 +455,23 @@ pre-existing contents."
   (hash-table-empty?
     (atomic-box-ref
       (get-ht-box st))))
+
+
+(define (remove-fixtures-from-state! st fixture-list)
+  (let ((new-ht (make-hash-table))
+        (old-ht (atomic-box-ref (get-ht-box st))))
+    (state-for-each
+      (lambda (fix attr val)
+        (unless (memq fix fixture-list)
+          (hash-set! new-ht (cons fix attr) val)))
+      st)
+    (if (eq? old-ht (atomic-box-compare-and-swap!
+                      (get-ht-box st)
+                      old-ht
+                      new-ht))
+      (run-hook (get-update-hook st) #f)
+      (remove-fixtures-from-state! st fixture-list))))
+
+
+(define (remove-fixture-from-state! st fix)
+  (remove-fixtures-from-state! st (list fix)))
