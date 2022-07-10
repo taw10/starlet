@@ -71,7 +71,7 @@
     #:init-form (make-atomic-box (make-hash-table))
     #:getter get-ht-box)
   (update-hook
-    #:init-form (make-hook 4)
+    #:init-form (make-hook 1)
     #:getter get-update-hook))
 
 
@@ -184,11 +184,7 @@
                  old-ht)
       (set-in-state! state fix attr))  ;; Try again
 
-    (run-hook (get-update-hook state)
-              fix
-              attr
-              value
-              source)))
+    (run-hook (get-update-hook state) source)))
 
 
 (define-method (set-in-state! (state <starlet-state>)
@@ -371,8 +367,7 @@ pre-existing contents."
                  old-ht)
       (clear-state! state))) ;; Try again
 
-  (run-hook (get-update-hook state)
-            '() #f #f #f))
+  (run-hook (get-update-hook state) #f))
 
 
 (define (partition3 pred1 pred2 input)

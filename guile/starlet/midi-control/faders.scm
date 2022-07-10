@@ -358,7 +358,7 @@
 
         ;; Value changed
         (add-update-hook! programmer-state
-                          (lambda (fix attr value source)
+                          (lambda (source)
                             (unless (eq? source controller)
                               (update-midi-controls controller (get-selection))))))
 
