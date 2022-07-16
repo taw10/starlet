@@ -99,7 +99,7 @@ Worked example
 ==============
 
 Here is an annotated version of the definition for the
-`Stairville Octagon Theatre CW/WW fixture <https://www.thomannmusic.com/stairville_octagon_theater_cw_ww_36x1w.htm>`_
+`Stairville Octagon Theatre CW/WW <https://www.thomannmusic.com/stairville_octagon_theater_cw_ww_36x1w.htm>`_.
 The channels for this fixture are:
 
   1. Cold LED intensity (0-255 min-max)

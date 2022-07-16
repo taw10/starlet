@@ -50,7 +50,7 @@ Lighting fixtures are referred to by names, rather than numbers:
 
 ;; Turn on both moving lights and set colour
 (at moverL moverR 60)
-(at moverL moverR 'colour (make-colour-rgb 45 10 0))
+(at moverL moverR 'colour (rgb 45 10 0))
 ```
 
 The fixture names are normal Scheme variables.  You can do usual things such
@@ -98,7 +98,7 @@ of cues:
        ;; Act 1, Scene 1
        (lighting-state
          (at front-wash 80)
-         (at moverL 'colour (make-colour-cmy 2700/127 0 0)))
+         (at moverL 'colour (cmy 25 0 0)))
 	 (at moverL 25)
        (crossfade 3))
 
@@ -130,12 +130,11 @@ Documentation index
 -------------------
 
 * [Patching fixtures](docs/patching.rst)
+* [Basic attribute control and building states](docs/basic-control.rst)
+* [Cue lists and playbacks](docs/cue-list.rst)
 * [The fixture display tool](docs/fixture-display.rst)
+* [Physical controls](docs/physical-control.rst)
 * [Defining a new type of fixture](docs/new-fixture.rst)
-* More to come:
-  - Basic control of attributes, building states
-  - Cue lists
-  - Using physical controls via MIDI
 
 
 (Non-)warranty
