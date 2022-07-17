@@ -26,9 +26,12 @@
   #:use-module (starlet scanout)
   #:use-module (starlet utils)
   #:use-module (srfi srfi-1)
+  #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
   #:use-module (oop goops)
   #:export (set-midi-control-map!
+             fader
+             jogwheel
              state-on-fader))
 
 
@@ -41,6 +44,38 @@
   (control-map
     #:init-keyword #:control-map
     #:getter get-control-map))
+
+
+(define-record-type <fader-spec>
+  (make-fader cc attr-name congruent incongruent)
+  fader-spec?
+  (cc           fader-cc-number)
+  (attr-name    fader-attr-name)
+  (congruent    fader-congruent-note)
+  (incongruent  fader-incongruent-note))
+
+
+(define-record-type <jogwheel-spec>
+  (make-jogwheel cc attr-name active-note)
+  jogwheel-spec?
+  (cc           jogwheel-cc-number)
+  (attr-name    jogwheel-attr-name)
+  (active-note  jogwheel-active-note))
+
+
+(define* (fader cc
+                attr-name
+                #:key
+                (congruent #f)
+                (incongruent #f))
+  (make-fader cc attr-name congruent incongruent))
+
+
+(define* (jogwheel cc
+                   attr-name
+                   #:key
+                   (active #f))
+  (make-jogwheel cc attr-name active))
 
 
 (define (name-for-fader-state controller cc-number)
@@ -282,20 +317,20 @@
 (define (midi-control-attr controller control-spec fixture-list)
   (cond
 
-   ((eq? 'jogwheel (cadr control-spec))
+   ((jogwheel-spec? control-spec)
     (at-midi-jogwheel controller
                       fixture-list
-                      (car control-spec)
-                      (caddr control-spec)
-                      #:led (cadddr control-spec)))
+                      (jogwheel-attr-name control-spec)
+                      (jogwheel-cc-number control-spec)
+                      #:led (jogwheel-active-note control-spec)))
 
-   ((eq? 'fader (cadr control-spec))
+   ((fader-spec? control-spec)
     (at-midi-fader controller
                    fixture-list
-                   (car control-spec)
-                   (caddr control-spec)
-                   #:led (car (cadddr control-spec))
-                   #:led-incongruent (cadr (cadddr control-spec))))))
+                   (fader-attr-name control-spec)
+                   (fader-cc-number control-spec)
+                   #:led (fader-congruent-note control-spec)
+                   #:led-incongruent (fader-incongruent-note control-spec)))))
 
 
 (define (led-off controller leds)
@@ -316,9 +351,15 @@
             (get-callbacks parameter-controller))
 
   ;; Switch off all the old LEDs
-  (for-each (lambda (control-spec)
-              (led-off controller (cadddr control-spec)))
-            (get-control-map parameter-controller)))
+  (for-each
+    (lambda (cs)
+      (cond
+        ((jogwheel-spec? cs)
+         (led-off controller (jogwheel-active-note cs)))
+        ((fader-spec? cs)
+         (led-off controller (fader-congruent-note cs))
+         (led-off controller (fader-incongruent-note cs)))))
+    (get-control-map parameter-controller)))
 
 
 (define (update-midi-controls controller fixture-list)
@@ -333,7 +374,7 @@
          (get-control-map (get-parameter-controller controller)))))
 
 
-(define (set-midi-control-map! controller new-control-map)
+(define (set-midi-control-map! controller . new-control-map)
   (when controller
     (let ((old-parameter-controller (get-parameter-controller controller)))
 
