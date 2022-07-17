@@ -41,6 +41,40 @@ You can write your own transition effects, if you want some other kind of
 transition.  Documentation pending, but look at snap-transition.scm and
 crossfade.scm for some examples.
 
+The lighting state does not have to feature a literal ``lighting-state`` form.
+Let's say you defined a state somewhere else::
+
+  (define my-state
+    (lighting-state
+      (at spotSR spotSL 50)
+      (at spotCS 100)))
+
+You can refer to that state in a cue like this::
+
+  (cue 3
+    my-state
+    (crossfade 3 5))
+
+You can also layer changes on top of the state, by using ``apply-state`` (which
+does exactly what its name suggests)::
+
+  (cue 3
+    (lighting-state
+      (apply-state my-state)
+      (at upstage-spot))
+    (crossfade 3 5))
+
+You can even make those changes conditional::
+
+  (define spot-needed #f)
+
+  (cue 3
+    (lighting-state
+      (apply-state my-state)
+      (when spot-needed
+        (at upstage-spot)))
+    (crossfade 3 5))
+
 
 Multi-part cues
 ===============
