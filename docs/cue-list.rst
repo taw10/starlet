@@ -42,6 +42,60 @@ transition.  Documentation pending, but look at snap-transition.scm and
 crossfade.scm for some examples.
 
 
+Multi-part cues
+===============
+
+Sometimes you need certain fixtures to fade differently during the same cue.
+To achieve this, use a multi-part cue.  Here's an example::
+
+  (cue 3
+
+       (cue-part
+         (lighting-state
+           (at highsideL 'intensity 100.0)
+           (at highsideR 'intensity 100.0)
+           (at front-leds 'colour (cmy 0 93 80))
+           (at splitL splitR 70)
+           (at washL washR 100)
+           (at washM 50))
+         (crossfade 6 #:up-delay 14))
+
+       (cue-part
+         (lighting-state
+           (at portrait-spot 100))
+         (crossfade 3))
+
+       (cue-part
+         (lighting-state
+           (at front-leds 100))
+         (crossfade 3 #:up-delay 16)))
+
+In this example, the ``portrait-spot`` fades up first, in 3 seconds.  The main
+part of the scene (the first ``cue-part``) fades up more slowly, in 6 seconds
+after a delay of 14 seconds.  The ``front-leds`` (a group containing all of the
+front-light LED fixtures) fades up a further 2 seconds after that.  Note that
+the cue parts don't need to appear in chronological order.  However, the first
+cue part is "special", because it's the one *into* which the other parameters
+will track (see below).
+
+You don't have to wrap ``cue-part`` round all parts.  You can leave the "main"
+part floating free inside the ``cue`` form, like this::
+
+  (cue 4
+
+       (lighting-state
+         (at overhead-table 50))
+       (crossfade 5)
+
+       (cue-part
+         (lighting-state
+           (at portrait-spot 100))
+         (crossfade 5 #:up-delay 2)))
+
+Which way is best will depend on the particular cue.  Use whichever way makes
+your lighting aims clearer.
+
+
 Cue lists
 ==========
 
