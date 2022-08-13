@@ -237,10 +237,14 @@
 (define-syntax cue-list
   (syntax-rules ()
     ((_ body ...)
-     (let ((the-cue-list (vector (cue 0
-                                      (make-empty-state)
-                                      (snap))
-                                 body ...)))
+     (let ((the-cue-list
+             (list->vector
+               (remove unspecified?
+                       (list
+                         (cue 0
+                              (make-empty-state)
+                              (snap))
+                         body ...)))))
        (track-all-cues! the-cue-list)
        (preset-all-cues! the-cue-list)
        the-cue-list))))
