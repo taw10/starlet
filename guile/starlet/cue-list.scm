@@ -145,9 +145,9 @@
 
                     ;; Wrong number of states or transition effects
                     [(not (= n-states 1))
-                     (error "A cue can only contain one state")]
+                     (error "Cue must contain exactly one state: " number)]
                     [(not (= n-tr-effs 1))
-                     (error "A cue can only contain one transition effect")])
+                     (error "Cue must contain exactly one transition effect: " number)])
 
                   (current-cue-clock))))))
 
