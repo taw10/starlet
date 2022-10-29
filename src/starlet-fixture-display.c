@@ -69,6 +69,7 @@ struct fixture_display
 	int shutdown;
 	char *socket;
 	int verbose;
+	int got_eof;
 };
 
 
@@ -431,11 +432,13 @@ static gboolean redraw_cb(gpointer data)
 			return G_SOURCE_CONTINUE;
 		}
 	} else {
-		if ( !fixd->shutdown ) {
+		if ( !fixd->shutdown && fixd->got_eof ) {
+			fixd->got_eof = FALSE;
 			request_intensities(fixd);
 			request_selection(fixd);
 			request_playback_status(fixd);
 			request_programmer_status(fixd);
+			repl_send(fixd->repl, "'end-of-stuff");
 			redraw(fixd);
 		}
 		return G_SOURCE_CONTINUE;
@@ -675,6 +678,8 @@ static void process_line(SCM sexp, void *data)
 				handle_programmer_status(fixd, contents);
 			}
 		}
+	} else if ( scm_is_symbol(sexp) && symbol_eq(sexp, "end-of-stuff") ) {
+		fixd->got_eof = TRUE;
 	}
 }
 
@@ -798,6 +803,7 @@ int main(int argc, char *argv[])
 	fixd.playback_name = strdup("pb");
 	fixd.cue_running = 0;
 	fixd.programmer_empty = 1;
+	fixd.got_eof = TRUE;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
