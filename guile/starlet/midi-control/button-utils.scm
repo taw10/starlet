@@ -46,18 +46,21 @@
                  (set! time-last-press time-this-press)))))
 
   (when (or ready-note pause-note)
-    (add-hook!
-      (state-change-hook pb)
-      (lambda (new-state)
-        (cond
-          ((eq? new-state 'pause)
-           (send-note-on controller pause-note))
-          ((eq? new-state 'ready)
-           (send-note-on controller ready-note))
-          ((eq? new-state 'running)
-           (send-note-on controller ready-note))
-          (else
-            (send-note-off controller ready-note)))))))
+    (let ((state-change-func
+            (lambda (new-state)
+              (cond
+                ((eq? new-state 'pause)
+                 (send-note-on controller pause-note))
+                ((eq? new-state 'ready)
+                 (send-note-on controller ready-note))
+                ((eq? new-state 'running)
+                 (send-note-on controller ready-note))
+                (else
+                  (send-note-off controller ready-note))))))
+      (add-hook!
+        (state-change-hook pb)
+        state-change-func)
+      (state-change-func (playback-state pb)))))
 
 
 (define* (make-stop-button controller pb button
