@@ -33,19 +33,24 @@
     (attr-continuous 'intensity '(0 100) 0)
     (attr-colour 'colour white)
     (attr-continuous 'strobe-frequency '(1 25) 1)
-    (attr-list 'strobe '(#f #t) #f))
+    (attr-list 'strobe '(off on random) 'off))
 
   (let ((intensity (get-attr 'intensity))
         (rgbw (colour-as-rgbw (get-attr 'colour))))
     (set-chan8 1 (percent->dmxval8 intensity))
-    (if (get-attr 'strobe)
-      (set-chan8 2 (scale-and-clamp-to-range
-                     (get-attr 'strobe-frequency)
-                     '(1 25)
-                     '(106 165)))
-      (set-chan8 2 255))
     (set-chan8 3 (percent->dmxval8 (car rgbw)))
     (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
     (set-chan8 5 (percent->dmxval8 (caddr rgbw)))
-    (set-chan8 6 (percent->dmxval8 (cadddr rgbw)))))
-
+    (set-chan8 6 (percent->dmxval8 (cadddr rgbw))))
+  (cond
+    ((eq? (get-attr 'strobe) 'on)
+     (set-chan8 2 (scale-and-clamp-to-range
+                    (get-attr 'strobe-frequency)
+                    '(1 25)
+                    '(106 165))))
+    ((eq? (get-attr 'strobe) 'random)
+     (set-chan8 2 (scale-and-clamp-to-range
+                    (get-attr 'strobe-frequency)
+                    '(1 25)
+                    '(181 240))))
+    (else (set-chan8 2 255))))
