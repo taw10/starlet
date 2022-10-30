@@ -691,7 +691,9 @@ static gboolean try_connect_cb(gpointer data)
 		fixd->repl = repl_connection_new(fixd->socket, process_line,
 		                                 fixd, fixd->verbose);
 		if ( fixd->repl != NULL ) {
+			fixd->got_eof = FALSE;
 			repl_send(fixd->repl, "(list 'patched-fixtures (reverse (patched-fixture-names)))");
+			repl_send(fixd->repl, "'end-of-stuff");
 		}
 	}
 	return G_SOURCE_CONTINUE;
