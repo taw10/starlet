@@ -153,6 +153,12 @@ static void input_ready(GObject *source, GAsyncResult *res, gpointer vp)
 		printf("Prompt!\n");
 		repl->input[0] = '\0';
 	}
+	if ( strncmp(remaining, "Entering a new prompt", 21) == 0 ) {
+		fprintf(stderr, "Scheme error!\n");
+		g_object_unref(repl->conn);
+		repl->conn = NULL;
+		return;
+	}
 	free(remaining);
 
 	g_input_stream_read_async(g_io_stream_get_input_stream(G_IO_STREAM(repl->conn)),
