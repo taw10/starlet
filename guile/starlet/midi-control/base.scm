@@ -26,6 +26,7 @@
   #:use-module (ice-9 binary-ports)
   #:use-module (srfi srfi-1)
   #:export (make-midi-controller
+            find-midi-device
             get-cc-value
             ccval->percent
             percent->ccval
@@ -292,3 +293,11 @@
     controller 'cc cc-num
     (lambda (prev new)
       (set-sensitivity controller prev new))))
+
+
+(define (find-midi-device)
+  (find file-exists?
+        (list "/dev/snd/midiC0D0"
+              "/dev/snd/midiC1D0"
+              "/dev/snd/midiC2D0"
+              "/dev/snd/midiC3D0")))
