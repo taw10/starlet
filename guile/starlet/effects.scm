@@ -20,8 +20,10 @@
 ;;
 (define-module (starlet effects)
   #:use-module (starlet clock)
+  #:use-module (starlet state)
   #:export (flash
-             sinewave))
+             sinewave
+             flash-chase))
 
 
 (define pi (* 2 (acos 0)))
@@ -45,3 +47,25 @@
       (+ range-min
          (* (/ (- range-max range-min) 2)
             (+ 1 (sin (* 2 pi hz (elapsed-time clock)))))))))
+
+
+(define (hump t on-time)
+  (cond
+    ((< t 0.0) 0.0)
+    ((> t on-time) 0.0)
+    (else (* 100 (sin (* pi (/ t on-time)))))))
+
+
+(define* (flash-chase group
+                      #:key (repeat-time 2) (offset-time 0.3) (on-time 0.5))
+  (let ((clock (make-clock)))
+    (for-each
+      (lambda (fix idx)
+        (at fix 'intensity
+            (lambda ()
+              (hump (- (euclidean-remainder (elapsed-time clock)
+                                            repeat-time)
+                       (* idx offset-time))
+                    on-time))))
+      group
+      (iota (length group)))))
