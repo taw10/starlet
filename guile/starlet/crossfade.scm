@@ -205,20 +205,19 @@
 
 (define* (crossfade up-time
                     #:optional
-                    inp-down-time
+                    down-time
                     #:key
-                    (attr-time 0)
+                    (attr-time #f)
                     (up-delay 0)
                     (down-delay 0)
                     (attr-delay 0))
-  (let ((down-time (if inp-down-time
-                     inp-down-time
-                     up-time)))
+  (let* ((real-down-time (if down-time down-time up-time))
+         (real-attr-time (if attr-time attr-time (min up-time real-down-time))))
     (make-transition
       (incoming-state current-state clock)
       (let ((up-clock (make-delayed-clock clock up-delay up-time))
-            (down-clock (make-delayed-clock clock down-delay down-time))
-            (attribute-clock (make-delayed-clock clock attr-delay attr-time)))
+            (down-clock (make-delayed-clock clock down-delay real-down-time))
+            (attribute-clock (make-delayed-clock clock attr-delay real-attr-time)))
         (let ((overlay-state (make-empty-state)))
           (state-for-each
             (lambda (fixture attr target-val)
@@ -256,5 +255,5 @@
           (values overlay-state
                   (max
                     (+ up-time up-delay)
-                    (+ down-time down-delay)
-                    (+ attr-time attr-delay))))))))
+                    (+ real-down-time down-delay)
+                    (+ real-attr-time attr-delay))))))))
