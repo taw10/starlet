@@ -549,6 +549,10 @@ static void handle_patched_fixtures(struct fixture_display *fixd,
 		fixd->fixtures[i].min_y = 0.0;
 		fixd->fixtures[i].max_x = 0.0;
 		fixd->fixtures[i].max_y = 0.0;
+		fixd->fixtures[i].intensity = 0.0;
+		fixd->fixtures[i].rgb[0] = 0.0;
+		fixd->fixtures[i].rgb[1] = 0.0;
+		fixd->fixtures[i].rgb[2] = 0.0;
 	}
 }
 
