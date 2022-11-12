@@ -334,6 +334,11 @@ pre-existing contents."
 (define (print-state a)
   (pretty-print (state-source a)))
 
+(define-method (write (st <starlet-state>) port)
+  (write
+    (state-source st)
+    port))
+
 
 (define (clamp-to-attr-range fix attr val)
   (if (number? val)
