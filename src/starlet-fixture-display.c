@@ -349,8 +349,8 @@ static void request_intensities(struct fixture_display *fixd)
 		snprintf(tmp, 256, "(list"
 		                   "  'fixture-parameters"
 		                   "  (list \"%s\" "
-		                   "    (current-value %s 'intensity) "
-		                   "    (let ((col (current-value %s 'colour)))"
+		                   "    (current-value %s intensity) "
+		                   "    (let ((col (current-value %s colour)))"
 		                   "      (if (colour? col)"
 		                   "        (colour-as-rgb col)"
 		                   "        #f))))",

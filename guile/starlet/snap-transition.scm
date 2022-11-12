@@ -24,6 +24,7 @@
   #:use-module (starlet state)
   #:use-module (starlet fixture)
   #:use-module (starlet transition-effect)
+  #:use-module (starlet attributes)
   #:export (snap))
 
 

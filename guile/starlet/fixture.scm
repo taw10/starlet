@@ -21,6 +21,7 @@
 (define-module (starlet fixture)
   #:use-module (starlet colours)
   #:use-module (starlet utils)
+  #:use-module (starlet attributes)
   #:use-module (oop goops)
   #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
@@ -42,8 +43,7 @@
             get-attr-range
             get-attr-home-val
             continuous-attribute?
-            colour-attribute?
-            intensity?))
+            colour-attribute?))
 
 
 (define-class <fixture-attribute> (<object>)
@@ -138,7 +138,7 @@
   (is-a? f <fixture>))
 
 
-(define-method (find-attr (fix <fixture>) (attr-name <symbol>))
+(define-method (find-attr (fix <fixture>) (attr-name <starlet-attribute>))
   (find (lambda (a)
           (eq? (get-attr-name a)
                attr-name))
@@ -146,7 +146,7 @@
 
 
 (define-method (find-attr (fix <fixture>) (attr-name <colour-component-id>))
-  (find-attr fix 'colour))
+  (find-attr fix colour))
 
 
 (define-method (find-attr fix attr-name)
@@ -156,7 +156,7 @@
       (make-exception-with-irritants fix))))
 
 
-(define-method (get-attr-home-val (fix <fixture>) (attr <symbol>))
+(define-method (get-attr-home-val (fix <fixture>) (attr <starlet-attribute>))
   (let ((attr-obj (find-attr fix attr)))
     (if attr-obj
         (attr-home-value attr-obj)
@@ -165,12 +165,8 @@
 
 (define-method (get-attr-home-val (fix <fixture>) (attr <colour-component-id>))
   (extract-colour-component
-    (get-attr-home-val fix 'colour)
+    (get-attr-home-val fix colour)
     attr))
-
-
-(define (intensity? a)
-  (eq? 'intensity a))
 
 
 (define (continuous-attribute? aobj)

@@ -36,6 +36,7 @@
   #:use-module (starlet cue-list)
   #:use-module (starlet colours)
   #:use-module (starlet transition-effect)
+  #:use-module (starlet attributes)
   #:export (make-playback
             cut-to-cue-number!
             get-playback-cue-number

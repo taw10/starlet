@@ -21,8 +21,10 @@
 (define-module (starlet fixture-library tadm led-bar)
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet attributes)
   #:use-module (starlet colours)
   #:use-module (starlet utils)
+  #:use-module (starlet attributes)
   #:export (<tadm-led-bar>))
 
 (define-fixture
@@ -30,11 +32,11 @@
   <tadm-led-bar>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0)
-    (attr-colour 'colour white))
+    (attr-continuous intensity '(0 100) 0)
+    (attr-colour colour white))
 
-  (let ((intensity (get-attr 'intensity))
-        (rgb (colour-as-rgb (get-attr 'colour))))
+  (let ((intensity (get-attr intensity))
+        (rgb (colour-as-rgb (get-attr colour))))
     (set-chan8 1 17)
     (set-chan8 2 (percent->dmxval8 intensity))
     (set-chan8 3 0)

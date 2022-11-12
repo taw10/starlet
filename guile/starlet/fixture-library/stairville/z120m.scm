@@ -21,6 +21,7 @@
 (define-module (starlet fixture-library stairville z120m)
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet attributes)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<stairville-z120m-6ch>))
@@ -30,27 +31,27 @@
   <stairville-z120m-6ch>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0)
-    (attr-colour 'colour white)
-    (attr-continuous 'strobe-frequency '(1 25) 1)
-    (attr-list 'strobe '(off on random) 'off))
+    (attr-continuous intensity '(0 100) 0)
+    (attr-colour colour white)
+    (attr-continuous strobe-frequency '(1 25) 1)
+    (attr-list strobe '(off on random) 'off))
 
-  (let ((intensity (get-attr 'intensity))
-        (rgbw (colour-as-rgbw (get-attr 'colour))))
+  (let ((intensity (get-attr intensity))
+        (rgbw (colour-as-rgbw (get-attr colour))))
     (set-chan8 1 (percent->dmxval8 intensity))
     (set-chan8 3 (percent->dmxval8 (car rgbw)))
     (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
     (set-chan8 5 (percent->dmxval8 (caddr rgbw)))
     (set-chan8 6 (percent->dmxval8 (cadddr rgbw))))
   (cond
-    ((eq? (get-attr 'strobe) 'on)
+    ((eq? (get-attr strobe) 'on)
      (set-chan8 2 (scale-and-clamp-to-range
                     (get-attr 'strobe-frequency)
                     '(1 25)
                     '(106 165))))
-    ((eq? (get-attr 'strobe) 'random)
+    ((eq? (get-attr strobe) 'random)
      (set-chan8 2 (scale-and-clamp-to-range
-                    (get-attr 'strobe-frequency)
+                    (get-attr strobe-frequency)
                     '(1 25)
                     '(181 240))))
     (else (set-chan8 2 255))))

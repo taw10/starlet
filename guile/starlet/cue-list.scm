@@ -32,6 +32,7 @@
   #:use-module (starlet state)
   #:use-module (starlet clock)
   #:use-module (starlet utils)
+  #:use-module (starlet attributes)
   #:use-module (starlet transition-effect)
   #:use-module (starlet snap-transition)
   #:use-module (starlet crossfade)
@@ -192,7 +193,7 @@
 (define (fixture-dark-in-cue? fix the-cue)
   (every
     (lambda (part)
-      (dark? (state-find fix 'intensity (get-cue-part-state part))))
+      (dark? (state-find fix intensity (get-cue-part-state part))))
     (get-cue-parts the-cue)))
 
 

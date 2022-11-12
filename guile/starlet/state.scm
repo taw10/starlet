@@ -22,6 +22,7 @@
   #:use-module (starlet fixture)
   #:use-module (starlet colours)
   #:use-module (starlet utils)
+  #:use-module (starlet attributes)
   #:use-module (oop goops)
   #:use-module (ice-9 pretty-print)
   #:use-module (ice-9 atomic)
@@ -66,7 +67,7 @@
 
 
 ;; A "state" is an atomically-updating container for an immutable
-;; hash table mapping (fixture-object . attribute-symbol) pairs to values
+;; hash table mapping (fixture-object . attribute-name-object) pairs to values
 ;; which can be numbers, symbols, colours, boolean values and more
 ;; depending on the type of attribute.  Values can also be
 ;; functions which provide the value.
@@ -174,7 +175,7 @@
 
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
-                              (attr <symbol>)
+                              (attr <starlet-attribute>)
                               value
                               source)
   (let* ((old-ht (atomic-box-ref (get-ht-box state)))
@@ -194,7 +195,7 @@
 
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
-                              (attr <symbol>)
+                              (attr <starlet-attribute>)
                               value)
   (set-in-state! state fix attr value #f))
 
@@ -251,7 +252,7 @@
 
 
 (define-method (state-find (fix <fixture>)
-                           (attr <symbol>)
+                           (attr <starlet-attribute>)
                            (state <starlet-state>))
   (hash-ref (atomic-box-ref (get-ht-box state))
             (cons fix attr)
@@ -350,7 +351,7 @@ pre-existing contents."
         (state-map->list (lambda (fix attr val)
                            (list 'at
                                  (get-fixture-name fix)
-                                 (list 'quote attr)
+                                 (canonical-name attr)
                                  (clamp-to-attr-range fix attr val)))
                          a)))
 
@@ -386,55 +387,57 @@ pre-existing contents."
 (define fixture-has-attr? find-attr)
 
 
-(define (set-fixtures fixtures attr-name value)
+(define (set-fixtures fixtures attribute value)
   (for-each
     (lambda (fix)
-      (if (fixture-has-attr? fix attr-name)
+      (if (fixture-has-attr? fix attribute)
         (set-in-state! (current-state)
                        fix
-                       attr-name
-                       (clamp-to-attr-range fix attr-name value))
-        (error "Fixture does not have attribute")))
+                       attribute
+                       (clamp-to-attr-range fix attribute value))
+        (error "Fixture does not have attribute"
+               (get-fixture-name fix)
+               (canonical-name attribute))))
     fixtures))
 
 
 ;; (at <fixtures/groups> [<attribute>] <level> [<attribute> <level>...])
 ;; (at fix1 100)                      <-- Set intensity of single fixture
-;; (at fix1 'intensity 100)           <-- Explicit attribute name
+;; (at fix1 intensity 100)           <-- Explicit attribute name
 ;; (at fix1 fix2 100)                 <-- Multiple fixtures
-;; (at fix1 fix2 'pan 36)             <-- Multiple fixtures + explicit attribute
-;; (at group1 fix1 'intensity 100)    <-- Groups can be used instead of fixtures
-;; (at fix1 100 'pan 36)              <-- Set multiple attributes
-;; NB Can't set multiple fixtures and attributes: (at fix1 'pan 35 fix2 'tilt 22)
+;; (at fix1 fix2 pan 36)             <-- Multiple fixtures + explicit attribute
+;; (at group1 fix1 intensity 100)    <-- Groups can be used instead of fixtures
+;; (at fix1 100 pan 36)              <-- Set multiple attributes
+;; NB Can't set multiple fixtures and attributes: (at fix1 pan 35 fix2 tilt 22)
 
 (define (at . args)
-  (receive (fixtures attr-name value)
-           (partition3 fixture? symbol? (flatten-sublists args))
+  (receive (fixtures attribute value)
+           (partition3 fixture? attribute? (flatten-sublists args))
            (cond
 
              ((nil? value)
               (error "at: Value not specified"))
 
              ((or (more-than-one value)
-                  (more-than-one attr-name))
+                  (more-than-one attribute))
               (error "at: Only one attribute or value name"))
 
              ((and (nil? fixtures)
-                   (nil? attr-name))
+                   (nil? attribute))
               (if (nil? selection)
                   'no-fixtures-selected
-                  (set-fixtures selection 'intensity (car value))))
+                  (set-fixtures selection intensity (car value))))
 
-             ((nil? attr-name)
-              (set-fixtures fixtures 'intensity (car value)))
+             ((nil? attribute)
+              (set-fixtures fixtures intensity (car value)))
 
              ((nil? fixtures)
               (if (nil? selection)
                   'no-fixtures-selected
-                  (set-fixtures selection (car attr-name) (car value))))
+                  (set-fixtures selection (car attribute) (car value))))
 
              (else
-               (set-fixtures fixtures (car attr-name) (car value))))))
+               (set-fixtures fixtures (car attribute) (car value))))))
 
 
 (define selection-hook (make-hook 1))

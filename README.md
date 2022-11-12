@@ -50,7 +50,7 @@ Lighting fixtures are referred to by names, rather than numbers:
 
 ;; Turn on both moving lights and set colour
 (at moverL moverR 60)
-(at moverL moverR 'colour (rgb 45 10 0))
+(at moverL moverR colour (rgb 45 10 0))
 ```
 
 The fixture names are normal Scheme variables.  You can do usual things such
@@ -70,9 +70,9 @@ with a variable name:
      (at footlights 100)
      (at front-wash 100)
      (at moverL moverR 100)
-     (at moverL moverR 'tilt 45)
-     (at moverL 'pan -15)
-     (at moverR 'pan 15)))
+     (at moverL moverR tilt 45)
+     (at moverL pan -15)
+     (at moverR pan 15)))
 ```
 
 A cue is formed by associating a lighting state with a *transition effect*,
@@ -98,7 +98,7 @@ of cues:
        ;; Act 1, Scene 1
        (lighting-state
          (at front-wash 80)
-         (at moverL 'colour (cmy 25 0 0)))
+         (at moverL colour (cmy 25 0 0)))
 	 (at moverL 25)
        (crossfade 3))
 

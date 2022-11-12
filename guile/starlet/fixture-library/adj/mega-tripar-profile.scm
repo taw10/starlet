@@ -21,6 +21,7 @@
 (define-module (starlet fixture-library adj mega-tripar-profile)
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet attributes)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<adj-mega-tripar-profile-3ch>
@@ -34,11 +35,11 @@
   <adj-mega-tripar-profile-3ch>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0)
-    (attr-colour 'colour white))
+    (attr-continuous intensity '(0 100) 0)
+    (attr-colour colour white))
 
-  (let ((intensity (/ (get-attr 'intensity) 100))
-        (rgb (colour-as-rgb (get-attr 'colour))))
+  (let ((intensity (/ (get-attr intensity) 100))
+        (rgb (colour-as-rgb (get-attr colour))))
     (set-chan8 1 (percent->dmxval8 (* intensity (car rgb))))
     (set-chan8 2 (percent->dmxval8 (* intensity (cadr rgb))))
     (set-chan8 3 (percent->dmxval8 (* intensity (caddr rgb))))))
@@ -51,11 +52,11 @@
   <adj-mega-tripar-profile-4ch>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0)
-    (attr-colour 'colour white))
+    (attr-continuous intensity '(0 100) 0)
+    (attr-colour colour white))
 
-  (let ((rgb (colour-as-rgb (get-attr 'colour))))
-    (set-chan8 1 (percent->dmxval8 (get-attr 'intensity)))
+  (let ((rgb (colour-as-rgb (get-attr colour))))
+    (set-chan8 1 (percent->dmxval8 (get-attr intensity)))
     (set-chan8 2 (percent->dmxval8 (car rgb)))
     (set-chan8 3 (percent->dmxval8 (cadr rgb)))
     (set-chan8 4 (percent->dmxval8 (caddr rgb)))))

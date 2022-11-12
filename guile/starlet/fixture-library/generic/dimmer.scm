@@ -22,6 +22,7 @@
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
   #:use-module (starlet utils)
+  #:use-module (starlet attributes)
   #:export (<generic-dimmer>))
 
 (define-fixture
@@ -29,7 +30,7 @@
   <generic-dimmer>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0))
+    (attr-continuous intensity '(0 100) 0))
 
-  (set-chan8 1 (percent->dmxval8 (get-attr 'intensity))))
+  (set-chan8 1 (percent->dmxval8 (get-attr intensity))))
 

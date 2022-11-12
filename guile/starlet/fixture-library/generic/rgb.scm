@@ -21,6 +21,7 @@
 (define-module (starlet fixture-library generic rgb)
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet attributes)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<generic-rgb>))
@@ -31,11 +32,11 @@
   <generic-rgb>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0)
-    (attr-colour 'colour white))
+    (attr-continuous intensity '(0 100) 0)
+    (attr-colour colour white))
 
-  (let ((intensity (get-attr 'intensity))
-        (rgb (colour-as-rgb (get-attr 'colour))))
+  (let ((intensity (get-attr intensity))
+        (rgb (colour-as-rgb (get-attr colour))))
     (set-chan8 1 (percent->dmxval8 (* intensity 0.01 (car rgb))))
     (set-chan8 2 (percent->dmxval8 (* intensity 0.01 (cadr rgb))))
     (set-chan8 3 (percent->dmxval8 (* intensity 0.01 (caddr rgb))))))

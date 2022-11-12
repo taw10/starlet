@@ -90,13 +90,13 @@ programmer state.  Here's an example::
 
   (set-midi-control-map!
     controller
-    (fader    16 'intensity                      #:congruent 108  #:incongruent 72)
-    (jogwheel  0 'pan                            #:active 124)
-    (jogwheel  1 'tilt                           #:active 125)
-    (fader     4 (colour-component-id 'cyan)     #:congruent 120  #:incongruent 84)
-    (fader     5 (colour-component-id 'magenta)  #:congruent 121  #:incongruent 85)
-    (fader     6 (colour-component-id 'yellow)   #:congruent 122  #:incongruent 86)
-    (fader     7 'colour-temperature             #:congruent 123  #:incongruent 87))
+    (fader    16 intensity                      #:congruent 108  #:incongruent 72)
+    (jogwheel  0 pan                            #:active 124)
+    (jogwheel  1 tilt                           #:active 125)
+    (fader     4 (colour-component-id 'cyan)    #:congruent 120  #:incongruent 84)
+    (fader     5 (colour-component-id 'magenta) #:congruent 121  #:incongruent 85)
+    (fader     6 (colour-component-id 'yellow)  #:congruent 122  #:incongruent 86)
+    (fader     7 colour-temperature             #:congruent 123  #:incongruent 87))
 
 Use ``fader`` for MIDI *continuous control* parameters (CCs), which might
 physically correspond to faders or rotary potentiometers with a minimum and

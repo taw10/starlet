@@ -21,6 +21,7 @@
 (define-module (starlet effects)
   #:use-module (starlet clock)
   #:use-module (starlet state)
+  #:use-module (starlet attributes)
   #:export (flash
              sinewave
              flash-chase))
@@ -61,7 +62,7 @@
   (let ((clock (make-clock)))
     (for-each
       (lambda (fix idx)
-        (at fix 'intensity
+        (at fix intensity
             (lambda ()
               (hump (- (euclidean-remainder (elapsed-time clock)
                                             repeat-time)

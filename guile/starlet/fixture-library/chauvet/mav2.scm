@@ -21,6 +21,7 @@
 (define-module (starlet fixture-library chauvet mav2)
   #:use-module (starlet scanout)
   #:use-module (starlet fixture)
+  #:use-module (starlet attributes)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
   #:export (<chauvet-mav2-32ch>))
@@ -31,19 +32,19 @@
   <chauvet-mav2-32ch>
 
   (fixture-attributes
-    (attr-continuous 'intensity '(0 100) 0)
-    (attr-continuous 'pan '(0 540) 270)
-    (attr-continuous 'tilt '(0 270) 135)
-    (attr-continuous 'cyan '(0 100) 0)
-    (attr-continuous 'magenta '(0 100) 0)
-    (attr-continuous 'yellow '(0 100) 0))
+    (attr-continuous intensity '(0 100) 0)
+    (attr-continuous pan '(0 540) 270)
+    (attr-continuous tilt '(0 270) 135)
+    (attr-continuous cyan '(0 100) 0)
+    (attr-continuous magenta '(0 100) 0)
+    (attr-continuous yellow '(0 100) 0))
 
-  (set-chan-16bit 1 (get-attr 'pan) 540)
-  (set-chan-16bit 3 (get-attr 'tilt) 270)
-  (set-chan-16bit 6 (get-attr 'intensity) 100)
+  (set-chan-16bit 1 (get-attr pan) 540)
+  (set-chan-16bit 3 (get-attr tilt) 270)
+  (set-chan-16bit 6 (get-attr intensity) 100)
 
-  (set-chan 10 (percent->dmxval (get-attr 'cyan)))
-  (set-chan 11 (percent->dmxval (get-attr 'magenta)))
-  (set-chan 12 (percent->dmxval (get-attr 'yellow)))
+  (set-chan 10 (percent->dmxval (get-attr cyan)))
+  (set-chan 11 (percent->dmxval (get-attr magenta)))
+  (set-chan 12 (percent->dmxval (get-attr yellow)))
 
   (set-chan 8 255))

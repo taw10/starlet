@@ -23,6 +23,7 @@
   #:use-module (starlet state)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
+  #:use-module (starlet attributes)
   #:use-module (starlet guile-ola)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
@@ -131,7 +132,7 @@
         'no-value)))
 
 
-(define-method (current-value (fix <fixture>) (attr-name <symbol>))
+(define-method (current-value (fix <fixture>) (attr-name <starlet-attribute>))
   (let  ((programmer-val (state-find fix attr-name programmer-state)))
     (if (eq? 'no-value programmer-val)
 

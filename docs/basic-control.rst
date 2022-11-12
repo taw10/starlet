@@ -5,26 +5,25 @@ Basic attribute control and building states
 Once your fixtures are patched (see `<patching.rst>`_), you can set attributes
 sing ``at``.  For example, to set the intensity of ``my-dimmer`` to 100%::
 
-  (at my-dimmer 'intensity 100)
+  (at my-dimmer intensity 100)
 
 If you leave out the attribute name, then ``intensity`` will be assumed::
 
   (at my-dimmer 100)
 
 The available parameters are determined by the fixture definition (see
-`<new-fixture.rst>`_), and are referred to by their symbolic name (i.e. quote
-them with ``'``).  For example::
+`<new-fixture.rst>`_). For example::
 
-  (at my-moving-light 'pan 32)
-  (at my-moving-light 'tilt 70)
-  (at my-moving-light 'zoom 60)
+  (at my-moving-light pan 32)
+  (at my-moving-light tilt 70)
+  (at my-moving-light zoom 60)
 
-Not all fixtures accept a single number.  For example, ``'colour`` (note: UK
-spelling) takes a colour object, which can be constructed using ``rgb`` or
-``cmy``.  Starlet (or rather,  the fixture definition code) is responsible for
-converting the colour to the native representation used by the fixture::
+Not all fixtures accept a single number.  For example, ``'colour``  takes a
+colour object, which can be constructed using ``rgb`` or ``cmy``.  Starlet (or
+rather,  the fixture definition code) is responsible for converting the colour
+to the native representation used by the fixture::
 
-  (at my-moving-light 'colour (rgb 80 23 25))
+  (at my-moving-light colour (rgb 80 23 25))
 
 You can set attributes for multiple fixtures at once::
 
@@ -55,9 +54,9 @@ call ``(sel #f)`` or simply ``(sel)``::
 
   (sel my-moving-light)
   (at 100)
-  (at 'colour (rgb 80 23 25))
-  (at 'tilt 70)
-  (at 'pan 32)
+  (at colour (rgb 80 23 25))
+  (at tilt 70)
+  (at pan 32)
   (sel #f)
 
 The fixture display window (see `<fixture-display.rst>`_) will highlight the

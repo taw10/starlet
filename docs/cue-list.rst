@@ -86,9 +86,9 @@ To achieve this, use a multi-part cue.  Here's an example::
 
        (cue-part
          (lighting-state
-           (at highsideL 'intensity 100.0)
-           (at highsideR 'intensity 100.0)
-           (at front-leds 'colour (cmy 0 93 80))
+           (at highsideL intensity 100.0)
+           (at highsideR intensity 100.0)
+           (at front-leds colour (cmy 0 93 80))
            (at splitL splitR 70)
            (at washL washR 100)
            (at washM 50))
@@ -153,7 +153,7 @@ A cue list is simply a list of cues.  For example::
          ;; Act 1, Scene 1
          (lighting-state
            (at front-wash 80)
-           (at moverL 'colour (cmy 21 0 0)))
+           (at moverL colour (cmy 21 0 0)))
   	 (at moverL 25)
          (crossfade 3))
 

@@ -25,6 +25,7 @@
   #:use-module (starlet colours)
   #:use-module (starlet scanout)
   #:use-module (starlet utils)
+  #:use-module (starlet attributes)
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)

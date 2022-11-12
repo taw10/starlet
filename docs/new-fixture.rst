@@ -16,14 +16,14 @@ for example ``<robe-dl7s-mode3>`` for a Robe DL7S profile in mode 3.
 
 Each attribute follows one of the following forms::
 
-  (attr-continuous 'intensity '(0 100) 0)
-  (attr-colour 'colour white)
-  (attr-list 'prism '(#f 3 5) #f)
+  (attr-continuous intensity '(0 100) 0)
+  (attr-colour colour white)
+  (attr-list prism '(#f 3 5) #f)
 
-In all cases, you need to provide a symbol for the name of the attribute.
-Using the standard names (below) where possible will make things work more
-smoothly.  The last argument in each ``attr-`` form is always the default
-value for the attribute.
+In all cases, you need to provide the name of the attribute.  The available
+attribute names are enumerated in module (starlet attributes) - please add new
+names if you need, but use the available names if possible.  The last argument
+in each ``attr-`` form is always the default value for the attribute.
 
 For ``attr-continuous``, you need to give the range of possible values.  For
 ``attr-list``, you need to give a list of the possible discrete values.  For
@@ -32,7 +32,7 @@ For ``attr-continuous``, you need to give the range of possible values.  For
 The list of attributes is followed by the `scanout code`.  This code will be
 called to convert the attribute values into DMX values.
 
-Retrieve the current values with calls of the form ``(get-attr 'intensity)``,
+Retrieve the current values with calls of the form ``(get-attr intensity)``,
 and set DMX values using ``(set-chan8 nn val)``, where ``val`` is the DMX value
 (0 to 255) and ``nn`` is the channel number.  The channel numbers are indexed
 from 1, i.e. ``(set-chan8 1 255)`` will set the fixture's base DMX address to
@@ -79,20 +79,6 @@ without having to re-program the entire show.
 Be prepared to do some work in the scanout code.  It's almost never as simple
 as a 1:1 translation from the attributes to DMX channels. Even the cheap
 5-channel LED cold/warm fixture in the example below includes some maths.
-
-
-Standard attribute names
-========================
-
-* ``intensity`` The overall light intensity, in percent of the maximum value.
-* ``pan`` in degrees, zero being straight forwards.
-* ``tilt`` in degrees, zero being straight downwards.
-* ``colour`` (note UK spelling).  The colour of the light.
-* ``prism``
-* ``gobo``
-* ``strobe`` boolean for strobe on/off.
-* ``strobe-frequency`` in Hz
-* ``colour-temperature`` (note UK spelling)
 
 
 Worked example
