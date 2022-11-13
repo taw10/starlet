@@ -1,7 +1,7 @@
 ;;
 ;; starlet/state.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -95,10 +95,10 @@
 
 
 (define (find-colour state fix)
-  (let ((col (state-find fix 'colour state)))
+  (let ((col (state-find fix colour state)))
     (if (eq? 'no-value col)
 
-        (let ((home-col (get-attr-home-val fix 'colour)))
+        (let ((home-col (get-attr-home-val fix colour)))
           (if (eq? 'fixture-does-not-have-attribute home-col)
               (raise-exception (make-exception
                                  (make-exception-with-message
@@ -126,7 +126,7 @@
 
       ((eq? colour-component 'cyan)
        (let ((orig-colour (colour-as-cmy current-colour)))
-         (set-in-state! state fix 'colour
+         (set-in-state! state fix colour
                         (cmy new-val
                              (magenta orig-colour)
                              (yellow orig-colour))
@@ -134,7 +134,7 @@
 
       ((eq? colour-component 'magenta)
        (let ((orig-colour (colour-as-cmy current-colour)))
-         (set-in-state! state fix 'colour
+         (set-in-state! state fix colour
                         (cmy (cyan orig-colour)
                              new-val
                              (yellow orig-colour))
@@ -142,7 +142,7 @@
 
       ((eq? colour-component 'yellow)
        (let ((orig-colour (colour-as-cmy current-colour)))
-         (set-in-state! state fix 'colour
+         (set-in-state! state fix colour
                         (cmy (cyan orig-colour)
                              (magenta orig-colour)
                              new-val)
@@ -150,7 +150,7 @@
 
       ((eq? colour-component 'red)
        (let ((orig-colour (colour-as-rgb current-colour)))
-         (set-in-state! state fix 'colour
+         (set-in-state! state fix colour
                         (rgb new-val
                              (green orig-colour)
                              (blue orig-colour))
@@ -158,7 +158,7 @@
 
       ((eq? colour-component 'green)
        (let ((orig-colour (colour-as-rgb current-colour)))
-         (set-in-state! state fix 'colour
+         (set-in-state! state fix colour
                         (rgb (red orig-colour)
                              new-val
                              (blue orig-colour))
@@ -166,7 +166,7 @@
 
       ((eq? colour-component 'blue)
        (let ((orig-colour (colour-as-rgb current-colour)))
-         (set-in-state! state fix 'colour
+         (set-in-state! state fix colour
                         (rgb (red orig-colour)
                              (green orig-colour)
                              new-val)
@@ -262,7 +262,7 @@
 (define-method (state-find (fix <fixture>)
                            (attr <colour-component-id>)
                            (state <starlet-state>))
-  (let ((col (state-find fix 'colour state)))
+  (let ((col (state-find fix colour state)))
     (if (eq? 'no-value col)
         'no-value
         (extract-colour-component col attr))))
