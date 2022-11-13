@@ -29,6 +29,7 @@
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 exceptions)
+  #:use-module (ice-9 binary-ports)
   #:use-module (srfi srfi-1)
   #:export (patch-fixture!
             patch-many!
@@ -171,8 +172,20 @@
   (eq? attr intensity))
 
 
+(define broadcast-socket
+  (socket PF_INET SOCK_DGRAM 0))
+
+
+(define (serialize-state st)
+  (call-with-output-bytevector
+    (lambda (port)
+      (write st port))))
+
 (define (broadcast-state st)
-  (atomic-box-swap! current-values st))
+  (atomic-box-swap! current-values st)
+  (sendto broadcast-socket
+          (serialize-state st)
+          (make-socket-address AF_INET INADDR_BROADCAST 5749)))
 
 
 (define (output-loop start-time count)
@@ -212,6 +225,8 @@
 
 
 (define (start-output)
+  (setsockopt broadcast-socket SOL_SOCKET SO_BROADCAST 1)
+  (bind broadcast-socket AF_INET INADDR_LOOPBACK 0)
   (if output-thread
     (format #t "Output thread is already running\n")
     (let ((start-time (hirestime)))
