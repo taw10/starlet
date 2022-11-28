@@ -29,6 +29,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <libguile.h>
+#include <gio/gnetworking.h>
 
 #include <libintl.h>
 #define _(x) gettext(x)
@@ -66,10 +67,10 @@ struct fixture_display
 	char *playback_name;
 	GtkWidget *da;
 	ReplConnection *repl;
+	GSocket *udpsocket;
 	int shutdown;
 	char *socket;
 	int verbose;
-	int got_eof;
 };
 
 
@@ -313,57 +314,6 @@ static void shutdown_sig(GtkWidget *window, struct fixture_display *fixd)
 }
 
 
-static void request_programmer_status(struct fixture_display *fixd)
-{
-	char tmp[256];
-	snprintf(tmp, 256, "(list 'programmer-empty "
-	                   "(state-empty? programmer-state))");
-	repl_send(fixd->repl, tmp);
-}
-
-
-static void request_playback_status(struct fixture_display *fixd)
-{
-	char tmp[256];
-	snprintf(tmp, 256, "(list 'playback-status (list "
-	                   "(get-playback-cue-number %s)"
-	                   "scanout-freq"
-	                   "(playback-state %s)"
-	                   "))",
-	                   fixd->playback_name,
-	                   fixd->playback_name);
-	repl_send(fixd->repl, tmp);
-}
-
-
-static void request_intensities(struct fixture_display *fixd)
-{
-	int i;
-
-	for ( i=0; i<fixd->n_fixtures; i++ ) {
-		char tmp[256];
-		snprintf(tmp, 256, "(list"
-		                   "  'fixture-parameters"
-		                   "  (list \"%s\" "
-		                   "    (current-value %s intensity) "
-		                   "    (let ((col (current-value %s colour)))"
-		                   "      (if (colour? col)"
-		                   "        (colour-as-rgb col)"
-		                   "        #f))))",
-		                   fixd->fixtures[i].label,
-		                   fixd->fixtures[i].scheme_name,
-		                   fixd->fixtures[i].scheme_name);
-		repl_send(fixd->repl, tmp);
-	}
-}
-
-
-static void request_selection(struct fixture_display *fixd)
-{
-	repl_send(fixd->repl, "(list 'selection (map get-fixture-name (get-selection)))");
-}
-
-
 static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_display *fixd)
 {
 	int claim = 1;
@@ -409,12 +359,29 @@ static gint realise_sig(GtkWidget *da, struct fixture_display *fixd)
 }
 
 
-static gboolean redraw_cb(gpointer data)
+static gboolean update_cb(gpointer data)
 {
 	struct fixture_display *fixd = data;
 	if ( fixd->repl == NULL ) {
 		return G_SOURCE_CONTINUE;
 	}
+
+	GError *err = NULL;
+	gssize sz;
+	char buf[1024];
+
+	sz = g_socket_receive_from(fixd->udpsocket, NULL, buf, 1024,
+	                           NULL, &err);
+	if ( sz == - 1 ) {
+		if ( err->code == G_IO_ERROR_WOULD_BLOCK ) return G_SOURCE_CONTINUE;
+		printf("Err %i %s\n", err->code, err->message);
+	} else {
+		printf("Got %li\n", sz);
+		buf[sz] = '\0';
+		printf("%s\n", buf);
+		//handle_state(fixd, buf);
+	}
+
 	if ( repl_closed(fixd->repl) ) {
 		if ( fixd->shutdown ) {
 			gtk_main_quit();
@@ -428,13 +395,7 @@ static gboolean redraw_cb(gpointer data)
 			return G_SOURCE_CONTINUE;
 		}
 	} else {
-		if ( !fixd->shutdown && fixd->got_eof ) {
-			fixd->got_eof = FALSE;
-			request_intensities(fixd);
-			request_selection(fixd);
-			request_playback_status(fixd);
-			request_programmer_status(fixd);
-			repl_send(fixd->repl, "'end-of-stuff");
+		if ( !fixd->shutdown ) {
 			redraw(fixd);
 		}
 		return G_SOURCE_CONTINUE;
@@ -497,59 +458,6 @@ static char *group_fixture_name(SCM item)
 	snprintf(tmp, 63, "%s.%i", scm_to_locale_string(name),
 	                           scm_to_int(idx));
 	return strdup(tmp);
-}
-
-
-static void handle_patched_fixtures(struct fixture_display *fixd,
-                                    SCM list)
-{
-	int i;
-	int nfix;
-
-	if ( !is_list(list) ) {
-		fprintf(stderr, "Invalid patched fixture list\n");
-		return;
-	}
-
-	nfix = scm_to_int(scm_length(list));
-
-	free(fixd->fixtures);
-	fixd->fixtures = malloc(nfix*sizeof(struct fixture));
-	fixd->n_fixtures = nfix;
-
-	for ( i=0; i<nfix; i++ ) {
-		SCM item = scm_list_ref(list, scm_from_int(i));
-		if ( is_list(item) && (scm_to_int(scm_length(item)) == 3) ) {
-
-			char tmp[64];
-			SCM idx = scm_list_ref(item, scm_from_int(2));
-			SCM group_name = scm_list_ref(item, scm_from_int(1));
-			SCM name = scm_symbol_to_string(group_name);
-
-			snprintf(tmp, 63, "(list-ref %s %i)",
-			         scm_to_locale_string(name),
-			         scm_to_int(idx));
-			fixd->fixtures[i].scheme_name = strdup(tmp);
-
-			fixd->fixtures[i].label = group_fixture_name(item);
-
-		} else {
-			SCM name = scm_symbol_to_string(item);
-			fixd->fixtures[i].label = scm_to_locale_string(name);
-			fixd->fixtures[i].scheme_name = scm_to_locale_string(name);
-		}
-
-		fixd->fixtures[i].intensity = -1;
-		fixd->fixtures[i].selected = 0;
-		fixd->fixtures[i].min_x = 0.0;
-		fixd->fixtures[i].min_y = 0.0;
-		fixd->fixtures[i].max_x = 0.0;
-		fixd->fixtures[i].max_y = 0.0;
-		fixd->fixtures[i].intensity = 0.0;
-		fixd->fixtures[i].rgb[0] = 0.0;
-		fixd->fixtures[i].rgb[1] = 0.0;
-		fixd->fixtures[i].rgb[2] = 0.0;
-	}
 }
 
 
@@ -638,49 +546,9 @@ static void handle_selection(struct fixture_display *fixd, SCM list)
 }
 
 
-static void handle_playback_status(struct fixture_display *fixd, SCM list)
-{
-	SCM cue_number = scm_list_ref(list, scm_from_int(0));
-	if ( scm_is_false(cue_number) ) {
-		fixd->current_cue_number = -1.0;
-	} else {
-		fixd->current_cue_number = scm_to_double(cue_number);
-	}
-	fixd->scanout_rate = scm_to_double(scm_list_ref(list, scm_from_int(1)));
-	fixd->cue_running = symbol_eq(scm_list_ref(list, scm_from_int(2)),
-	                              "running");
-}
-
-
-static void handle_programmer_status(struct fixture_display *fixd, SCM empty)
-{
-	fixd->programmer_empty = scm_is_true(empty);
-}
-
-
 static void process_line(SCM sexp, void *data)
 {
-	struct fixture_display *fixd = data;
-
-	if ( is_list(sexp) && scm_to_int(scm_length(sexp)) == 2 ) {
-		SCM tag = scm_list_ref(sexp, scm_from_int(0));
-		SCM contents = scm_list_ref(sexp, scm_from_int(1));
-		if ( scm_is_symbol(tag) ) {
-			if ( symbol_eq(tag, "patched-fixtures") ) {
-				handle_patched_fixtures(fixd, contents);
-			} else if ( symbol_eq(tag, "fixture-parameters") ) {
-				handle_fixture_parameters(fixd, contents);
-			} else if ( symbol_eq(tag, "selection") ) {
-				handle_selection(fixd, contents);
-			} else if ( symbol_eq(tag, "playback-status") ) {
-				handle_playback_status(fixd, contents);
-			} else if ( symbol_eq(tag, "programmer-empty") ) {
-				handle_programmer_status(fixd, contents);
-			}
-		}
-	} else if ( scm_is_symbol(sexp) && symbol_eq(sexp, "end-of-stuff") ) {
-		fixd->got_eof = TRUE;
-	}
+	//struct fixture_display *fixd = data;
 }
 
 
@@ -690,11 +558,6 @@ static gboolean try_connect_cb(gpointer data)
 	if ( fixd->repl == NULL ) {
 		fixd->repl = repl_connection_new(fixd->socket, process_line,
 		                                 fixd, fixd->verbose);
-		if ( fixd->repl != NULL ) {
-			fixd->got_eof = FALSE;
-			repl_send(fixd->repl, "(list 'patched-fixtures (reverse (patched-fixture-names)))");
-			repl_send(fixd->repl, "'end-of-stuff");
-		}
 	}
 	return G_SOURCE_CONTINUE;
 }
@@ -805,7 +668,6 @@ int main(int argc, char *argv[])
 	fixd.playback_name = strdup("pb");
 	fixd.cue_running = 0;
 	fixd.programmer_empty = 1;
-	fixd.got_eof = TRUE;
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);
@@ -822,7 +684,29 @@ int main(int argc, char *argv[])
 	gtk_widget_grab_focus(GTK_WIDGET(da));
 	gtk_widget_show_all(mainwindow);
 
-	g_timeout_add(200, redraw_cb, &fixd);
+	GError *err = NULL;
+	fixd.udpsocket = g_socket_new(G_SOCKET_FAMILY_IPV4, G_SOCKET_TYPE_DATAGRAM,
+	                              G_SOCKET_PROTOCOL_UDP, &err);
+	if ( fixd.udpsocket == NULL ) {
+		fprintf(stderr, "Failed to create socket\n");
+	}
+
+	g_socket_set_option(fixd.udpsocket, SOL_SOCKET, SO_REUSEADDR, 1, NULL);
+
+	GSocketAddress *addr = g_inet_socket_address_new_from_string("0.0.0.0", 5749);
+	if ( addr == NULL ) {
+		fprintf(stderr, "Couldn't get address\n");
+		return 1;
+	}
+
+	err = NULL;
+	if ( !g_socket_bind(fixd.udpsocket, addr, TRUE, &err) ) {
+		fprintf(stderr, "Failed to bind socket\n");
+	}
+
+	g_socket_set_blocking(fixd.udpsocket, FALSE);
+
+	g_timeout_add(1, update_cb, &fixd);
 	g_timeout_add(1000, try_connect_cb, &fixd);
 
 	gtk_main();
