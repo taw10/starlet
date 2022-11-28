@@ -28,6 +28,7 @@
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 exceptions)
   #:use-module (srfi srfi-1)
+  #:use-module (rnrs bytevectors)
   #:export (start-ola-output
              scanout-freq
              get-attr
@@ -87,42 +88,59 @@
   (set-chan8 (+ relative-channel-number 1) (lsb value)))
 
 
+(define input-socket
+  (socket PF_INET (logior SOCK_DGRAM SOCK_NONBLOCK) 0))
+
+
 (define (scanout-loop ola-client start-time count previous-universes)
 
-  (let ((universes '()))
+  (let ((universes '())
+        (buf (make-bytevector 2048))
+        (err #f))
 
-    (for-each
-      (lambda (fix)
+    (with-exception-handler
+      (lambda (exn)
+        (set! err #t))
+      (lambda ()
+        (recv! input-socket buf))
+      #:unwind? #t)
 
-        ;; Ensure the DMX array exists for this fixture's universe
-        (unless (assq (get-fixture-universe fix) universes)
-          (set! universes (acons (get-fixture-universe fix)
-                                 (make-ola-dmx-buffer)
-                                 universes)))
+    (unless err
 
-        (parameterize
-          ((current-scanout-fixture fix)
-           (current-scanout-universe (assq-ref
-                                       universes
-                                       (get-fixture-universe fix)))
-           (current-scanout-addr (get-fixture-addr fix)))
-          (scanout-fixture fix)))
-      (atomic-box-ref fixtures))
+      (display "Got it!\n")
 
-    ;; Send everything to OLA
-    (for-each (lambda (uni-buf-pair)
-                (let ((uni (car uni-buf-pair))
-                      (buf (cdr uni-buf-pair)))
-                  (let ((prev-buf (assv-ref previous-universes uni)))
+      (for-each
+        (lambda (fix)
 
-                    ;; Do not send exactly the same data every time,
-                    ;; but do send an update once every 100 loops, just to
-                    ;; make sure OLA does not forget about us.
-                    (unless (and prev-buf
-                                 (ola-dmx-buffers-equal? buf prev-buf)
-                                 (not (= count 0)))
-                      (send-streaming-dmx-data! ola-client uni buf)))))
-              universes)
+          ;; Ensure the DMX array exists for this fixture's universe
+          (unless (assq (get-fixture-universe fix) universes)
+            (set! universes (acons (get-fixture-universe fix)
+                                   (make-ola-dmx-buffer)
+                                   universes)))
+
+          (parameterize
+            ((current-scanout-fixture fix)
+             (current-scanout-universe (assq-ref
+                                         universes
+                                         (get-fixture-universe fix)))
+             (current-scanout-addr (get-fixture-addr fix)))
+            (scanout-fixture fix)))
+        (atomic-box-ref fixtures))
+
+      ;; Send everything to OLA
+      (for-each (lambda (uni-buf-pair)
+                  (let ((uni (car uni-buf-pair))
+                        (buf (cdr uni-buf-pair)))
+                    (let ((prev-buf (assv-ref previous-universes uni)))
+
+                      ;; Do not send exactly the same data every time,
+                      ;; but do send an update once every 100 loops, just to
+                      ;; make sure OLA does not forget about us.
+                      (unless (and prev-buf
+                                   (ola-dmx-buffers-equal? buf prev-buf)
+                                   (not (= count 0)))
+                        (send-streaming-dmx-data! ola-client uni buf)))))
+                universes))
 
     (usleep 10000)
 
@@ -138,21 +156,24 @@
 
 (define (start-ola-output)
   (if ola-thread
-      (format #t "OLA output already running\n")
-      (let* ((ola-client (make-ola-streaming-client))
-             (start-time (hirestime)))
+    (format #t "OLA output already running\n")
+    (let* ((ola-client (make-ola-streaming-client))
+           (start-time (hirestime))
+           (input-socket (socket PF_INET SOCK_DGRAM 0)))
 
-        (set! ola-thread
-          (begin-thread
-            (with-exception-handler
-              (lambda (exn)
-                (display "Error in OLA output thread:\n")
-                (set! ola-thread #f)
-                (backtrace)
-                (raise-exception exn))
-              (lambda ()
-                (scanout-loop ola-client start-time 0 '()))
-              #:unwind? #f))))))
+      (set! ola-thread
+        (begin-thread
+          (with-exception-handler
+            (lambda (exn)
+              (display "Error in OLA output thread:\n")
+              (set! ola-thread #f)
+              (backtrace)
+              (raise-exception exn))
+            (lambda ()
+              (bind input-socket AF_INET (inet-pton AF_INET "0.0.0.0") 5749)
+              (setsockopt input-socket SOL_SOCKET SO_REUSEADDR 1)
+              (scanout-loop ola-client start-time 0 '()))
+            #:unwind? #f))))))
 
 
 (start-ola-output)
