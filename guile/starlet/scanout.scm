@@ -1,7 +1,7 @@
 ;;
 ;; starlet/scanout.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2022 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -50,6 +50,10 @@
 
 ;; Association list of names to states
 (define state-names (make-atomic-box '()))
+
+;; Current values (literal, not functions) of active attributes
+(define current-values (make-atomic-box (make-empty-state)))
+
 
 (define (patched-fixture-names)
   (map get-fixture-name (atomic-box-ref fixtures)))
@@ -116,49 +120,11 @@
      (define name (patch-many-real (quote name) stuff ...)))))
 
 
-(define (state-has-fix-attr fix attr state)
-  (let ((val (state-find fix attr state)))
-    (if (eq? 'no-value val)
-        #f
-        (not (eq? 'no-value (value->number val))))))
-
-
-(define (first-val fix attr state-list)
-  (let ((first-state (find (lambda (state)
-                             (state-has-fix-attr fix attr state))
-                           state-list)))
-    (if first-state
-        (state-find fix attr first-state)
-        'no-value)))
-
-
 (define-method (current-value (fix <fixture>) (attr-name <starlet-attribute>))
-  (let  ((programmer-val (state-find fix attr-name programmer-state)))
-    (if (eq? 'no-value programmer-val)
-
-        ;; Look in the states
-        (if (intensity? attr-name)
-
-            ;; HTP for intensity
-            (fold (lambda (state prev)
-                    (let ((val (state-find fix attr-name state)))
-                      (if (eq? 'no-value val)
-                          prev
-                          (let ((real-val (value->number val)))
-                            (if (eq? 'no-value real-val)
-                                prev
-                                (max real-val prev))))))
-                  0.0
-                  (atomic-box-ref state-list))
-
-            ;; Priority order for everything else
-            (let ((val (first-val fix attr-name (atomic-box-ref state-list))))
-              (if (eq? 'no-value val)
-                  (get-attr-home-val fix attr-name)
-                  (value->number val))))
-
-        ;; Use programmer value, if we have it
-        (value->number programmer-val))))
+  (let ((v (state-find fix attr-name (atomic-box-ref current-values))))
+    (if (eq? v 'no-value)
+      (get-attr-home-val fix attr-name)
+      v)))
 
 
 (define-method (current-value (fix <fixture>) (attr-name <colour-component-id>))
@@ -197,126 +163,69 @@
                                (list new-state)))))
 
 
-(define (send-to-ola ola-client universe-buffer-pair)
-  (let ((uni (car universe-buffer-pair))
-        (buf (cdr universe-buffer-pair)))
-  (send-streaming-dmx-data! ola-client uni buf)))
-
-
 (define scanout-freq 0)
-(define ola-thread #f)
-(define current-scanout-fixture (make-parameter #f))
-(define current-scanout-universe (make-parameter #f))
-(define current-scanout-addr (make-parameter #f))
+(define output-thread #f)
 
 
-(define (get-attr attr-name)
-  (current-value
-    (current-scanout-fixture)
-    attr-name))
+(define (htp-attr? attr)
+  (eq? attr intensity))
 
 
-(define (set-dmx universe addr value)
-  (ensure-number value (list universe addr value))
-
-  ;; Create DMX array for universe if it doesn't exist already
-  (set-ola-dmx-buffer! universe
-                       (- addr 1)              ; OLA indexing starts from zero
-                       (round-dmx value)))
+(define (broadcast-state st)
+  (atomic-box-swap! current-values st))
 
 
-(define (set-chan8 relative-channel-number value)
-  (ensure-number
-    value
-    (list (current-scanout-fixture)
-          relative-channel-number
-          value))
-  (set-dmx
-    (current-scanout-universe)
-    (+ (current-scanout-addr)
-       relative-channel-number
-       -1)
-    value))
+(define (output-loop start-time count)
+
+  ;; Combine all the active attributes and send it out
+  (broadcast-state
+    (let ((states (atomic-box-ref state-list)))
+      (for-each update-state! states)
+      (fold
+        (lambda (incoming-state combined-state)
+          (state-for-each
+            (lambda (fix attr val)
+              (let ((incoming-val (value->number val))
+                    (current-val (state-find fix attr combined-state)))
+                (unless (eq? incoming-val 'no-value)
+                  (if (eq? current-val 'no-value)
+                    (set-in-state! combined-state fix attr incoming-val)
+                    (set-in-state! combined-state fix attr
+                                   (if (htp-attr? attr)
+                                     (max incoming-val current-val)
+                                     incoming-val))))))
+            incoming-state)
+          combined-state)
+        (make-empty-state)
+        (append states (list programmer-state)))))
+
+  (usleep 10000)
+
+  ;; Update output rate every 1000 cycles
+  (if (eq? count 100)
+    (begin
+      (set! scanout-freq
+        (exact->inexact (/ 100
+                           (- (hirestime) start-time))))
+      (output-loop (hirestime) 0))
+    (output-loop start-time (+ count 1))))
 
 
-(define (set-chan16 relative-channel-number value)
-  (ensure-number
-    value
-    (list (current-scanout-fixture)
-          relative-channel-number
-          value))
-  (set-chan8 relative-channel-number (msb value))
-  (set-chan8 (+ relative-channel-number 1) (lsb value)))
+(define (start-output)
+  (if output-thread
+    (format #t "Output thread is already running\n")
+    (let ((start-time (hirestime)))
+      (set! output-thread
+        (begin-thread
+          (with-exception-handler
+            (lambda (exn)
+              (display "Error in output thread:\n")
+              (set! output-thread #f)
+              (backtrace)
+              (raise-exception exn))
+            (lambda ()
+              (output-loop start-time 0))
+            #:unwind? #f))))))
 
 
-(define (scanout-loop ola-client start-time count previous-universes)
-
-  (let ((universes '()))
-
-    (for-each update-state! (atomic-box-ref state-list))
-
-    (for-each
-      (lambda (fix)
-
-        ;; Ensure the DMX array exists for this fixture's universe
-        (unless (assq (get-fixture-universe fix) universes)
-          (set! universes (acons (get-fixture-universe fix)
-                                 (make-ola-dmx-buffer)
-                                 universes)))
-
-        (parameterize
-          ((current-scanout-fixture fix)
-           (current-scanout-universe (assq-ref
-                                       universes
-                                       (get-fixture-universe fix)))
-           (current-scanout-addr (get-fixture-addr fix)))
-          (scanout-fixture fix)))
-      (atomic-box-ref fixtures))
-
-    ;; Send everything to OLA
-    (for-each (lambda (uni-buf-pair)
-                (let ((uni (car uni-buf-pair))
-                      (buf (cdr uni-buf-pair)))
-                  (let ((prev-buf (assv-ref previous-universes uni)))
-
-                    ;; Do not send exactly the same data every time,
-                    ;; but do send an update once every 100 loops, just to
-                    ;; make sure OLA does not forget about us.
-                    (unless (and prev-buf
-                                 (ola-dmx-buffers-equal? buf prev-buf)
-                                 (not (= count 0)))
-                      (send-streaming-dmx-data! ola-client uni buf)))))
-              universes)
-
-    (usleep 10000)
-
-    ;; Update scanout rate every 1000 cycles
-    (if (eq? count 100)
-      (begin
-        (set! scanout-freq
-          (exact->inexact (/ 100
-                             (- (hirestime) start-time))))
-        (scanout-loop ola-client (hirestime) 0 universes))
-      (scanout-loop ola-client start-time (+ count 1) universes))))
-
-
-(define (start-ola-output)
-  (if ola-thread
-      (format #t "OLA output already running\n")
-      (let* ((ola-client (make-ola-streaming-client))
-             (start-time (hirestime)))
-
-        (set! ola-thread
-          (begin-thread
-            (with-exception-handler
-              (lambda (exn)
-                (display "Error in OLA output thread:\n")
-                (set! ola-thread #f)
-                (backtrace)
-                (raise-exception exn))
-              (lambda ()
-                (scanout-loop ola-client start-time 0 '()))
-              #:unwind? #f))))))
-
-
-(start-ola-output)
+(start-output)
