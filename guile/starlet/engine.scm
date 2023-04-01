@@ -129,7 +129,7 @@
 
 
 (define-method (current-value (fix <fixture>) (attr-name <colour-component-id>))
-  (let ((colour (current-value fix 'colour)))
+  (let ((colour (current-value fix colour)))
     (extract-colour-component colour attr-name)))
 
 
