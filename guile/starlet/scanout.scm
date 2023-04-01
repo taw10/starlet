@@ -26,6 +26,7 @@
   #:use-module (starlet colours)
   #:use-module (starlet attributes)
   #:use-module (starlet guile-ola)
+  #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 exceptions)
@@ -41,12 +42,20 @@
 (define current-scanout-fixture (make-parameter #f))
 (define current-scanout-universe (make-parameter #f))
 (define current-scanout-addr (make-parameter #f))
+(define current-scanout-state (make-parameter (make-empty-state)))
 
 
-(define (get-attr attr-name)
-  (current-value
-    (current-scanout-fixture)
-    attr-name))
+(define-method (get-attr (attr-name <starlet-attribute>))
+  (let ((v (state-find (current-scanout-fixture)
+                       attr-name
+                       (current-scanout-state))))
+    (if (eq? v 'no-value)
+      (get-attr-home-val (current-scanout-fixture) attr-name)
+      v)))
+
+
+(define-method (get-attr (attr-name <colour-component-id>))
+  (extract-colour-component (get-attr colour) attr-name))
 
 
 (define (set-dmx universe addr value)
@@ -86,24 +95,26 @@
 
   (let ((universes '()))
 
-    (for-each
-      (lambda (fix)
+    (parameterize
+      ((current-scanout-state (current-value-state)))
+      (for-each
+        (lambda (fix)
 
-        ;; Ensure the DMX array exists for this fixture's universe
-        (unless (assq (get-fixture-universe fix) universes)
-          (set! universes (acons (get-fixture-universe fix)
-                                 (make-ola-dmx-buffer)
-                                 universes)))
+          ;; Ensure the DMX array exists for this fixture's universe
+          (unless (assq (get-fixture-universe fix) universes)
+            (set! universes (acons (get-fixture-universe fix)
+                                   (make-ola-dmx-buffer)
+                                   universes)))
 
-        (parameterize
-          ((current-scanout-fixture fix)
-           (current-scanout-universe (assq-ref
-                                       universes
-                                       (get-fixture-universe fix)))
-           (current-scanout-addr (get-fixture-addr fix)))
-          (scanout-fixture fix)))
+          (parameterize
+            ((current-scanout-fixture fix)
+             (current-scanout-universe (assq-ref
+                                         universes
+                                         (get-fixture-universe fix)))
+             (current-scanout-addr (get-fixture-addr fix)))
+            (scanout-fixture fix)))
 
-      (patched-fixtures))
+        (patched-fixtures)))
 
     (for-each
       (lambda (uni-buf-pair)

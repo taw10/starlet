@@ -35,6 +35,7 @@
             total-num-attrs
             register-state!
             current-value
+            current-value-state
             patched-fixture-names
             patched-fixtures))
 
@@ -54,6 +55,10 @@
 
 (define (patched-fixture-names)
   (map get-fixture-name (atomic-box-ref fixtures)))
+
+
+(define (current-value-state)
+  (atomic-box-ref current-values))
 
 
 (define (patched-fixtures)
@@ -122,7 +127,7 @@
 
 
 (define-method (current-value (fix <fixture>) (attr-name <starlet-attribute>))
-  (let ((v (state-find fix attr-name (atomic-box-ref current-values))))
+  (let ((v (state-find fix attr-name (current-value-state))))
     (if (eq? v 'no-value)
       (get-attr-home-val fix attr-name)
       v)))
