@@ -132,10 +132,10 @@ Here is the code::
 
     ;; List of attributes
     (fixture-attributes
-      (attr-continuous 'intensity '(0 100) 0)
-      (attr-continuous 'colour-temperature '(2800 6400) 3200)
-      (attr-list 'strobe '(#f #t) #f)
-      (attr-continuous 'strobe-frequency '(1 25) 1))
+      (attr-continuous intensity '(0 100) 0)
+      (attr-continuous colour-temperature '(2800 6400) 3200)
+      (attr-list strobe '(#f #t) #f)
+      (attr-continuous strobe-frequency '(1 25) 1))
 
     ;; Scanout code follows
 
@@ -143,18 +143,18 @@ Here is the code::
     (set-chan8 4 0)
 
     ;; Set strobe channel
-    (if (get-attr 'strobe)
+    (if (get-attr strobe)
       (set-chan8 3 (scale-and-clamp-to-range
-                     (get-attr 'strobe-frequency)
+                     (get-attr strobe-frequency)
                      '(1 25)
                      '(16 255)))
       (set-chan8 3 0))
 
     ;; Set intensity channel
-    (set-chan8 5 (percent->dmxval8 (get-attr 'intensity))))
+    (set-chan8 5 (percent->dmxval8 (get-attr intensity))))
 
     ;; Set values of warm and cold LEDs according to colour temperature
-    (let ((coltemp (get-attr 'colour-temperature)))
+    (let ((coltemp (get-attr colour-temperature)))
       (set-chan8 1 (scale-and-clamp-to-range coltemp '(2800 6400) '(0 255)))
       (set-chan8 2 (scale-and-clamp-to-range coltemp '(2800 6400) '(255 0))))
 
