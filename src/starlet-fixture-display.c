@@ -340,13 +340,14 @@ static void request_intensities(struct fixture_display *fixd)
 {
 	int i;
 
+	repl_send(fixd->repl, "(define all-vals (current-value-state))\n");
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
 		char tmp[256];
 		snprintf(tmp, 256, "(list"
 		                   "  'fixture-parameters"
 		                   "  (list \"%s\" "
-		                   "    (current-value %s intensity) "
-		                   "    (let ((col (current-value %s colour)))"
+		                   "    (state-find %s intensity all-vals) "
+		                   "    (let ((col (state-find %s colour all-vals)))"
 		                   "      (if (colour? col)"
 		                   "        (colour-as-rgb col)"
 		                   "        #f))))",
@@ -585,7 +586,12 @@ static void handle_fixture_parameters(struct fixture_display *fixd, SCM list)
 
 	fix = find_fixture(fixd, fixture_name);
 	if ( fix != NULL ) {
-		fix->intensity = scm_to_double(scm_list_ref(list, scm_from_int(1)));
+		SCM i = scm_list_ref(list, scm_from_int(1));
+		if ( symbol_eq(i, "no-value") ) {
+			fix->intensity = 0.0;
+		} else {
+			fix->intensity = scm_to_double(i);
+		}
 		read_rgb(fix->rgb, scm_list_ref(list, scm_from_int(2)));
 	} else {
 		fprintf(stderr, "Unrecognised fixture '%s' (parameters)\n",
