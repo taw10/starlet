@@ -21,8 +21,10 @@
 (define-module (starlet fixture-library robe dl7s)
   #:use-module (oop goops)
   #:use-module (starlet fixture)
+  #:use-module (starlet utils)
   #:use-module (starlet attributes)
   #:use-module (starlet colours)
+  #:use-module (starlet scanout)
   #:export (<robe-dl7s-mode1>))
 
 
@@ -42,7 +44,7 @@
   (set-chan16 50 (percent->dmxval16 (get-attr intensity)))
 
   (set-chan16 1 (scale-to-range (get-attr pan) '(0 540) '(0 65535)))
-  (set-chan16 3 (scale-to-range (get-attr tilt) (0 270) '(0 65535)))
+  (set-chan16 3 (scale-to-range (get-attr tilt) '(0 270) '(0 65535)))
 
   (set-chan8 49 (if (get-attr strobe) 95 32))
 
