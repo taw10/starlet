@@ -32,6 +32,7 @@
   #:use-module (srfi srfi-1)
   #:export (patch-fixture!
             patch-many!
+            engine-freq
             scanout-freq
             total-num-attrs
             register-state!
@@ -163,22 +164,63 @@
                                (list new-state)))))
 
 
+(define engine-thread #f)
+(define engine-freq 0)
+
+(define scanout-thread #f)
 (define scanout-freq 0)
-(define output-thread #f)
+
+(define current-scanout-fixture (make-parameter #f))
+(define current-scanout-universe (make-parameter #f))
+(define current-scanout-addr (make-parameter #f))
+
+(define (get-attr attr-name)
+  (current-value
+    (current-scanout-fixture)
+    attr-name))
+
+
+(define (set-dmx universe addr value)
+  (ensure-number value (list universe addr value))
+
+  ;; Create DMX array for universe if it doesn't exist already
+  (set-ola-dmx-buffer! universe
+                       (- addr 1)              ; OLA indexing starts from zero
+                       (round-dmx value)))
+
+
+(define (set-chan8 relative-channel-number value)
+  (ensure-number
+    value
+    (list (current-scanout-fixture)
+          relative-channel-number
+          value))
+  (set-dmx
+    (current-scanout-universe)
+    (+ (current-scanout-addr)
+       relative-channel-number
+       -1)
+    value))
+
+
+(define (set-chan16 relative-channel-number value)
+  (ensure-number
+    value
+    (list (current-scanout-fixture)
+          relative-channel-number
+          value))
+  (set-chan8 relative-channel-number (msb value))
+  (set-chan8 (+ relative-channel-number 1) (lsb value)))
 
 
 (define (htp-attr? attr)
   (eq? attr intensity))
 
 
-(define (broadcast-state st)
-  (atomic-box-swap! current-values st))
-
-
-(define (output-loop start-time count)
+(define (engine-loop start-time count)
 
   ;; Combine all the active attributes and send it out
-  (broadcast-state
+  (atomic-box-swap! current-values
     (let ((states (atomic-box-ref state-list)))
       (for-each update-state! states)
       (fold
@@ -204,28 +246,99 @@
   ;; Update output rate every 1000 cycles
   (if (eq? count 100)
     (begin
-      (set! scanout-freq
+      (set! engine-freq
         (exact->inexact (/ 100
                            (- (hirestime) start-time))))
-      (output-loop (hirestime) 0))
-    (output-loop start-time (+ count 1))))
+      (engine-loop (hirestime) 0))
+    (engine-loop start-time (+ count 1))))
 
 
-(define (start-output)
-  (if output-thread
-    (format #t "Output thread is already running\n")
+(define (scanout-loop ola-client start-time previous-universes count)
+
+  (let ((universes '()))
+
+    (for-each
+      (lambda (fix)
+
+        ;; Ensure the DMX array exists for this fixture's universe
+        (unless (assq (get-fixture-universe fix) universes)
+          (set! universes (acons (get-fixture-universe fix)
+                                 (make-ola-dmx-buffer)
+                                 universes)))
+
+        (parameterize
+          ((current-scanout-fixture fix)
+           (current-scanout-universe (assq-ref
+                                       universes
+                                       (get-fixture-universe fix)))
+           (current-scanout-addr (get-fixture-addr fix)))
+          (scanout-fixture fix)))
+
+      (atomic-box-ref fixtures))
+
+    (for-each
+      (lambda (uni-buf-pair)
+        (let ((uni (car uni-buf-pair))
+              (buf (cdr uni-buf-pair)))
+          (let ((prev-buf (assv-ref previous-universes uni)))
+
+            ;; Do not send exactly the same data every time,
+            ;; but do send an update once every 100 loops, just to
+            ;; make sure OLA does not forget about us.
+            (unless (and prev-buf
+                         (ola-dmx-buffers-equal? buf prev-buf)
+                         (not (= count 0)))
+              (send-streaming-dmx-data! ola-client uni buf)))))
+      universes)
+
+    (usleep 10000)
+
+    ;; Update output rate every 1000 cycles
+    (if (eq? count 100)
+      (begin
+        (set! scanout-freq
+          (exact->inexact (/ 100
+                             (- (hirestime) start-time))))
+        (scanout-loop ola-client (hirestime) universes 0))
+      (scanout-loop ola-client start-time universes (+ count 1)))))
+
+
+
+
+(define (start-engine)
+  (if engine-thread
+    (format #t "Engine thread is already running\n")
     (let ((start-time (hirestime)))
-      (set! output-thread
+      (set! engine-thread
         (begin-thread
           (with-exception-handler
             (lambda (exn)
-              (display "Error in output thread:\n")
-              (set! output-thread #f)
+              (display "Error in engine thread:\n")
+              (set! engine-thread #f)
               (backtrace)
               (raise-exception exn))
             (lambda ()
-              (output-loop start-time 0))
+              (engine-loop start-time 0))
             #:unwind? #f))))))
 
 
-(start-output)
+(define (start-scanout)
+  (if scanout-thread
+    (format #t "Scanout thread is already running\n")
+    (let ((start-time (hirestime))
+          (ola-client (make-ola-streaming-client)))
+      (set! scanout-thread
+        (begin-thread
+          (with-exception-handler
+            (lambda (exn)
+              (display "Error in scanout thread:\n")
+              (set! scanout-thread #f)
+              (backtrace)
+              (raise-exception exn))
+            (lambda ()
+              (scanout-loop ola-client start-time '() 0))
+            #:unwind? #f))))))
+
+
+(start-engine)
+(start-scanout)
