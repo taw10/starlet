@@ -150,6 +150,17 @@ consider using it for real shows.  Here it is running a show in front of a live
 ![Starlet in use](docs/show.jpg)
 
 
+About the name
+--------------
+
+* Star-let: The little star of your show, of course.
+* Let-star (let*): the sequentially evaluated form of the
+  [local binding syntax](https://www.scheme.com/tspl4/binding.html#./binding:h4)
+  in Scheme.
+* [CCT Starlette](http://www.cctlighting.co.uk/125/Theatre_spotlights/Starlette_Luminaire_Range.html):
+  a range of theatrical lighting fixtures.
+
+
 Related projects
 ----------------
 
