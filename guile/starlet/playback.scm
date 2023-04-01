@@ -30,7 +30,7 @@
   #:use-module (srfi srfi-43)
   #:use-module (starlet fixture)
   #:use-module (starlet state)
-  #:use-module (starlet scanout)
+  #:use-module (starlet engine)
   #:use-module (starlet utils)
   #:use-module (starlet clock)
   #:use-module (starlet cue-list)

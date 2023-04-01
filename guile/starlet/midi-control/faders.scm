@@ -23,7 +23,7 @@
   #:use-module (starlet state)
   #:use-module (starlet fixture)
   #:use-module (starlet colours)
-  #:use-module (starlet scanout)
+  #:use-module (starlet engine)
   #:use-module (starlet utils)
   #:use-module (starlet attributes)
   #:use-module (srfi srfi-1)
