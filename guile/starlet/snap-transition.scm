@@ -1,7 +1,7 @@
 ;;
 ;; starlet/snap-transition.scm
 ;;
-;; Copyright © 2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2021-2023 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -19,11 +19,8 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet snap-transition)
-  #:use-module (oop goops)
-  #:use-module (starlet playback)
+  #:use-module (starlet cue-part)
   #:use-module (starlet state)
-  #:use-module (starlet fixture)
-  #:use-module (starlet transition-effect)
   #:use-module (starlet attributes)
   #:export (snap))
 
@@ -39,15 +36,16 @@
     out-state))
 
 
-(define (snap)
-  (make-transition
-    (incoming-state current-state clock)
-    (let ((overlay-state (blank-everything current-state)))
-      (state-for-each
-        (lambda (fix attr val)
-          (set-in-state! overlay-state
-                         fix
-                         attr
-                         (lambda () val)))
-        incoming-state)
-      (values overlay-state 0))))
+(define (snap to-state)
+  (cue-part
+    to-state
+    (lambda (incoming-state current-state clock)
+      (let ((overlay-state (blank-everything current-state)))
+        (state-for-each
+          (lambda (fix attr val)
+            (set-in-state! overlay-state
+                           fix
+                           attr
+                           (lambda () val)))
+          incoming-state)
+        (values overlay-state 0)))))

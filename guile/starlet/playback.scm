@@ -34,8 +34,8 @@
   #:use-module (starlet utils)
   #:use-module (starlet clock)
   #:use-module (starlet cue-list)
+  #:use-module (starlet cue-part)
   #:use-module (starlet colours)
-  #:use-module (starlet transition-effect)
   #:use-module (starlet attributes)
   #:export (make-playback
             cut-to-cue-number!
@@ -303,8 +303,8 @@
     ;; "main" transition effect
     (receive
       (overlay-part transition-time)
-      ((transition-func (get-cue-part-transition
-                          (car (get-cue-parts the-cue))))
+      ((get-cue-part-transition
+         (car (get-cue-parts the-cue)))
        (blank-everything pb)
        pb
        cue-clock)
@@ -318,7 +318,7 @@
       (lambda (part)
         (receive
           (overlay-part transition-time)
-          ((transition-func (get-cue-part-transition part))
+          ((get-cue-part-transition part)
            (get-cue-part-state part)
            pb
            cue-clock)

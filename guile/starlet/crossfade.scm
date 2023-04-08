@@ -1,7 +1,7 @@
 ;;
 ;; starlet/crossfade.scm
 ;;
-;; Copyright © 2020-2021 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2023 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -24,13 +24,11 @@
   #:use-module (srfi srfi-9)
   #:use-module (srfi srfi-26)
   #:use-module (ice-9 exceptions)
-  #:use-module (starlet playback)
   #:use-module (starlet clock)
-  #:use-module (starlet cue-list)
+  #:use-module (starlet cue-part)
   #:use-module (starlet colours)
   #:use-module (starlet fixture)
   #:use-module (starlet state)
-  #:use-module (starlet transition-effect)
   #:use-module (starlet attributes)
   #:export (crossfade))
 
@@ -204,21 +202,18 @@
                          (make-exception-with-irritants type))))))
 
 
-(define* (crossfade up-time
-                    #:optional
-                    down-time
-                    #:key
-                    (attr-time #f)
-                    (up-delay 0)
-                    (down-delay 0)
-                    (attr-delay 0))
-  (let* ((real-down-time (if down-time down-time up-time))
-         (real-attr-time (if attr-time attr-time (min up-time real-down-time))))
-    (make-transition
-      (incoming-state current-state clock)
+(define* (crossfade-real incoming-state up-time #:optional (down-time up-time)
+           #:key
+           (attr-time (min up-time down-time))
+           (up-delay 0)
+           (down-delay 0)
+           (attr-delay 0))
+  (cue-part
+    incoming-state
+    (lambda (incoming-state current-state clock)
       (let ((up-clock (make-delayed-clock clock up-delay up-time))
-            (down-clock (make-delayed-clock clock down-delay real-down-time))
-            (attribute-clock (make-delayed-clock clock attr-delay real-attr-time)))
+            (down-clock (make-delayed-clock clock down-delay down-time))
+            (attribute-clock (make-delayed-clock clock attr-delay attr-time)))
         (let ((overlay-state (make-empty-state)))
           (state-for-each
             (lambda (fixture attr target-val)
@@ -256,5 +251,11 @@
           (values overlay-state
                   (max
                     (+ up-time up-delay)
-                    (+ real-down-time down-delay)
-                    (+ real-attr-time attr-delay))))))))
+                    (+ down-time down-delay)
+                    (+ attr-time attr-delay))))))))
+
+
+;; Rearrange the arguments to put the lighting state (last argument)
+;; at the beginning.  This makes optional arguments in crossfade-real possible.
+(define (crossfade . args)
+  (apply crossfade-real (last args) (drop-right args 1)))

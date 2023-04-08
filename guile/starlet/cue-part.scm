@@ -1,7 +1,7 @@
 ;;
-;; starlet/transition-effect.scm
+;; starlet/cue-part
 ;;
-;; Copyright © 2021-2022 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2020-2023 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -18,28 +18,18 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-(define-module (starlet transition-effect)
-  #:use-module (oop goops)
-  #:export (<transition-effect>
-             transition-effect?
-             transition-func
-             make-transition))
+(define-module (starlet cue-part)
+  #:use-module (srfi srfi-9)
+  #:export (cue-part
+            <cue-part>
+            get-cue-part-state
+            get-cue-part-transition
+            set-cue-part-state!))
 
 
-(define-class <transition-effect> (<object>)
-  (func
-    #:init-value #f
-    #:init-keyword #:func
-    #:getter transition-func))
-
-
-(define (transition-effect? a)
-  (is-a? a <transition-effect>))
-
-
-(define-syntax make-transition
-  (syntax-rules ()
-    ((_ (a b c) expr ...)
-     (make <transition-effect>
-           #:func (lambda (a b c)
-                    expr ...)))))
+(define-record-type <cue-part>
+  (cue-part state transition)
+  cue-part?
+  (state        get-cue-part-state
+                set-cue-part-state!)
+  (transition   get-cue-part-transition))

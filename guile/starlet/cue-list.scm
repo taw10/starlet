@@ -33,33 +33,22 @@
   #:use-module (starlet clock)
   #:use-module (starlet utils)
   #:use-module (starlet attributes)
-  #:use-module (starlet transition-effect)
+  #:use-module (starlet cue-part)
   #:use-module (starlet snap-transition)
   #:use-module (starlet crossfade)
   #:export (cue
-            cue-part
             cue-list
             qnum
             get-cue-number
             get-cue-parts
             get-cue-clock
             get-preset-state
-            get-cue-part-state
-            get-cue-part-transition
             cue-number-to-index
             cue-index-to-number
             current-cue-clock
             read-cue-list-file
             num-cues)
   #:re-export (snap crossfade))
-
-
-(define-record-type <cue-part>
-  (cue-part state transition)
-  cue-part?
-  (state        get-cue-part-state
-                set-cue-part-state!)
-  (transition   get-cue-part-transition))
 
 
 (define-record-type <cue>
@@ -72,7 +61,7 @@
   (number             get-cue-number)
   (preset-state       get-preset-state
                       set-preset-state!)
-  (track-intensities  track-intensities)
+  (track-intensities  track-intensities?)
   (cue-parts          get-cue-parts)
   (cue-clock          get-cue-clock))
 
@@ -113,53 +102,25 @@
               (fix-attrs-in-state state)))
 
 
-(define (cue-proc number . args)
-  (receive
-    (states transition-effects cue-parts rest)
-    (categorize args lighting-state? transition-effect? cue-part?)
-
-    (let-keywords
-      rest
-      #f  ;; allow-other-keys?
-      ((track-intensities #f))
-
-      (let ((n-tr-effs (length transition-effects))
-            (n-states (length states)))
-
-        (make-cue (qnum number)
-                  #f   ;; preset state, to be filled later
-                  track-intensities
-
-                  ;; Create the list of cue parts
-                  (cond
-
-                    ;; Only explicitly-stated cue parts
-                    [(= 0 n-tr-effs n-states)
-                     cue-parts]
-
-                    ;; Implicit first cue part
-                    [(= 1 n-tr-effs n-states)
-                     (cons
-                       (cue-part (car states)
-                                 (car transition-effects))
-                       cue-parts)]
-
-                    ;; Wrong number of states or transition effects
-                    [(not (= n-states 1))
-                     (error "Cue must contain exactly one state: " number)]
-                    [(not (= n-tr-effs 1))
-                     (error "Cue must contain exactly one transition effect: " number)])
-
-                  (current-cue-clock))))))
-
 
 (define current-cue-clock (make-parameter #f))
 
 (define-syntax cue
-  (syntax-rules ()
-    ((_ body ...)
+  (syntax-rules (track-intensities)
+    ((_ number track-intensities body ...)
      (parameterize ((current-cue-clock (make-clock #:stopped #t)))
-       (cue-proc body ...)))))
+       (make-cue (qnum number)
+                 #f   ;; preset state, to be filled later
+                 #t   ;; DO track intensities
+                 (list body ...)
+                 (current-cue-clock))))
+    ((_ number body ...)
+     (parameterize ((current-cue-clock (make-clock #:stopped #t)))
+       (make-cue (qnum number)
+                 #f   ;; preset state, to be filled later
+                 #f   ;; don't track intensities
+                 (list body ...)
+                 (current-cue-clock))))))
 
 
 (define (track-all-cues! the-cue-list)
@@ -167,7 +128,7 @@
     (lambda (idx prev-state the-cue)
       (let ((the-tracked-state (lighting-state
                                  (apply-state prev-state)
-                                 (unless (track-intensities the-cue)
+                                 (unless (track-intensities? the-cue)
                                    (blackout!))
                                  (apply-state
                                    (get-cue-part-state
@@ -242,9 +203,7 @@
              (list->vector
                (remove unspecified?
                        (list
-                         (cue 0
-                              (make-empty-state)
-                              (snap))
+                         (cue 0 (snap blackout))
                          body ...)))))
        (track-all-cues! the-cue-list)
        (preset-all-cues! the-cue-list)
