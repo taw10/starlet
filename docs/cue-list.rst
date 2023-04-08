@@ -5,28 +5,33 @@ Cue lists and playbacks
 Anatomy of a cue
 ================
 
-A cue is formed by associating a lighting state with a *transition effect*.
-As an example, here is cue 4.3 representing a 4 second crossfade to a dim
-lighting wash::
+Here is cue 4.3 representing a 4 second crossfade to a dim lighting wash::
 
-  (cue 4.3                   ;; <---- the cue number
+  (cue 4.3                     ;; Cue number 4.3
+    (crossfade 4               ;; Cross-fade in 4 seconds
+      (lighting-state          ;;
+        (at washL washR 30)    ;; ...to this lighting state
+        (at washM 40))         ;;
 
-    (lighting-state          ;;
-      (at washL washR 30)    ;;  lighting state
-      (at washM 40))         ;;
+Other types of transition are possible.  For example, the simplest transition
+of all is a "snap" (a hard, immediate change)::
 
-    (crossfade 4))           ;; <---- transition: 4 second crossfade
+  (cue 4.3
+    (snap
+      (lighting-state
+        (at washL washR 30)
+        (at washM 40))
 
-The simplest transition effect is ``(snap)``, which produces a hard zero-time
+The simplest transition effect is ``snap``, which produces a hard zero-time
 transition to the cue.  The usual one is ``crossfade``, which produces a smooth
 fade in the time you specify (in seconds).  It gives you a lot of control, for
 example, to fade intensities up in 4 seconds but down in 2 seconds::
 
-  (crossfade 4 2)
+  (crossfade 4 2 state)
 
 To delay the up fade part by 2 seconds relative to everything else::
 
-  (crossfade 4 #:up-delay 2)
+  (crossfade 4 #:up-delay 2 state)
 
 To delay the down fade part, use ``#:down-delay``.  To control the fade times
 for non-intensity parameters, use ``#:attr-time`` and ``#:attr-delay``.
@@ -52,82 +57,62 @@ Let's say you defined a state somewhere else::
 You can refer to that state in a cue like this::
 
   (cue 3
-    my-state
-    (crossfade 3 5))
+    (crossfade 3 5 my-state))
 
 You can also layer changes on top of the state, by using ``apply-state`` (which
 does exactly what its name suggests)::
 
   (cue 3
-    (lighting-state
-      (apply-state my-state)
-      (at upstage-spot))
-    (crossfade 3 5))
+    (crossfade 3 5
+      (lighting-state
+        (apply-state my-state)
+        (at upstage-spot))))
 
 You can even make those changes conditional::
 
   (define spot-needed #f)
 
   (cue 3
-    (lighting-state
-      (apply-state my-state)
-      (when spot-needed
-        (at upstage-spot)))
-    (crossfade 3 5))
+    (crossfade 3 5
+      (lighting-state
+        (apply-state my-state)
+        (when spot-needed
+          (at upstage-spot 100)))))
 
 
 Multi-part cues
 ===============
 
 Sometimes you need certain fixtures to fade differently during the same cue.
-To achieve this, use a multi-part cue.  Here's an example::
+To achieve this, simply add a separate transition for each part.
+Here's an example (from a real show)::
 
   (cue 3
 
-       (cue-part
+       (crossfade 6 #:up-delay 14
          (lighting-state
            (at highsideL intensity 100.0)
            (at highsideR intensity 100.0)
            (at front-leds colour (cmy 0 93 80))
            (at splitL splitR 70)
            (at washL washR 100)
-           (at washM 50))
-         (crossfade 6 #:up-delay 14))
+           (at washM 50)))
 
-       (cue-part
+       (crossfade 3
          (lighting-state
-           (at portrait-spot 100))
-         (crossfade 3))
+           (at portrait-spot 100)))
 
-       (cue-part
+       (crossfade 3 #:up-delay 16
          (lighting-state
-           (at front-leds 100))
-         (crossfade 3 #:up-delay 16)))
+           (at front-leds 100))))
 
 In this example, the ``portrait-spot`` fades up first, in 3 seconds.  The main
-part of the scene (the first ``cue-part``) fades up more slowly, in 6 seconds
-after a delay of 14 seconds.  The ``front-leds`` (a group containing all of the
-front-light LED fixtures) fades up a further 2 seconds after that.  Note that
-the cue parts don't need to appear in chronological order.  However, the first
-cue part is "special", because it's the one *into* which the other parameters
-will track (see below).
-
-You don't have to wrap ``cue-part`` round all parts.  You can leave the "main"
-part floating free inside the ``cue`` form, like this::
-
-  (cue 4
-
-       (lighting-state
-         (at overhead-table 50))
-       (crossfade 5)
-
-       (cue-part
-         (lighting-state
-           (at portrait-spot 100))
-         (crossfade 5 #:up-delay 2)))
-
-Which way is best will depend on the particular cue.  Use whichever way makes
-your lighting aims clearer.
+part of the scene fades up more slowly, in 6 seconds after a delay of 14
+seconds.  The ``front-leds`` (a group containing all of the front-light LED
+fixtures) fades up a further 2 seconds after that.  Note that the cue parts
+don't need to appear in chronological order.  However, the first cue part is
+"special", because it's the one *into* which the other parameters will track
+(see below).
 
 
 Cue lists
@@ -139,34 +124,32 @@ A cue list is simply a list of cues.  For example::
 
     (cue 0.5
          ;; Tab warmers
-         (lighting-state
-           (at washL washR 30)
-           (at washM 40))
-         (snap))
+         (snap
+           (lighting-state
+             (at washL washR 30)
+             (at washM 40))))
 
     (cue 0.8
-         ;; Blackout
-         (lighting-state)
-         (crossfade 6))  ;; 6 second fade
+         (crossfade 6 blackout))
 
     (cue 1
          ;; Act 1, Scene 1
-         (lighting-state
-           (at front-wash 80)
-           (at moverL colour (cmy 21 0 0)))
-  	 (at moverL 25)
-         (crossfade 3))
+         (crossfade 3
+           (lighting-state
+             (at front-wash 80)
+             (at moverL colour (cmy 21 0 0))
+             (at moverL 25))))
 
     (cue 2
-         (lighting-state
-           (at washM 100))
-         (crossfade 3 4))   ;; Separate up/down fade times
+         (crossfade 3 4   ;; Separate up/down fade times
+           (lighting-state
+             (at washM 100))))
 
     (cue 2.5
-         (lighting-state
-           (apply-state home-state)
-           (at moverR 100))
-         (crossfade 2)))
+         (crossfade 2
+           (lighting-state
+             (apply-state home-state)
+             (at moverR 100))))
 
 Just so you know, the cue list is represented internally as a Scheme *vector*,
 not a real list.
@@ -249,19 +232,19 @@ the cue you wanted.  If you're lucky enough to have never encountered a system
 that works any other way, just know that it works the way you'd expect it to
 work in a theatrical system.
 
-If you additionally want to track *intensities* into a cue, use
-``#:track-intensities``::
+If you additionally want to track *intensities* into a cue, add
+``track-intensities`` as the first thing after the cue number::
 
     (cue 1
-         (lighting-state
-           (at front-wash 80))
-         (crossfade 3))
+         (crossfade 3
+           (lighting-state
+             (at front-wash 80))))
 
     (cue 2
-         (lighting-state
-           (at spotC 100))
-         (crossfade 3)
-         #:track-intensities #t)
+         track-intensities
+         (crossfade 3
+           (lighting-state
+             (at spotC 100))))
 
 In this example, cue 2 will include ``spotC`` at full intensity, **and**
 ``front-wash`` at 80% intensity.

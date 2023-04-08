@@ -75,7 +75,7 @@ with a variable name:
      (at moverR pan 15)))
 ```
 
-A cue is formed by associating a lighting state with a *transition effect*,
+A cue is formed by wrapping a lighting state inside a *transition effect*,
 such as a crossfade or snap (zero-time crossfade).  A cue list is simply a list
 of cues:
 
@@ -84,34 +84,33 @@ of cues:
 
   (cue 0.5
        ;; Tab warmers
-       (lighting-state
-         (at washL washR 30)
-         (at washM 40))
-       (snap))
+       (snap
+         (lighting-state
+           (at washL washR 30)
+           (at washM 40))))
 
   (cue 0.8
-       ;; Blackout
-       (lighting-state)
-       (crossfade 6))  ;; 6 second fade
+       ;; 6-second fade to blackout
+       (crossfade 6 blackout))
 
   (cue 1
        ;; Act 1, Scene 1
-       (lighting-state
-         (at front-wash 80)
-         (at moverL colour (cmy 25 0 0)))
-	 (at moverL 25)
-       (crossfade 3))
+       (crossfade 3
+         (lighting-state
+           (at front-wash 80)
+           (at moverL colour (cmy 25 0 0)))
+	   (at moverL 25)))
 
   (cue 2
-       (lighting-state
-         (at washM 100))
-       (crossfade 3 4))   ;; Separate up/down fade times
+       (crossfade 3 4   ;; Separate up/down fade times
+         (lighting-state
+           (at washM 100))))
 
   (cue 2.5
-       (lighting-state
-         (apply-state home-state)
-	 (at moverR 100)
-       (crossfade 2)))
+       (crossfade 2
+         (lighting-state
+           (apply-state home-state)
+	   (at moverR 100))))
 
   ....
 ```
