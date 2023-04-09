@@ -141,7 +141,7 @@ function, for example::
         (* 50
            (+ 1 (sin (* 2 (elapsed-time clock))))))))
 
-That's obvious quite complicated, so use the functions in module
+That's obviously quite complicated, so use the functions in module
 ``(starlet effects)`` instead.  For a sine wave once every 2 seconds (0.5 Hz)
 ranging between zero and 100%::
 
