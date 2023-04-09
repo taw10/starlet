@@ -3,12 +3,12 @@ Patching fixtures
 =================
 
 To make Starlet aware of a lighting fixture (in theatrical parlance, to "patch"
-a fixture), use ``patch-fixture!`` from module ``(starlet scanout)``.  You will
+a fixture), use ``patch-fixture!`` from module ``(starlet engine)``.  You will
 need to import the fixture definition from the fixture library.  For example,
 to patch a simple dimmer with DMX address 32 on universe 4::
 
   (use-modules
-    (starlet scanout)
+    (starlet engine)
     (starlet fixture-library generic dimmer))
 
   (patch-fixture! my-dimmer <generic-dimmer> 32 #:universe 4)
