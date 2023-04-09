@@ -9,9 +9,9 @@ Here is cue 4.3 representing a 4 second crossfade to a dim lighting wash::
 
   (cue 4.3                     ;; Cue number 4.3
     (crossfade 4               ;; Cross-fade in 4 seconds
-      (lighting-state          ;;
-        (at washL washR 30)    ;; ...to this lighting state
-        (at washM 40))         ;;
+      (lighting-state          ;; To a lighting state...
+        (at washL washR 30)    ;; ... consisting of 'washL' and 'washR' at 30% intensity
+        (at washM 40))))       ;; ... and 'washM' at 40% intensity.
 
 Other types of transition are possible.  For example, the simplest transition
 of all is a "snap" (a hard, immediate change)::
@@ -84,28 +84,27 @@ You can even make those changes conditional::
 Multi-part cues
 ===============
 
-Sometimes you need certain fixtures to fade differently during the same cue.
-To achieve this, simply add a separate transition for each part.
-Here's an example (from a real show)::
+To make certain fixtures fade differently during the same cue, simply add a
+separate transition for each part.  Here's an example (from a real show)::
 
   (cue 3
 
-       (crossfade 6 #:up-delay 14
-         (lighting-state
-           (at highsideL intensity 100.0)
-           (at highsideR intensity 100.0)
-           (at front-leds colour (cmy 0 93 80))
-           (at splitL splitR 70)
-           (at washL washR 100)
-           (at washM 50)))
+    (crossfade 6 #:up-delay 14
+      (lighting-state
+        (at highsideL intensity 100.0)
+        (at highsideR intensity 100.0)
+        (at front-leds colour (cmy 0 93 80))
+        (at splitL splitR 70)
+        (at washL washR 100)
+        (at washM 50)))
 
-       (crossfade 3
-         (lighting-state
-           (at portrait-spot 100)))
+    (crossfade 3
+      (lighting-state
+        (at portrait-spot 100)))
 
-       (crossfade 3 #:up-delay 16
-         (lighting-state
-           (at front-leds 100))))
+    (crossfade 3 #:up-delay 16
+      (lighting-state
+        (at front-leds 100))))
 
 In this example, the ``portrait-spot`` fades up first, in 3 seconds.  The main
 part of the scene fades up more slowly, in 6 seconds after a delay of 14
@@ -124,33 +123,33 @@ A cue list is simply a list of cues.  For example::
   (cue-list
 
     (cue 0.5
-         ;; Tab warmers
-         (snap
-           (lighting-state
-             (at washL washR 30)
-             (at washM 40))))
+      ;; Tab warmers
+      (snap
+        (lighting-state
+          (at washL washR 30)
+          (at washM 40))))
 
     (cue 0.8
-         (crossfade 6 blackout))
+      (crossfade 6 blackout))
 
     (cue 1
-         ;; Act 1, Scene 1
-         (crossfade 3
-           (lighting-state
-             (at front-wash 80)
-             (at moverL colour (cmy 21 0 0))
-             (at moverL 25))))
+      ;; Act 1, Scene 1
+      (crossfade 3
+        (lighting-state
+          (at front-wash 80)
+          (at moverL colour (cmy 21 0 0))
+          (at moverL 25))))
 
     (cue 2
-         (crossfade 3 4   ;; Separate up/down fade times
-           (lighting-state
-             (at washM 100))))
+      (crossfade 3 4   ;; Separate up/down fade times
+        (lighting-state
+          (at washM 100))))
 
     (cue 2.5
-         (crossfade 2
-           (lighting-state
-             (apply-state home-state)
-             (at moverR 100))))
+      (crossfade 2
+        (lighting-state
+          (apply-state home-state)
+          (at moverR 100)))))
 
 Just so you know, the cue list is represented internally as a Scheme *vector*,
 not a real list.
@@ -237,15 +236,15 @@ If you additionally want to track *intensities* into a cue, add
 ``track-intensities`` as the first thing after the cue number::
 
     (cue 1
-         (crossfade 3
-           (lighting-state
-             (at front-wash 80))))
+      (crossfade 3
+        (lighting-state
+          (at front-wash 80))))
 
     (cue 2
-         track-intensities
-         (crossfade 3
-           (lighting-state
-             (at spotC 100))))
+      track-intensities
+      (crossfade 3
+        (lighting-state
+          (at spotC 100))))
 
 In this example, cue 2 will include ``spotC`` at full intensity, **and**
 ``front-wash`` at 80% intensity.

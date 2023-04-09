@@ -3,7 +3,7 @@ Basic attribute control and building states
 ===========================================
 
 Once your fixtures are patched (see `<patching.rst>`_), you can set attributes
-sing ``at``.  For example, to set the intensity of ``my-dimmer`` to 100%::
+using ``at``.  For example, to set the intensity of ``my-dimmer`` to 100%::
 
   (at my-dimmer intensity 100)
 
@@ -76,7 +76,6 @@ the Scheme code corresponding to the state's contents::
 
   scheme@(guile-user)> (state-source programmer-state)
   $6 = (lighting-state (at ledLL colour (cmy 77.0 100.0 100.0)) (at ledRR colour (cmy 77.0 100.0 100.0)) (at washR intensity 85) (at washL intensity 85) (at ledLL intensity 40) (at ledRR intensity 40) (at washM intensity 85))
-  scheme@(guile-user)>
 
 You can also use ``print-state``, which just pretty-prints the output of
 ``state-source``.  To reduce typing, you can use ``ps`` as a synonym for
@@ -91,7 +90,6 @@ You can also use ``print-state``, which just pretty-prints the output of
     (at ledLL intensity 40)
     (at ledRR intensity 40)
     (at washM intensity 85))
-  scheme@(guile-user)>
 
 You can construct new states by wrapping your ``at`` forms inside
 ``lighting-state``.  These state objects can be used inside cue lists

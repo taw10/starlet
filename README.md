@@ -83,36 +83,34 @@ of cues:
 (cue-list
 
   (cue 0.5
-       ;; Tab warmers
-       (snap
-         (lighting-state
-           (at washL washR 30)
-           (at washM 40))))
+    ;; Tab warmers
+    (snap
+      (lighting-state
+        (at washL washR 30)
+        (at washM 40))))
 
   (cue 0.8
-       ;; 6-second fade to blackout
-       (crossfade 6 blackout))
+    ;; 6-second fade to blackout
+    (crossfade 6 blackout))
 
   (cue 1
-       ;; Act 1, Scene 1
-       (crossfade 3
-         (lighting-state
-           (at front-wash 80)
-           (at moverL colour (cmy 25 0 0)))
-	   (at moverL 25)))
+    ;; Act 1, Scene 1
+    (crossfade 3
+      (lighting-state
+        (at front-wash 80)
+        (at moverL colour (cmy 25 0 0)))
+        (at moverL 25)))
 
   (cue 2
-       (crossfade 3 4   ;; Separate up/down fade times
-         (lighting-state
-           (at washM 100))))
+    (crossfade 3 4   ;; Separate up/down fade times
+      (lighting-state
+        (at washM 100))))
 
   (cue 2.5
-       (crossfade 2
-         (lighting-state
-           (apply-state home-state)
-	   (at moverR 100))))
-
-  ....
+    (crossfade 2
+      (lighting-state
+        (apply-state home-state)
+        (at moverR 100)))))
 ```
 
 To 'execute' a cue list, load it into a *playback* object:
