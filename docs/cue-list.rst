@@ -40,7 +40,8 @@ Putting it all together for a complicated crossfade::
   (crossfade 3 4
              #:up-delay 2
              #:attr-time 1
-             #:attr-delay 1.5)
+             #:attr-delay 1.5
+             (lighting-state ...))
 
 You can write your own transition effects, if you want some other kind of
 transition.  Documentation pending, but look at snap-transition.scm and
