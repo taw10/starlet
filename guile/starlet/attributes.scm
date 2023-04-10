@@ -24,17 +24,22 @@
              make-attribute
              attribute?
              intensity?
-             canonical-name))
+             canonical-name
+             friendly))
 
 
 (define-class <starlet-attribute> (<object>)
   (canonical-name
     #:init-keyword #:name
-    #:getter canonical-name))
+    #:getter canonical-name)
+  (friendly
+    #:init-keyword #:friendly
+    #:getter friendly))
 
-(define (make-attribute canonical-name)
+(define (make-attribute canonical-name friendly)
   (make <starlet-attribute>
-        #:name canonical-name))
+        #:name canonical-name
+        #:friendly friendly))
 
 (define (attribute? a)
   (is-a? a <starlet-attribute>))
@@ -48,29 +53,39 @@
   whatever)
 
 
+(define-syntax define-attribute
+  (syntax-rules ()
+    ((_ name friendly-name)
+     (define-public name (make-attribute (quote name) friendly-name)))))
+
+
 ;; The standard attribute names
-;; Note that this list says nothing about the interpretation of the values
-;; - that's left to the individual fixture definitions.
-(define-public intensity (make-attribute 'intensity))
-(define-public colour (make-attribute 'colour))
-(define-public colour-temperature (make-attribute 'colour-temperature))
-(define-public strobe (make-attribute 'strobe))
-(define-public strobe-frequency (make-attribute 'strobe-frequency))
-(define-public pan (make-attribute 'pan))
-(define-public tilt (make-attribute 'tilt))
-(define-public prism (make-attribute 'prism))
-(define-public frost (make-attribute 'frost))
-(define-public hotspot (make-attribute 'hotspot))
-(define-public iris (make-attribute 'iris))
-(define-public zoom (make-attribute 'zoom))
-(define-public barndoor-rotation (make-attribute 'barndoor-rotation))
-(define-public barndoor1 (make-attribute 'barndoor1))
-(define-public barndoor2 (make-attribute 'barndoor2))
-(define-public barndoor3 (make-attribute 'barndoor3))
-(define-public barndoor4 (make-attribute 'barndoor4))
-(define-public beamtype (make-attribute 'beamtype))
-(define-public colwheel (make-attribute 'colwheel))
-(define-public gobo (make-attribute 'gobo))
+(define-attribute intensity "Intensity (percentage of brightest)")
+(define-attribute colour "Colour (colour object)")
+(define-attribute colour-temperature "Colour temperature (K)")
+(define-attribute strobe "Strobe active (boolean)")
+(define-attribute strobe-frequency "Strobe rate (Hz)")
+(define-attribute pan "Moving head pan angle (degrees +/- from home)")
+(define-attribute tilt "Moving head tilt angle (degrees +/- from home) ")
+(define-attribute prism "Prism active (boolean)")
+(define-attribute frost "Frost active (boolean)")
+(define-attribute hotspot "Hot spot (percentage of maximum peakiness)")
+(define-attribute iris "Iris (percentage of maximum tightness)")
+(define-attribute zoom "Zoom (percentage of tightest zoom) ")
+(define-attribute barndoor-rotation "Barndoor rotation angle")
+(define-attribute barndoor1 "Barndoor 1 position")
+(define-attribute barndoor2 "Barndoor 2 position")
+(define-attribute barndoor3 "Barndoor 3 position")
+(define-attribute barndoor4 "Barndoor 4 position")
+(define-attribute beamtype "Beam type")
+(define-attribute colwheel "Colour wheel selection (#f or gel name)")
+(define-attribute gobo "Gobo selection (#f or gobo name)")
+(define-attribute gobo-shift "Fine position of gobo (percentage of maximum shift)")
+(define-attribute animation-wheel "Animation wheel active (boolean)")
+(define-attribute animation-wheel-position "Animation wheel position (-100 to 100, 0=central)")
+(define-attribute animation-wheel-speed "Animation wheel rotation speed and direction (+/- percentage of fastest, clockwise)")
+(define-attribute rotating-gobo "Rotating gobo selection (#f or gobo name)")
+(define-attribute rotating-gobo-speed "Gobo rotation speed (+/- percentage of maximum speed, clockwise)")
 
 ;; Duplicate names for convenience...
 (define-public color colour)
