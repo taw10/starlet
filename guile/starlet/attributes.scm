@@ -1,7 +1,7 @@
 ;;
 ;; starlet/attributes.scm
 ;;
-;; Copyright © 2022 Thomas White <taw@bitwiz.org.uk>
+;; Copyright © 2022-2023 Thomas White <taw@bitwiz.org.uk>
 ;;
 ;; This file is part of Starlet.
 ;;
@@ -66,17 +66,23 @@
 (define-attribute strobe "Strobe active (boolean)")
 (define-attribute strobe-frequency "Strobe rate (Hz)")
 (define-attribute pan "Moving head pan angle (degrees +/- from home)")
-(define-attribute tilt "Moving head tilt angle (degrees +/- from home) ")
+(define-attribute tilt "Moving head tilt angle (degrees +/- from home)")
 (define-attribute prism "Prism active (boolean)")
-(define-attribute frost "Frost active (boolean)")
+(define-attribute prism-rotation-speed "Prism rotation speed (+/- percentage of fastest, clockwise)")
+(define-attribute frost "Frost active (percentage of maximum frost)")
 (define-attribute hotspot "Hot spot (percentage of maximum peakiness)")
-(define-attribute iris "Iris (percentage of maximum tightness)")
-(define-attribute zoom "Zoom (percentage of tightest zoom) ")
-(define-attribute barndoor-rotation "Barndoor rotation angle")
-(define-attribute barndoor1 "Barndoor 1 position")
-(define-attribute barndoor2 "Barndoor 2 position")
-(define-attribute barndoor3 "Barndoor 3 position")
-(define-attribute barndoor4 "Barndoor 4 position")
+(define-attribute iris "Iris (percentage of maximum tightness (perhaps completely closed)")
+(define-attribute zoom "Zoom (percentage of tightest zoom)")
+(define-attribute focus "Focus (percentage of nearest focus)")
+(define-attribute barndoor-all-rotation "Rotation of all barndoors together (degrees +/- from home)")
+(define-attribute barndoor1 "Barndoor 1 position (percentage of fully in position)")
+(define-attribute barndoor2 "Barndoor 2 position (percentage of fully in position)")
+(define-attribute barndoor3 "Barndoor 3 position (percentage of fully in position)")
+(define-attribute barndoor4 "Barndoor 4 position (percentage of fully in position)")
+(define-attribute barndoor1-rotation "Barndoor 1 rotation (degrees +/- from home)")
+(define-attribute barndoor2-rotation "Barndoor 2 rotation (degrees +/- from home)")
+(define-attribute barndoor3-rotation "Barndoor 3 rotation (degrees +/- from home)")
+(define-attribute barndoor4-rotation "Barndoor 4 rotation (degrees +/- from home)")
 (define-attribute beamtype "Beam type")
 (define-attribute colwheel "Colour wheel selection (#f or gel name)")
 (define-attribute gobo "Gobo selection (#f or gobo name)")
