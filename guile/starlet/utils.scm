@@ -30,7 +30,6 @@
             flatten-sublists
             more-than-one
             hirestime
-            categorize
             lsb
             msb
             ensure-number
@@ -93,21 +92,6 @@
     (+ (car a)
        (/ (cdr a)
           1000000))))
-
-
-(define (categorize-rec predicates items so-far)
-  (if (nil? predicates)
-    (reverse (cons items so-far))
-    (receive
-      (selected-items remaining-items)
-      (partition (car predicates) items)
-      (categorize-rec (cdr predicates)
-                      remaining-items
-                      (cons selected-items so-far)))))
-
-
-(define (categorize items . predicates)
-  (apply values (categorize-rec predicates items '())))
 
 
 (define (msb val)
