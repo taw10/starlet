@@ -65,7 +65,12 @@
   (home-value
     #:init-value 0
     #:init-keyword #:home-value
-    #:getter attr-home-value))
+    #:getter attr-home-value)
+
+  (comment
+    #:init-value ""
+    #:init-keyword #:comment
+    #:getter attr-comment))
 
 
 (define-class <fixture> (<object>)
@@ -100,6 +105,13 @@
 
 (define-syntax attr-continuous
   (syntax-rules ()
+    ((_ attr-name attr-range attr-home-value comment)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:range attr-range
+       #:type 'continuous
+       #:home-value attr-home-value
+       #:comment comment))
     ((_ attr-name attr-range attr-home-value)
      (make <fixture-attribute>
        #:name attr-name
@@ -115,11 +127,24 @@
        #:name attr-name
        #:range attr-allowed-values
        #:type 'list
-       #:home-value attr-home-value))))
+       #:home-value attr-home-value))
+    ((_ attr-name attr-allowed-values attr-home-value comment)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:range attr-allowed-values
+       #:type 'list
+       #:home-value attr-home-value
+       #:comment comment))))
 
 
 (define-syntax attr-colour
   (syntax-rules ()
+    ((_ attr-name attr-home-value comment)
+     (make <fixture-attribute>
+       #:name attr-name
+       #:type 'colour
+       #:home-value attr-home-value
+       #:comment comment))
     ((_ attr-name attr-home-value)
      (make <fixture-attribute>
        #:name attr-name
