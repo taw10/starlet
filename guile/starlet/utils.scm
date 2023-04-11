@@ -39,7 +39,8 @@
             percent->dmxval8
             percent->dmxval16
             comment
-            hash-table-empty?))
+            hash-table-empty?
+            lookup))
 
 
 (define (print-hash-table ht)
@@ -162,3 +163,13 @@
         (return #f))
       ht)
     #t))
+
+
+(define (lookup key dictionary)
+  (cond
+    ((nil? dictionary)
+     #f)
+    ((eq? key (caar dictionary))
+     (cadr (car dictionary)))
+    (else
+      (lookup key (cdr dictionary)))))
