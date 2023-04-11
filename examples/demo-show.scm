@@ -1,0 +1,107 @@
+(use-modules
+  (starlet fixture)
+  (starlet state)
+  (starlet playback)
+  (starlet engine)
+  (starlet scanout)
+  (starlet effects)
+  (starlet colours)
+  (starlet clock)
+  (starlet attributes)
+  (starlet cue-list)
+  (starlet attributes)
+  (taw controls)
+  (starlet fixture-library generic dimmer)
+  (starlet fixture-library stairville z120m)
+  (starlet fixture-library robe dl7s)
+  (starlet midi-control base)
+  (starlet midi-control button-utils)
+  (starlet midi-control faders))
+
+
+;; Start MIDI control
+(define controller (make-midi-controller (find-midi-device) 14))
+
+;; Patch fixtures
+(patch-fixture! mhLL <robe-dl7s-mode1> 1)
+(patch-fixture! mhL <robe-dl7s-mode1> 52)
+(patch-fixture! mhR <robe-dl7s-mode1> 104)
+(patch-fixture! mhRR <robe-dl7s-mode1> 156)
+(patch-fixture! washL <generic-dimmer> 260)
+(patch-fixture! washM <generic-dimmer> 261)
+(patch-fixture! washR <generic-dimmer> 262)
+(patch-fixture! ledLL <stairville-z120m-6ch> 238)
+(patch-fixture! ledL <stairville-z120m-6ch> 232)
+(patch-fixture! ledR <stairville-z120m-6ch> 250)
+(patch-fixture! ledRR <stairville-z120m-6ch> 244)
+(patch-fixture! goboL <generic-dimmer> 263)
+(patch-fixture! goboR <generic-dimmer> 264)
+(patch-fixture! domeL <generic-dimmer> 265)
+(patch-fixture! domeR <generic-dimmer> 266)
+(patch-fixture! apronL <generic-dimmer> 267)
+(patch-fixture! apronR <generic-dimmer> 268)
+(patch-fixture! highsideL <generic-dimmer> 269)
+(patch-fixture! highsideR <generic-dimmer> 270)
+(patch-fixture! floodL <generic-dimmer> 271)
+(patch-fixture! floodR <generic-dimmer> 272)
+
+(define front-leds (list ledLL ledL ledR ledRR))
+(define front-wash (list washL washM washR))
+
+(define my-cues
+  (cue-list
+
+    (cue 1
+      (crossfade 3
+        (lighting-state
+          (at washL washM washR 80))))
+
+    (cue 2
+      (crossfade 2 5
+        (lighting-state
+          (at washL washM washR 0)
+          (at ledL ledR colour (cmy 0 0 24))
+          (at ledL ledR 100))))
+
+    (cue 3
+      (snap blackout))
+
+    (cue 4
+      (crossfade 1
+        (lighting-state
+          (at washM 100))))
+
+    (cue 5
+      track-intensities
+      (crossfade 5
+        (lighting-state
+          (at ledL ledR 30)))
+      (crossfade 2 #:up-delay 5
+        (lighting-state
+          (at apronL apronR 100))))
+
+    (cue 6
+      (snap
+        (lighting-state
+          (at washL washR 20))))))
+
+
+(define pb
+  (make-playback
+    #:cue-list my-cues
+    #:recovery-file "recovery.q"))
+
+
+;; MIDI controls
+
+(taw-playback-controls controller pb)
+(taw-selection-controls controller)
+
+(state-on-fader controller 19
+                (lighting-state
+                  (at front-wash 100)
+                  (at domeL domeR 100)))
+
+(select-on-button controller 32 (list washL washM washR)
+                  #:ready-note 68)
+
