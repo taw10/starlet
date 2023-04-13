@@ -351,13 +351,20 @@ pre-existing contents."
     val))
 
 
+(define (quote-if-symbol a)
+  (if (symbol? a)
+    (list 'quote a)
+    a))
+
+
 (define (state-source a)
   (cons 'lighting-state
         (state-map->list (lambda (fix attr val)
                            (list 'at
                                  (get-fixture-name fix)
                                  (canonical-name attr)
-                                 (clamp-to-attr-range fix attr val)))
+                                 (quote-if-symbol
+                                   (clamp-to-attr-range fix attr val))))
                          a)))
 
 
