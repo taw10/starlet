@@ -20,6 +20,7 @@ pango_dep = dependency('pango', required: true)
 pangocairo_dep = dependency('pangocairo', required: true)
 guile_dep = dependency('guile-3.0', required: true)
 ola_dep = dependency('libola', required: true)
+lo_dep = dependency('liblo', required: true)
 
 # The installation location for Scheme files
 guile_sitedir = guile_dep.get_pkgconfig_variable('sitedir')
@@ -28,6 +29,12 @@ guile_sitedir = guile_dep.get_pkgconfig_variable('sitedir')
 # Guile OLA library
 library('guile-ola', ['src/guile-ola.cpp'],
         dependencies: [guile_dep, ola_dep],
+        install: true)
+
+
+# Guile OSC library
+library('guile-osc', ['src/guile-osc.c'],
+        dependencies: [guile_dep, lo_dep],
         install: true)
 
 
