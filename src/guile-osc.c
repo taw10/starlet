@@ -59,12 +59,42 @@ struct method_callback_data
 };
 
 
+/* This struct exists just to help get the method callback arguments
+ * into Guile mode */
+struct method_callback_guile_data
+{
+	const char *path;
+	const char *types;
+	lo_arg **argv;
+	int argc;
+	lo_message *msg;
+	void *vp;
+};
+
+
+static void *method_callback_with_guile(void *vp)
+{
+	struct method_callback_guile_data *data = vp;
+	struct method_callback_data *mdata = data->vp;
+	scm_call_0(mdata->proc);
+	return NULL;
+}
+
+
 static int method_callback(const char *path, const char *types, lo_arg **argv,
                            int argc, lo_message msg, void *vp)
 {
-	struct method_callback_data *data = vp;
-	scm_init_guile();
-	scm_call_0(data->proc);
+	/* The OSC server thread is not under our control, and is not in
+	 * Guile mode.  Therefore, some "tedious mucking-about in hyperspace"
+	 * is required before we can invoke the Scheme callback */
+	struct method_callback_guile_data cb_data;
+	cb_data.path = path;
+	cb_data.types = types;
+	cb_data.argv = argv;
+	cb_data.argc = argc;
+	cb_data.msg = msg;
+	cb_data.vp = vp;
+	scm_with_guile(method_callback_with_guile, &cb_data);
 	return 1;
 }
 
