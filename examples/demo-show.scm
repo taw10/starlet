@@ -14,13 +14,8 @@
   (starlet fixture-library generic dimmer)
   (starlet fixture-library stairville z120m)
   (starlet fixture-library robe dl7s)
-  (starlet midi-control base)
-  (starlet midi-control button-utils)
-  (starlet midi-control faders))
+  (starlet osc engine))
 
-
-;; Start MIDI control
-(define controller (make-midi-controller (find-midi-device) 14))
 
 ;; Patch fixtures
 (patch-fixture! mhLL <robe-dl7s-mode1> 1)
@@ -92,16 +87,7 @@
     #:recovery-file "recovery.q"))
 
 
-;; MIDI controls
-
-(taw-playback-controls controller pb)
-(taw-selection-controls controller)
-
-(state-on-fader controller 19
-                (lighting-state
-                  (at front-wash 100)
-                  (at domeL domeR 100)))
-
-(select-on-button controller 32 (list washL washM washR)
-                  #:ready-note 68)
+;; OSC controls
+(define osc-server (start-osc))
+(define-osc-method osc-server "/starlet/selection/clear" (lambda () (sel #f)))
 
