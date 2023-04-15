@@ -39,9 +39,13 @@
 (patch-fixture! floodL <generic-dimmer> 271)
 (patch-fixture! floodR <generic-dimmer> 272)
 
+
+;; Set up some groups
 (define front-leds (list ledLL ledL ledR ledRR))
 (define front-wash (list washL washM washR))
 
+
+;; Make a cue list
 (define my-cues
   (cue-list
 
