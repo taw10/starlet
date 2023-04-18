@@ -13,7 +13,8 @@
   (starlet fixture-library generic dimmer)
   (starlet fixture-library stairville z120m)
   (starlet fixture-library robe dl7s)
-  (guile-osc engine))
+  (open-sound-control server-thread)
+  (open-sound-control client))
 
 
 ;; Patch fixtures
@@ -91,5 +92,11 @@
 
 
 ;; OSC controls
-(define osc-server (start-osc))
-(define-osc-method osc-server "/starlet/selection/clear" (lambda () (sel #f)))
+(define osc-server (make-osc-server-thread "7770"))
+(define osc-send-addr (make-osc-address "7771"))
+(add-osc-method osc-server "/starlet/selection/clear" (lambda () (sel #f)))
+(add-osc-method osc-server "/starlet/selection/mhLL" (lambda () (sel mhLL)))
+(add-osc-method osc-server "/starlet/selection/mhL" (lambda () (sel mhL)))
+(add-osc-method osc-server "/starlet/selection/mhR" (lambda () (sel mhR)))
+(add-osc-method osc-server "/starlet/selection/mhRR" (lambda () (sel mhRR)))
+(osc-send osc-send-addr "/x1k2/leds/*" 1)
