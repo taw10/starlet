@@ -107,3 +107,8 @@
 (osc-send x1k2 "/x1k2/leds/30" 'green)
 (osc-send x1k2 "/x1k2/leds/31" 'green)
 (osc-select-button osc-server "/x1k2/buttons/17" x1k2 "/x1k2/leds/17" front-leds)
+(osc-select-button osc-server "/x1k2/buttons/18" x1k2 "/x1k2/leds/18" front-wash)
+(osc-select-button osc-server "/x1k2/buttons/21" x1k2 "/x1k2/leds/21" mhLL)
+(osc-select-button osc-server "/x1k2/buttons/22" x1k2 "/x1k2/leds/22" mhL)
+(osc-select-button osc-server "/x1k2/buttons/23" x1k2 "/x1k2/leds/23" mhR)
+(osc-select-button osc-server "/x1k2/buttons/24" x1k2 "/x1k2/leds/24" mhRR)
