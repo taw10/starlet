@@ -6,8 +6,9 @@ theatrical lighting control.  It's based on
 [Guile](https://www.gnu.org/software/guile/) and uses the
 [Open Lighting Architecture](https://openlighting.org) to connect with almost
 any type of lighting control interface - USB DMX dongles, sACN, Art-Net etc.
-Starlet also undertands MIDI, enabling you to control lights and cues with
-physical faders, knobs and buttons.
+Starlet also understands [Open Sound Control](http://opensoundcontrol.org/),
+enabling you to control lights and cues with physical faders, knobs and
+buttons.
 
 Rather than adding "scripting" as an afterthought, Starlet puts the full power
 of the programming language in the spotlight, allowing you to *program* your
