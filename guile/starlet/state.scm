@@ -54,8 +54,10 @@
             blackout
             blackout!
             sel
+            desel
             selection-hook
             get-selection
+            selected?
             value->number
             atomically-overlay-state!
             update-state!
@@ -466,6 +468,21 @@ pre-existing contents."
       (if (not (car fixture-list))
           (set! selection '())
           (set! selection (flatten-sublists fixture-list))))
+  (run-hook selection-hook selection))
+
+
+(define (selected? . fixture-list)
+  (every (lambda (fix)
+           (memq fix selection))
+         (flatten-sublists fixture-list)))
+
+
+(define (desel . fixture-list)
+  (let ((remove-us (flatten-sublists fixture-list)))
+    (set! selection
+      (filter (lambda (fix)
+                (not (memq fix remove-us)))
+              selection)))
   (run-hook selection-hook selection))
 
 
