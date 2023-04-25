@@ -95,17 +95,22 @@
 ;; OSC controls
 (define osc-server (make-osc-server-thread "osc.udp://:7770"))
 (define x1k2 (make-osc-address "osc.udp://localhost:7771"))
+
 (osc-send x1k2 "/x1k2/leds/*" 'off)
+
 (osc-playback-indicators pb x1k2 "/x1k2/leds/101" "/x1k2/leds/29" "/x1k2/leds/25")
 (osc-playback-controls pb osc-server "/x1k2/buttons/101" "/x1k2/buttons/29" "/x1k2/buttons/25")
 (osc-playback-indicators pb x1k2 "/x1k2/leds/102" "/x1k2/leds/32" "/x1k2/leds/28")
 (osc-playback-controls pb osc-server "/x1k2/buttons/102" "/x1k2/buttons/32" "/x1k2/buttons/28")
+
 (add-osc-method osc-server "/x1k2/buttons/30" "" (lambda ()
                                                    (reload-cue-list! pb)
                                                    (reassert-current-cue! pb)))
-(add-osc-method osc-server "/x1k2/buttons/31" "" sel)
 (osc-send x1k2 "/x1k2/leds/30" 'green)
+
+(add-osc-method osc-server "/x1k2/buttons/31" "" sel)
 (osc-send x1k2 "/x1k2/leds/31" 'green)
+
 (osc-select-button osc-server "/x1k2/buttons/17" x1k2 "/x1k2/leds/17" front-leds)
 (osc-select-button osc-server "/x1k2/buttons/18" x1k2 "/x1k2/leds/18" front-wash)
 (osc-select-button osc-server "/x1k2/buttons/21" x1k2 "/x1k2/leds/21" mhLL)
