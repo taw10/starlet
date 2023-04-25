@@ -40,7 +40,8 @@
             percent->dmxval16
             comment
             hash-table-empty?
-            lookup))
+            lookup
+            add-and-run-hook!))
 
 
 (define (print-hash-table ht)
@@ -173,3 +174,8 @@
      (cadr (car dictionary)))
     (else
       (lookup key (cdr dictionary)))))
+
+
+(define (add-and-run-hook! hook proc . initial-args)
+  (add-hook! hook proc)
+  (apply proc initial-args))

@@ -14,7 +14,8 @@
   (starlet fixture-library stairville z120m)
   (starlet fixture-library robe dl7s)
   (open-sound-control server-thread)
-  (open-sound-control client))
+  (open-sound-control client)
+  (starlet open-sound-control utils))
 
 
 ;; Patch fixtures
@@ -92,11 +93,17 @@
 
 
 ;; OSC controls
-(define osc-server (make-osc-server-thread "7770"))
-(define osc-send-addr (make-osc-address "7771"))
-(add-osc-method osc-server "/starlet/selection/clear" (lambda () (sel #f)))
-(add-osc-method osc-server "/starlet/selection/mhLL" (lambda () (sel mhLL)))
-(add-osc-method osc-server "/starlet/selection/mhL" (lambda () (sel mhL)))
-(add-osc-method osc-server "/starlet/selection/mhR" (lambda () (sel mhR)))
-(add-osc-method osc-server "/starlet/selection/mhRR" (lambda () (sel mhRR)))
-(osc-send osc-send-addr "/x1k2/leds/*" 1)
+(define osc-server (make-osc-server-thread "osc.udp://:7770"))
+(define x1k2 (make-osc-address "osc.udp://localhost:7771"))
+(osc-send x1k2 "/x1k2/leds/*" 'off)
+(osc-playback-indicators pb x1k2 "/x1k2/leds/101" "/x1k2/leds/29" "/x1k2/leds/25")
+(osc-playback-controls pb osc-server "/x1k2/buttons/101" "/x1k2/buttons/29" "/x1k2/buttons/25")
+(osc-playback-indicators pb x1k2 "/x1k2/leds/102" "/x1k2/leds/32" "/x1k2/leds/28")
+(osc-playback-controls pb osc-server "/x1k2/buttons/102" "/x1k2/buttons/32" "/x1k2/buttons/28")
+(add-osc-method osc-server "/x1k2/buttons/30" "" (lambda ()
+                                                   (reload-cue-list! pb)
+                                                   (reassert-current-cue! pb)))
+(add-osc-method osc-server "/x1k2/buttons/31" "" sel)
+(osc-send x1k2 "/x1k2/leds/30" 'green)
+(osc-send x1k2 "/x1k2/leds/31" 'green)
+(osc-select-button osc-server "/x1k2/buttons/17" x1k2 "/x1k2/leds/17" front-leds)
