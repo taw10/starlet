@@ -73,10 +73,7 @@
 (define (osc-select-button server button-method addr led fix)
 
   (add-osc-method server button-method ""
-                  (lambda ()
-                    (if (selected? fix)
-                      (desel fix)
-                      (sel fix))))
+                  (lambda () (toggle-sel fix)))
 
   (add-and-run-hook!
     selection-hook

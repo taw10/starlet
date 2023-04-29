@@ -22,6 +22,8 @@
   #:use-module (starlet utils)
   #:use-module (srfi srfi-1)
   #:export (sel
+             add-sel
+             toggle-sel
              desel
              selection-hook
              get-selection
@@ -43,6 +45,21 @@
       (if (not (car fixture-list))
           (set! selection '())
           (set! selection (flatten-sublists fixture-list))))
+  (run-hook selection-hook selection))
+
+
+(define (toggle-sel . fixture-list)
+  (if (selected? fixture-list)
+    (desel fixture-list)
+    (add-sel fixture-list)))
+
+
+(define (add-sel . fixture-list)
+  (set! selection
+    (append selection
+            (filter (lambda (fix)
+                      (not (selected? fix)))
+                    (flatten-sublists fixture-list))))
   (run-hook selection-hook selection))
 
 

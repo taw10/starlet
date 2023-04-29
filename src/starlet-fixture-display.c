@@ -731,7 +731,7 @@ static gint button_press_sig(GtkWidget *window, GdkEventButton *event,
 	                    event->y-OVERALL_BORDER);
 	if ( fix != NULL ) {
 		char tmp[256];
-		snprintf(tmp, 256, "(sel %s)", fix->scheme_name);
+		snprintf(tmp, 256, "(toggle-sel %s)", fix->scheme_name);
 		repl_send(fixd->repl, tmp);
 	}
 	return FALSE;
