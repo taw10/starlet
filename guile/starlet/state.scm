@@ -23,6 +23,7 @@
   #:use-module (starlet colours)
   #:use-module (starlet utils)
   #:use-module (starlet attributes)
+  #:use-module (starlet selection)
   #:use-module (oop goops)
   #:use-module (ice-9 pretty-print)
   #:use-module (ice-9 atomic)
@@ -53,11 +54,6 @@
             home-fixture!
             blackout
             blackout!
-            sel
-            desel
-            selection-hook
-            get-selection
-            selected?
             value->number
             atomically-overlay-state!
             update-state!
@@ -425,7 +421,8 @@ pre-existing contents."
 ;; NB Can't set multiple fixtures and attributes: (at fix1 pan 35 fix2 tilt 22)
 
 (define (at . args)
-  (receive (fixtures attribute value)
+  (let ((selection (get-selection)))
+    (receive (fixtures attribute value)
            (partition3 fixture? attribute? (flatten-sublists args))
            (cond
 
@@ -451,39 +448,7 @@ pre-existing contents."
                   (set-fixtures selection (car attribute) (car value))))
 
              (else
-               (set-fixtures fixtures (car attribute) (car value))))))
-
-
-(define selection-hook (make-hook 1))
-
-(define selection '())
-
-(define (get-selection)
-  selection)
-
-
-(define (sel . fixture-list)
-  (if (nil? fixture-list)
-      (set! selection '())
-      (if (not (car fixture-list))
-          (set! selection '())
-          (set! selection (flatten-sublists fixture-list))))
-  (run-hook selection-hook selection))
-
-
-(define (selected? . fixture-list)
-  (every (lambda (fix)
-           (memq fix selection))
-         (flatten-sublists fixture-list)))
-
-
-(define (desel . fixture-list)
-  (let ((remove-us (flatten-sublists fixture-list)))
-    (set! selection
-      (filter (lambda (fix)
-                (not (memq fix remove-us)))
-              selection)))
-  (run-hook selection-hook selection))
+               (set-fixtures fixtures (car attribute) (car value)))))))
 
 
 (define (state-empty? st)

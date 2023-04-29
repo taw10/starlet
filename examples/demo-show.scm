@@ -10,6 +10,7 @@
   (starlet attributes)
   (starlet cue-list)
   (starlet attributes)
+  (starlet selection)
   (starlet fixture-library generic dimmer)
   (starlet fixture-library stairville z120m)
   (starlet fixture-library robe dl7s)

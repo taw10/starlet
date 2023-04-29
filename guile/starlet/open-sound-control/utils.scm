@@ -20,7 +20,7 @@
 ;;
 (define-module (starlet open-sound-control utils)
   #:use-module (starlet playback)
-  #:use-module (starlet state)
+  #:use-module (starlet selection)
   #:use-module (starlet utils)
   #:use-module (open-sound-control client)
   #:use-module (open-sound-control server-thread)
