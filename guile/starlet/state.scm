@@ -394,9 +394,6 @@ pre-existing contents."
                     (values output1 output2 others))))
 
 
-(define fixture-has-attr? find-attr)
-
-
 (define (set-fixtures fixtures attribute value)
   (for-each
     (lambda (fix)

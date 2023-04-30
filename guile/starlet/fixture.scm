@@ -31,6 +31,8 @@
             get-fixture-universe
             get-fixture-attrs
             find-attr
+            fixture-has-attr?
+
             fixture?
             scanout-fixture
 
@@ -216,3 +218,6 @@
          (attributes #:init-form (list attr ...)))
        (define-method (scanout-fixture (fixture classname))
          scanout-code ...)))))
+
+
+(define fixture-has-attr? find-attr)
