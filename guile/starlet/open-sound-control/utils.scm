@@ -21,12 +21,17 @@
 (define-module (starlet open-sound-control utils)
   #:use-module (starlet playback)
   #:use-module (starlet selection)
+  #:use-module (starlet fixture)
+  #:use-module (starlet engine)
+  #:use-module (starlet state)
   #:use-module (starlet utils)
   #:use-module (open-sound-control client)
   #:use-module (open-sound-control server-thread)
+  #:use-module (srfi srfi-1)
   #:export (osc-playback-indicators
             osc-playback-controls
-            osc-select-button))
+            osc-select-button
+            osc-parameter-encoder))
 
 
 (define* (osc-playback-controls pb server go-method stop-method back-method
@@ -81,4 +86,37 @@
       (if (selected? fix)
         (osc-send addr led 'orange)
         (osc-send addr led 'red)))
+    (get-selection)))
+
+
+(define (encoder-inc attr n)
+  (for-each
+    (lambda (fix)
+      (at fix attr (+ (current-value fix attr) n)))
+    (get-selection)))
+
+
+(define (osc-parameter-encoder server encoder-method addr led attr)
+
+  (add-osc-method server (string-append encoder-method "/inc") ""
+                  (lambda () (encoder-inc attr 3)))
+
+  (add-osc-method server (string-append encoder-method "/dec") ""
+                  (lambda () (encoder-inc attr -3)))
+
+  (add-osc-method server (string-append encoder-method "/inc-fine") ""
+                  (lambda () (encoder-inc attr 1)))
+
+  (add-osc-method server (string-append encoder-method "/dec-fine") ""
+                  (lambda () (encoder-inc attr -1)))
+
+  (add-and-run-hook!
+    selection-hook
+    (lambda (sel)
+      (if (any
+            (lambda (fix)
+              (fixture-has-attr? fix attr))
+            (get-selection))
+        (osc-send addr led 'green)
+        (osc-send addr led 'off)))
     (get-selection)))

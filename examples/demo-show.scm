@@ -118,3 +118,7 @@
 (osc-select-button osc-server "/x1k2/buttons/22" x1k2 "/x1k2/leds/22" mhL)
 (osc-select-button osc-server "/x1k2/buttons/23" x1k2 "/x1k2/leds/23" mhR)
 (osc-select-button osc-server "/x1k2/buttons/24" x1k2 "/x1k2/leds/24" mhRR)
+
+(osc-parameter-encoder osc-server "/x1k2/encoders/1" x1k2 "/x1k2/leds/1" pan)
+(osc-parameter-encoder osc-server "/x1k2/encoders/2" x1k2 "/x1k2/leds/2" tilt)
+(osc-parameter-encoder osc-server "/x1k2/encoders/102" x1k2 "/x1k2/nothing" intensity)
