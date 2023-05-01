@@ -122,3 +122,10 @@
 (osc-parameter-encoder osc-server "/x1k2/encoders/1" x1k2 "/x1k2/leds/1" pan)
 (osc-parameter-encoder osc-server "/x1k2/encoders/2" x1k2 "/x1k2/leds/2" tilt)
 (osc-parameter-encoder osc-server "/x1k2/encoders/102" x1k2 "/x1k2/nothing" intensity)
+
+(osc-state-fader osc-server "/x1k2/faders/4"
+                 (lighting-state
+                   (at mhL mhR colour (rgb 40 20 70))
+                   (at mhL mhR 100)
+                   (at front-wash 100)
+                   (at domeL domeR 100)))

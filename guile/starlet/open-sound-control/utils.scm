@@ -19,6 +19,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 (define-module (starlet open-sound-control utils)
+  #:use-module (starlet attributes)
   #:use-module (starlet playback)
   #:use-module (starlet selection)
   #:use-module (starlet fixture)
@@ -31,7 +32,8 @@
   #:export (osc-playback-indicators
             osc-playback-controls
             osc-select-button
-            osc-parameter-encoder))
+            osc-parameter-encoder
+            osc-state-fader))
 
 
 (define* (osc-playback-controls pb server go-method stop-method back-method
@@ -120,3 +122,32 @@
         (osc-send addr led 'green)
         (osc-send addr led 'off)))
     (get-selection)))
+
+
+(define (ccval->percent n)
+  (/ (* n 100) 127))
+
+
+(define (osc-state-fader server fader state)
+  (let ((fader-val 0))
+    (register-state!
+      (lighting-state
+        (state-for-each
+          (lambda (fix attr val)
+            (at fix attr
+                (lambda ()
+
+                  (if (intensity? attr)
+
+                    ;; Intensity parameters get scaled according to the fader
+                    (* 0.01 val (ccval->percent fader-val))
+
+                    ;; Non-intensity parameters just get set in our new state,
+                    ;; but only if the fader is up!
+                    (if (> fader-val 0)
+                      val
+                      'no-value)))))
+          state)))
+
+    (add-osc-method server fader "i"
+                    (lambda (v) (set! fader-val v)))))
