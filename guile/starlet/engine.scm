@@ -181,25 +181,27 @@
 
   ;; Combine all the active attributes and send it out
   (atomic-box-swap! current-values
-    (let ((states (atomic-box-ref state-list)))
-      (for-each update-state! states)
-      (fold
-        (lambda (incoming-state combined-state)
-          (state-for-each
-            (lambda (fix attr val)
-              (let ((incoming-val (value->number val))
-                    (current-val (state-find fix attr combined-state)))
-                (unless (eq? incoming-val 'no-value)
-                  (if (eq? current-val 'no-value)
-                    (set-in-state! combined-state fix attr incoming-val)
-                    (set-in-state! combined-state fix attr
-                                   (if (htp-attr? attr)
-                                     (max incoming-val current-val)
-                                     incoming-val))))))
-            incoming-state)
-          combined-state)
-        (make-empty-state)
-        (append states (list programmer-state)))))
+    (combine-states
+      (let ((states (atomic-box-ref state-list)))
+        (for-each update-state! states)
+        (fold
+          (lambda (incoming-state combined-state)
+            (state-for-each
+              (lambda (fix attr val)
+                (let ((incoming-val (value->number val))
+                      (current-val (state-find fix attr combined-state)))
+                  (unless (eq? incoming-val 'no-value)
+                    (if (eq? current-val 'no-value)
+                      (set-in-state! combined-state fix attr incoming-val)
+                      (set-in-state! combined-state fix attr
+                                     (if (htp-attr? attr)
+                                       (max incoming-val current-val)
+                                       incoming-val))))))
+              incoming-state)
+            combined-state)
+          (make-empty-state)
+          states))
+      programmer-state))
 
   (usleep 10000)
 

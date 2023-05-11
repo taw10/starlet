@@ -47,6 +47,7 @@
             current-state
             at
             apply-state
+            combine-states
             show-state
             lighting-state
             programmer-state
@@ -327,6 +328,12 @@ pre-existing contents."
      (parameterize ((current-state (make-empty-state)))
        body ...
        (current-state)))))
+
+
+(define (combine-states a b)
+  (lighting-state
+    (apply-state a)
+    (apply-state b)))
 
 
 (define (print-state a)
