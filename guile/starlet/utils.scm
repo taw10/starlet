@@ -41,7 +41,8 @@
             comment
             hash-table-empty?
             lookup
-            add-and-run-hook!))
+            add-and-run-hook!
+            cat-with-spaces))
 
 
 (define (print-hash-table ht)
@@ -179,3 +180,10 @@
 (define (add-and-run-hook! hook proc . initial-args)
   (add-hook! hook proc)
   (apply proc initial-args))
+
+
+(define (cat-with-spaces lst)
+  (reduce
+    (lambda (b a)
+      (string-append a " " b))
+    "" lst))

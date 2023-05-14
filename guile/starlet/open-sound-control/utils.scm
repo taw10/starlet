@@ -33,7 +33,8 @@
             osc-playback-controls
             osc-select-button
             osc-parameter-encoder
-            osc-state-fader))
+            osc-state-fader
+            send-selection-updates-to))
 
 
 (define* (osc-playback-controls pb server go-method stop-method back-method
@@ -151,3 +152,13 @@
 
     (add-osc-method server fader "i"
                     (lambda (v) (set! fader-val v)))))
+
+
+(define (send-selection-updates-to addr)
+  (add-hook!
+    selection-hook
+    (lambda (sel)
+      (osc-send
+        addr
+        "/starlet/selection/update"
+        (get-selection-as-string)))))

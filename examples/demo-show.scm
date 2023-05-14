@@ -97,6 +97,8 @@
 (define osc-server (make-osc-server-thread "osc.udp://:7770"))
 (define x1k2 (make-osc-address "osc.udp://localhost:7771"))
 
+(send-selection-updates-to (make-osc-address "osc.udp://localhost:7772"))
+
 (osc-send x1k2 "/x1k2/leds/*" 'off)
 
 (osc-playback-indicators pb x1k2 "/x1k2/leds/101" "/x1k2/leds/29" "/x1k2/leds/25")

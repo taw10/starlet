@@ -20,6 +20,7 @@
 ;;
 (define-module (starlet selection)
   #:use-module (starlet utils)
+  #:use-module (starlet fixture)
   #:use-module (srfi srfi-1)
   #:export (sel
              add-sel
@@ -27,6 +28,7 @@
              desel
              selection-hook
              get-selection
+             get-selection-as-string
              selected?))
 
 
@@ -37,6 +39,15 @@
 
 (define (get-selection)
   selection)
+
+
+(define (get-selection-as-string)
+  (cat-with-spaces
+    (map
+      (lambda (s)
+        (symbol->string
+          (get-fixture-name s)))
+      selection)))
 
 
 (define (sel . fixture-list)
