@@ -29,6 +29,7 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <libguile.h>
+#include <lo/lo.h>
 
 #include <libintl.h>
 #define _(x) gettext(x)
@@ -70,6 +71,7 @@ struct fixture_display
 	char *socket;
 	int verbose;
 	int got_eof;
+	lo_server osc_srv;
 };
 
 
@@ -359,12 +361,6 @@ static void request_intensities(struct fixture_display *fixd)
 }
 
 
-static void request_selection(struct fixture_display *fixd)
-{
-	repl_send(fixd->repl, "(list 'selection (map get-fixture-name (get-selection)))");
-}
-
-
 static gboolean key_press_sig(GtkWidget *da, GdkEventKey *event, struct fixture_display *fixd)
 {
 	int claim = 1;
@@ -432,7 +428,6 @@ static gboolean redraw_cb(gpointer data)
 		if ( !fixd->shutdown && fixd->got_eof ) {
 			fixd->got_eof = FALSE;
 			request_intensities(fixd);
-			request_selection(fixd);
 			request_playback_status(fixd);
 			request_programmer_status(fixd);
 			repl_send(fixd->repl, "'end-of-stuff");
@@ -475,17 +470,6 @@ static int is_list(SCM list)
 static int symbol_eq(SCM symbol, const char *val)
 {
 	return scm_is_true(scm_eq_p(symbol, scm_from_utf8_symbol(val)));
-}
-
-
-static char *symbol_to_str(SCM symbol)
-{
-	if ( scm_is_symbol(symbol) ) {
-		SCM str = scm_symbol_to_string(symbol);
-		return scm_to_locale_string(str);
-	} else {
-		return NULL;
-	}
 }
 
 
@@ -602,48 +586,6 @@ static void handle_fixture_parameters(struct fixture_display *fixd, SCM list)
 }
 
 
-static void handle_selection(struct fixture_display *fixd, SCM list)
-{
-	int i;
-	int nfix;
-
-	if ( !is_list(list) ) {
-		fprintf(stderr, "Invalid selection list\n");
-		return;
-	}
-
-	nfix = scm_to_int(scm_length(list));
-
-	for ( i=0; i<fixd->n_fixtures; i++ ) {
-		fixd->fixtures[i].selected = 0;
-	}
-
-	for ( i=0; i<nfix; i++ ) {
-		SCM item = scm_list_ref(list, scm_from_int(i));
-		char *name_str;
-		if ( scm_is_symbol(item) ) {
-			name_str = symbol_to_str(item);
-		} else if ( is_list(item) ) {
-			name_str = group_fixture_name(item);
-		} else {
-			fprintf(stderr, "Unrecognised type in selection list\n");
-			name_str = NULL;
-		}
-
-		if ( name_str != NULL ) {
-			struct fixture *fix = find_fixture(fixd, name_str);
-			if ( fix != NULL ) {
-				fix->selected = 1;
-			} else {
-				fprintf(stderr, "Fixture '%s' not found (selection)\n",
-				        name_str);
-			}
-			free(name_str);
-		}
-	}
-}
-
-
 static void handle_playback_status(struct fixture_display *fixd, SCM list)
 {
 	SCM cue_number = scm_list_ref(list, scm_from_int(0));
@@ -676,8 +618,6 @@ static void process_line(SCM sexp, void *data)
 				handle_patched_fixtures(fixd, contents);
 			} else if ( symbol_eq(tag, "fixture-parameters") ) {
 				handle_fixture_parameters(fixd, contents);
-			} else if ( symbol_eq(tag, "selection") ) {
-				handle_selection(fixd, contents);
 			} else if ( symbol_eq(tag, "playback-status") ) {
 				handle_playback_status(fixd, contents);
 			} else if ( symbol_eq(tag, "programmer-empty") ) {
@@ -735,6 +675,41 @@ static gint button_press_sig(GtkWidget *window, GdkEventButton *event,
 		repl_send(fixd->repl, tmp);
 	}
 	return FALSE;
+}
+
+
+static void osc_error_callback(int num, const char *msg, const char *path)
+{
+	fprintf(stderr, "liblo error %i (%s) for path %s\n", num, msg, path);
+}
+
+
+static int osc_selection_callback(const char *path, const char *types,
+                                  lo_arg **argv, int argc, lo_message msg,
+                                  void *vp)
+{
+	int i;
+	gchar **bits;
+	struct fixture_display *fixd = vp;
+	const char *sel = &argv[0]->s;
+
+	for ( i=0; i<fixd->n_fixtures; i++ ) {
+		fixd->fixtures[i].selected = 0;
+	}
+
+	bits = g_strsplit(&argv[0]->s, " ",-1);
+	for ( i=0; bits[i] != NULL; i++ ) {
+		struct fixture *fix = find_fixture(fixd, bits[i]);
+		if ( fix != NULL ) {
+			fix->selected = 1;
+		} else {
+			fprintf(stderr, "Fixture '%s' not found (selection)\n",
+			        bits[i]);
+		}
+	}
+	g_strfreev(bits);
+
+	return 1;
 }
 
 
@@ -812,6 +787,12 @@ int main(int argc, char *argv[])
 	fixd.cue_running = 0;
 	fixd.programmer_empty = 1;
 	fixd.got_eof = TRUE;
+
+	fixd.osc_srv = lo_server_thread_new_from_url("osc.udp://:7772",
+	                                             osc_error_callback);
+	lo_server_thread_start(fixd.osc_srv);
+	lo_server_thread_add_method(fixd.osc_srv, "/starlet/selection/update",
+	                            "s", osc_selection_callback, &fixd);
 
 	gtk_container_add(GTK_CONTAINER(mainwindow), GTK_WIDGET(da));
 	gtk_widget_set_can_focus(GTK_WIDGET(da), TRUE);

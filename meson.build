@@ -20,6 +20,7 @@ pango_dep = dependency('pango', required: true)
 pangocairo_dep = dependency('pangocairo', required: true)
 guile_dep = dependency('guile-3.0', required: true)
 ola_dep = dependency('libola', required: true)
+lo_dep = dependency('liblo', required: true)
 
 # The installation location for Scheme files
 guile_sitedir = guile_dep.get_pkgconfig_variable('sitedir')
@@ -39,7 +40,8 @@ executable('starlet-fixture-display',
                           cairo_dep,
                           pango_dep,
                           pangocairo_dep,
-                          guile_dep],
+                          guile_dep,
+                          lo_dep],
            install: true)
 
 
