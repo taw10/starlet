@@ -42,7 +42,8 @@
             hash-table-empty?
             lookup
             add-and-run-hook!
-            cat-with-spaces))
+            cat-with-spaces
+            next-item-in-list))
 
 
 (define (print-hash-table ht)
@@ -187,3 +188,10 @@
     (lambda (b a)
       (string-append a " " b))
     "" lst))
+
+
+(define (next-item-in-list the-list cval)
+  (let ((sl (memq cval the-list)))
+    (if (nil? (cdr sl))
+      (first the-list)
+      (second sl))))

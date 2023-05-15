@@ -45,7 +45,10 @@
             get-attr-range
             get-attr-home-val
             continuous-attribute?
-            colour-attribute?))
+            colour-attribute?
+
+            next-attr-item
+            prev-attr-item))
 
 
 (define-class <fixture-attribute> (<object>)
@@ -221,3 +224,15 @@
 
 
 (define fixture-has-attr? find-attr)
+
+
+(define (next-attr-item attr cval)
+  (next-item-in-list
+    (get-attr-range attr)
+    cval))
+
+
+(define (prev-attr-item attr cval)
+  (next-item-in-list
+    (reverse (get-attr-range attr))
+    cval))

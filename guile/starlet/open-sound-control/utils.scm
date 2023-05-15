@@ -92,10 +92,18 @@
     (get-selection)))
 
 
-(define (encoder-inc attr n)
+(define (encoder-inc attr-id n)
   (for-each
     (lambda (fix)
-      (at fix attr (+ (current-value fix attr) n)))
+      (let ((attr (find-attr fix attr-id))
+            (cval (current-value fix attr-id)))
+        (cond
+          ((eq? 'continuous (get-attr-type attr))
+           (at fix attr-id (+ cval n)))
+          ((eq? 'list (get-attr-type attr))
+           (if (> n 0)
+             (at fix attr-id (next-attr-item attr cval))
+             (at fix attr-id (prev-attr-item attr cval)))))))
     (get-selection)))
 
 

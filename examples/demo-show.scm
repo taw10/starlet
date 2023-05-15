@@ -123,6 +123,7 @@
 
 (osc-parameter-encoder osc-server "/x1k2/encoders/1" x1k2 "/x1k2/leds/1" pan)
 (osc-parameter-encoder osc-server "/x1k2/encoders/2" x1k2 "/x1k2/leds/2" tilt)
+(osc-parameter-encoder osc-server "/x1k2/encoders/3" x1k2 "/x1k2/leds/3" gobo)
 (osc-parameter-encoder osc-server "/x1k2/encoders/102" x1k2 "/x1k2/nothing" intensity)
 
 (osc-state-fader osc-server "/x1k2/faders/4"
