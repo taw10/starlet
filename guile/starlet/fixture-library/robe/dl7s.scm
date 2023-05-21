@@ -194,9 +194,9 @@
 
   (let ((ani-active (get-attr animation-wheel)))
     (set-chan8 20 (if ani-active
-                    0
                     (scale-to-range (get-attr animation-wheel-position)
-                                    '(-100 100) '(19 127)))) ;; 73 = stop
+                                    '(-100 100) '(19 127))
+                    0)) ;; 73 = stop
     (set-chan8 21 (scale-to-range (get-attr animation-wheel-speed)
                                   '(100 -100) '(1 255)))) ;; 128 = stop
   (set-chan8 22 0)   ;; Animation wheel macro: no function
