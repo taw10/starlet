@@ -41,12 +41,20 @@
   selection)
 
 
+(define (dotted-fixture-name s)
+  (with-output-to-string
+    (lambda ()
+      (format #t "~a.~a" (second s) (third s)))))
+
+
 (define (get-selection-as-string)
   (cat-with-spaces
     (map
       (lambda (s)
-        (symbol->string
-          (get-fixture-name s)))
+        (let ((name (get-fixture-name s)))
+          (if (symbol? name)
+            (symbol->string name)
+            (dotted-fixture-name name))))
       selection)))
 
 
