@@ -114,17 +114,17 @@
 (add-osc-method osc-server "/x1k2/buttons/31" "" sel)
 (osc-send x1k2 "/x1k2/leds/31" 'green)
 
-(osc-select-button osc-server "/x1k2/buttons/17" x1k2 "/x1k2/leds/17" front-leds)
-(osc-select-button osc-server "/x1k2/buttons/18" x1k2 "/x1k2/leds/18" front-wash)
-(osc-select-button osc-server "/x1k2/buttons/21" x1k2 "/x1k2/leds/21" mhLL)
-(osc-select-button osc-server "/x1k2/buttons/22" x1k2 "/x1k2/leds/22" mhL)
-(osc-select-button osc-server "/x1k2/buttons/23" x1k2 "/x1k2/leds/23" mhR)
-(osc-select-button osc-server "/x1k2/buttons/24" x1k2 "/x1k2/leds/24" mhRR)
+(osc-select-button front-leds osc-server "/x1k2/buttons/17" x1k2 "/x1k2/leds/17")
+(osc-select-button front-wash osc-server "/x1k2/buttons/18" x1k2 "/x1k2/leds/18")
+(osc-select-button mhLL osc-server "/x1k2/buttons/21" x1k2 "/x1k2/leds/21")
+(osc-select-button mhL osc-server "/x1k2/buttons/22" x1k2 "/x1k2/leds/22")
+(osc-select-button mhR osc-server "/x1k2/buttons/23" x1k2 "/x1k2/leds/23")
+(osc-select-button mhRR osc-server "/x1k2/buttons/24" x1k2 "/x1k2/leds/24")
 
-(osc-parameter-encoder osc-server "/x1k2/encoders/1" x1k2 "/x1k2/leds/1" pan)
-(osc-parameter-encoder osc-server "/x1k2/encoders/2" x1k2 "/x1k2/leds/2" tilt)
-(osc-parameter-encoder osc-server "/x1k2/encoders/3" x1k2 "/x1k2/leds/3" gobo)
-(osc-parameter-encoder osc-server "/x1k2/encoders/102" x1k2 "/x1k2/nothing" intensity)
+(osc-parameter-encoder pan osc-server "/x1k2/encoders/1" x1k2 "/x1k2/leds/1")
+(osc-parameter-encoder tilt osc-server "/x1k2/encoders/2" x1k2 "/x1k2/leds/2")
+(osc-parameter-encoder gobo osc-server "/x1k2/encoders/3" x1k2 "/x1k2/leds/3")
+(osc-parameter-encoder intensity osc-server "/x1k2/encoders/102" x1k2 "/x1k2/nothing")
 
 (osc-state-fader osc-server "/x1k2/faders/4"
                  (lighting-state

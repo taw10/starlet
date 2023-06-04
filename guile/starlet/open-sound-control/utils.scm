@@ -78,7 +78,7 @@
   (osc-send addr back-led 'green))
 
 
-(define (osc-select-button server button-method addr led fix)
+(define (osc-select-button fix server button-method addr led)
 
   (add-osc-method server button-method ""
                   (lambda () (toggle-sel fix)))
@@ -107,7 +107,7 @@
     (get-selection)))
 
 
-(define (osc-parameter-encoder server encoder-method addr led attr)
+(define (osc-parameter-encoder attr server encoder-method addr led)
 
   (add-osc-method server (string-append encoder-method "/inc") ""
                   (lambda () (encoder-inc attr 3)))
