@@ -691,7 +691,6 @@ static int osc_selection_callback(const char *path, const char *types,
 	int i;
 	gchar **bits;
 	struct fixture_display *fixd = vp;
-	const char *sel = &argv[0]->s;
 
 	for ( i=0; i<fixd->n_fixtures; i++ ) {
 		fixd->fixtures[i].selected = 0;
