@@ -229,7 +229,7 @@ static gboolean draw_sig(GtkWidget *widget, cairo_t *cr, struct fixture_display 
 		cairo_paint(cr);
 		return FALSE;
 	} else {
-		cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+		cairo_set_source_rgb(cr, 0.0, 0.0, 0.08);
 		cairo_paint(cr);
 	}
 
