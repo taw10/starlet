@@ -92,6 +92,7 @@
 (define-attribute animation-wheel-speed "Animation wheel rotation speed and direction (+/- percentage of fastest, clockwise)")
 (define-attribute rotating-gobo "Rotating gobo selection (#f or gobo name)")
 (define-attribute rotating-gobo-speed "Gobo rotation speed (+/- percentage of maximum speed, clockwise)")
+(define-attribute white-weirdness "Weirdness of white (percentage of maximum weirdness)")
 
 ;; Duplicate names for convenience...
 (define-public color colour)

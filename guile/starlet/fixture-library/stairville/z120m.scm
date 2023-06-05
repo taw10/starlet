@@ -26,6 +26,16 @@
   #:use-module (starlet colours)
   #:export (<stairville-z120m-6ch>))
 
+
+(define (colour-as-rgbw-weirdness col weirdness)
+  (let ((rgb (colour-as-rgb col)))
+    (let ((w (* (- 1 weirdness) (apply min rgb))))
+      (list (- (red rgb) w)
+            (- (green rgb) w)
+            (- (blue rgb) w)
+            w))))
+
+
 (define-fixture
 
   <stairville-z120m-6ch>
@@ -34,10 +44,12 @@
     (attr-continuous intensity '(0 100) 0)
     (attr-colour colour white)
     (attr-continuous strobe-frequency '(1 25) 1)
-    (attr-list strobe '(off on random) 'off))
+    (attr-list strobe '(off on random) 'off)
+    (attr-continuous white-weirdness '(0 100) 0))
 
   (let ((intensity (get-attr intensity))
-        (rgbw (colour-as-rgbw (get-attr colour))))
+        (rgbw (colour-as-rgbw-weirdness (get-attr colour)
+                                        (/ (get-attr white-weirdness) 100))))
     (set-chan8 1 (percent->dmxval8 intensity))
     (set-chan8 3 (percent->dmxval8 (car rgbw)))
     (set-chan8 4 (percent->dmxval8 (cadr rgbw)))
