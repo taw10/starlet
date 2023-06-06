@@ -203,7 +203,7 @@
           states))
       programmer-state))
 
-  (usleep 10000)
+  (usleep 20000)
 
   ;; Update output rate every 1000 cycles
   (if (eq? count 100)
