@@ -25,7 +25,6 @@
   #:use-module (starlet utils)
   #:use-module (starlet attributes)
   #:use-module (starlet guile-ola)
-  #:use-module (oop goops)
   #:use-module (ice-9 threads)
   #:use-module (ice-9 atomic)
   #:use-module (ice-9 exceptions)
@@ -44,7 +43,7 @@
 (define current-scanout-state (make-parameter (make-empty-state)))
 
 
-(define-method (get-attr (attr-name <starlet-attribute>))
+(define (get-attr attr-name)
   (let ((v (state-find (current-scanout-fixture)
                        attr-name
                        (current-scanout-state))))

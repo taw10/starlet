@@ -168,21 +168,14 @@
   (is-a? f <fixture>))
 
 
-(define-method (find-attr (fix <fixture>) (attr-name <starlet-attribute>))
+(define (find-attr fix attr-name)
   (find (lambda (a)
           (eq? (get-attr-name a)
                attr-name))
         (get-fixture-attrs fix)))
 
 
-(define-method (find-attr fix attr-name)
-  (raise-exception
-    (make-exception
-      (make-exception-with-message "Invalid parameters")
-      (make-exception-with-irritants fix))))
-
-
-(define-method (get-attr-home-val (fix <fixture>) (attr <starlet-attribute>))
+(define (get-attr-home-val fix attr)
   (let ((attr-obj (find-attr fix attr)))
     (if attr-obj
         (attr-home-value attr-obj)

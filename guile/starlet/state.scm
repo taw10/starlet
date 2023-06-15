@@ -183,9 +183,7 @@
                  (atomic-box-ref (get-ht-box state))))
 
 
-(define-method (state-find (fix <fixture>)
-                           (attr <starlet-attribute>)
-                           (state <starlet-state>))
+(define (state-find fix attr state)
   (hash-ref (atomic-box-ref (get-ht-box state))
             (cons fix attr)
             'no-value))

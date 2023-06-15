@@ -125,7 +125,7 @@
      (define name (patch-many-real (quote name) stuff ...)))))
 
 
-(define-method (current-value (fix <fixture>) (attr-name <starlet-attribute>))
+(define (current-value fix attr-name)
   (let ((v (state-find fix attr-name (current-value-state))))
     (if (eq? v 'no-value)
       (get-attr-home-val fix attr-name)
