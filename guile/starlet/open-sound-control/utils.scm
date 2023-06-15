@@ -33,6 +33,7 @@
   #:export (osc-playback-controls
             osc-select-button
             osc-parameter-encoder
+            osc-smart-potentiometer
             osc-state-fader
             send-selection-updates-to))
 
@@ -177,3 +178,133 @@
         addr
         "/starlet/selection/update"
         (get-selection-as-string)))))
+
+
+(define (fader-congruent vals attrs)
+  (mean (map (lambda (val attr)
+               (scale-to-range val (get-attr-range attr) '(0 127)))
+             vals attrs)))
+
+
+(define (fader-up-gradients initial-vals
+                            attrs
+                            congruent-val)
+  (map (lambda (initial-val attr)
+         (let ((attr-max (cadr (get-attr-range attr))))
+           (if (< congruent-val 127)
+               (/ (- attr-max initial-val)
+                  (- 127 congruent-val))
+               0)))
+       initial-vals
+       attrs))
+
+
+(define (fader-down-gradients initial-vals
+                              attrs
+                              congruent-val)
+  (map (lambda (initial-val attr)
+         (let ((attr-min (car (get-attr-range attr))))
+           (if (> congruent-val 0)
+               (/ (- initial-val attr-min)
+                  congruent-val)
+               0)))
+
+       initial-vals
+       attrs))
+
+
+(define (fixtures-with-attr fixture-list attr-name)
+  (let ((attrs (map (cut find-attr <> attr-name) fixture-list)))
+    (fold (lambda (fix attr old)
+            (if attr
+              (cons (cons fix (car old))
+                    (cons attr (cdr old)))
+              old))
+          (cons '() '())
+          fixture-list attrs)))
+
+
+(define (current-values fixture-list attr-name)
+  (map (lambda (fix)
+         (current-value fix attr-name))
+       fixture-list))
+
+
+(define (apply-fader cc-offset
+                     attr-name
+                     gradients
+                     initial-vals
+                     fixtures
+                     label)
+  (for-each
+    (lambda (fix initial-val gradient)
+      (set-in-state! programmer-state
+                     fix
+                     attr-name
+                     (+ initial-val
+                        (* gradient cc-offset))
+                     label))
+    fixtures
+    initial-vals
+    gradients))
+
+
+(define (osc-smart-potentiometer attr-name
+                                 server
+                                 addr
+                                 potentiometer)
+
+  (let ((fixtures '())
+        (attrs '())
+        (initial-vals '())
+        (congruent-val 0)
+        (up-gradients '())
+        (dn-gradients '()))
+
+    (let ((set-gradients
+            (lambda ()
+              (set! initial-vals (current-values fixtures attr-name))
+              (set! congruent-val (fader-congruent initial-vals attrs))
+              (set! up-gradients (fader-up-gradients initial-vals attrs congruent-val))
+              (set! dn-gradients (fader-down-gradients initial-vals attrs congruent-val))
+              (osc-send addr (string-append potentiometer "/set-pickup") congruent-val))))
+
+      (add-and-run-hook!
+        selection-hook
+        (lambda (selection)
+          (let ((fixtures-attrs (fixtures-with-attr selection attr-name)))
+            (if (null? (car fixtures-attrs))
+              (osc-send addr (string-append potentiometer "/disable"))
+              (begin
+                (set! fixtures (car fixtures-attrs))
+                (set! attrs (cdr fixtures-attrs))
+                (set-gradients)
+                (osc-send addr (string-append potentiometer "/enable"))))))
+        (get-selection))
+
+      (add-osc-method
+        server
+        (string-append potentiometer "/value-change")
+        "i"
+        (lambda (new-cc-value)
+          (cond
+            ((> new-cc-value congruent-val)
+             (apply-fader (- new-cc-value congruent-val)
+                          attr-name
+                          up-gradients
+                          initial-vals
+                          fixtures
+                          potentiometer))
+            ((<= new-cc-value congruent-val)
+             (apply-fader (- new-cc-value congruent-val)
+                          attr-name
+                          dn-gradients
+                          initial-vals
+                          fixtures
+                          potentiometer)))))
+
+      (add-update-hook!
+        programmer-state
+        (lambda (source)
+          (unless (eq? source potentiometer)
+            (set-gradients)))))))

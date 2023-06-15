@@ -121,6 +121,7 @@
 (osc-parameter-encoder tilt osc-server x1k2 "/x1k2/encoders/2")
 (osc-parameter-encoder gobo osc-server x1k2 "/x1k2/encoders/3")
 (osc-parameter-encoder intensity osc-server x1k2 "/x1k2/encoders/102")
+(osc-smart-potentiometer color-temperature osc-server x1k2 "/x1k2/potentiometers/4")
 
 (osc-state-fader osc-server x1k2 "/x1k2/faders/4"
                  (lighting-state
