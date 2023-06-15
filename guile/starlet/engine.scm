@@ -22,7 +22,6 @@
   #:use-module (starlet fixture)
   #:use-module (starlet state)
   #:use-module (starlet utils)
-  #:use-module (starlet colours)
   #:use-module (starlet attributes)
   #:use-module (oop goops)
   #:use-module (ice-9 threads)
@@ -131,11 +130,6 @@
     (if (eq? v 'no-value)
       (get-attr-home-val fix attr-name)
       v)))
-
-
-(define-method (current-value (fix <fixture>) (attr-name <colour-component-id>))
-  (let ((colour (current-value fix colour)))
-    (extract-colour-component colour attr-name)))
 
 
 (define (append-or-replace-named-state orig-list name new-state)

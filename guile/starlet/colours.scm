@@ -37,13 +37,7 @@
              blue
 
              interpolate-colour
-             white
-
-             <colour-component-id>
-             colour-component-id?
-             colour-component-id
-             get-colour-component
-             extract-colour-component))
+             white))
 
 
 (define-class <colour> (<object>)
@@ -167,40 +161,3 @@
                          (make-exception-with-message
                            "Unrecognised colour interpolation type")
                          (make-exception-with-irritants interpolation-type))))))
-
-
-(define-class <colour-component-id> (<object>)
-  (component
-    #:init-form (error "Colour component must be specified")
-    #:init-keyword #:component
-    #:getter get-colour-component))
-
-
-(define (colour-component-id? a)
-  (is-a? a <colour-component-id>))
-
-
-(define (colour-component-id a)
-  (make <colour-component-id>
-        #:component a))
-
-
-(define (extract-colour-component col component-id)
-  (cond
-    ((eq? (get-colour-component component-id) 'cyan)
-     (cyan (colour-as-cmy col)))
-    ((eq? (get-colour-component component-id) 'magenta)
-     (magenta (colour-as-cmy col)))
-    ((eq? (get-colour-component component-id) 'yellow)
-     (yellow (colour-as-cmy col)))
-    ((eq? (get-colour-component component-id) 'red)
-     (red (colour-as-rgb col)))
-    ((eq? (get-colour-component component-id) 'green)
-     (green (colour-as-rgb col)))
-    ((eq? (get-colour-component component-id) 'blue)
-     (blue (colour-as-rgb col)))
-    (else (raise-exception (make-exception
-                             (make-exception-with-message
-                               "Invalid colour component ID")
-                             (make-exception-with-irritants
-                               (get-colour-component component-id)))))))

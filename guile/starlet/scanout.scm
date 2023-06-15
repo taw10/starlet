@@ -23,7 +23,6 @@
   #:use-module (starlet fixture)
   #:use-module (starlet state)
   #:use-module (starlet utils)
-  #:use-module (starlet colours)
   #:use-module (starlet attributes)
   #:use-module (starlet guile-ola)
   #:use-module (oop goops)
@@ -52,10 +51,6 @@
     (if (eq? v 'no-value)
       (get-attr-home-val (current-scanout-fixture) attr-name)
       v)))
-
-
-(define-method (get-attr (attr-name <colour-component-id>))
-  (extract-colour-component (get-attr colour) attr-name))
 
 
 (define (set-dmx universe addr value)

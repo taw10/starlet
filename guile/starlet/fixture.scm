@@ -175,10 +175,6 @@
         (get-fixture-attrs fix)))
 
 
-(define-method (find-attr (fix <fixture>) (attr-name <colour-component-id>))
-  (find-attr fix colour))
-
-
 (define-method (find-attr fix attr-name)
   (raise-exception
     (make-exception
@@ -191,12 +187,6 @@
     (if attr-obj
         (attr-home-value attr-obj)
         'fixture-does-not-have-attribute)))
-
-
-(define-method (get-attr-home-val (fix <fixture>) (attr <colour-component-id>))
-  (extract-colour-component
-    (get-attr-home-val fix colour)
-    attr))
 
 
 (define (continuous-attribute? aobj)

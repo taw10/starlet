@@ -20,7 +20,6 @@
 ;;
 (define-module (starlet state)
   #:use-module (starlet fixture)
-  #:use-module (starlet colours)
   #:use-module (starlet utils)
   #:use-module (starlet attributes)
   #:use-module (starlet selection)
@@ -115,65 +114,6 @@
 
 (define-method (set-in-state! (state <starlet-state>)
                               (fix <fixture>)
-                              (attr <colour-component-id>)
-                              new-val
-                              source)
-  (let ((current-colour (find-colour state fix))
-        (colour-component (get-colour-component attr)))
-
-    (cond
-
-      ((eq? colour-component 'cyan)
-       (let ((orig-colour (colour-as-cmy current-colour)))
-         (set-in-state! state fix colour
-                        (cmy new-val
-                             (magenta orig-colour)
-                             (yellow orig-colour))
-                        source)))
-
-      ((eq? colour-component 'magenta)
-       (let ((orig-colour (colour-as-cmy current-colour)))
-         (set-in-state! state fix colour
-                        (cmy (cyan orig-colour)
-                             new-val
-                             (yellow orig-colour))
-                        source)))
-
-      ((eq? colour-component 'yellow)
-       (let ((orig-colour (colour-as-cmy current-colour)))
-         (set-in-state! state fix colour
-                        (cmy (cyan orig-colour)
-                             (magenta orig-colour)
-                             new-val)
-                        source)))
-
-      ((eq? colour-component 'red)
-       (let ((orig-colour (colour-as-rgb current-colour)))
-         (set-in-state! state fix colour
-                        (rgb new-val
-                             (green orig-colour)
-                             (blue orig-colour))
-                        source)))
-
-      ((eq? colour-component 'green)
-       (let ((orig-colour (colour-as-rgb current-colour)))
-         (set-in-state! state fix colour
-                        (rgb (red orig-colour)
-                             new-val
-                             (blue orig-colour))
-                        source)))
-
-      ((eq? colour-component 'blue)
-       (let ((orig-colour (colour-as-rgb current-colour)))
-         (set-in-state! state fix colour
-                        (rgb (red orig-colour)
-                             (green orig-colour)
-                             new-val)
-                        source))))))
-
-
-(define-method (set-in-state! (state <starlet-state>)
-                              (fix <fixture>)
                               (attr <starlet-attribute>)
                               value
                               source)
@@ -197,13 +137,6 @@
                               (attr <starlet-attribute>)
                               value)
   (set-in-state! state fix attr value #f))
-
-
-(define-method (set-in-state! (state <starlet-state>)
-                              (fix <fixture>)
-                              (attr <colour-component-id>)
-                              new-val)
-  (set-in-state! state fix attr new-val #f))
 
 
 ;; Set any intensity attributes in the current state to zero
@@ -256,15 +189,6 @@
   (hash-ref (atomic-box-ref (get-ht-box state))
             (cons fix attr)
             'no-value))
-
-
-(define-method (state-find (fix <fixture>)
-                           (attr <colour-component-id>)
-                           (state <starlet-state>))
-  (let ((col (state-find fix colour state)))
-    (if (eq? 'no-value col)
-        'no-value
-        (extract-colour-component col attr))))
 
 
 (define (state-map->list func state)
