@@ -29,66 +29,71 @@
   #:use-module (open-sound-control client)
   #:use-module (open-sound-control server-thread)
   #:use-module (srfi srfi-1)
-  #:export (osc-playback-indicators
-            osc-playback-controls
+  #:use-module (srfi srfi-26)
+  #:export (osc-playback-controls
             osc-select-button
             osc-parameter-encoder
             osc-state-fader
             send-selection-updates-to))
 
 
-(define* (osc-playback-controls pb server go-method stop-method back-method
+(define* (osc-playback-controls pb server addr go-button stop-button back-button
                                 #:key (min-time-between-presses 0.2))
 
   (let ((time-last-press 0))
-    (add-osc-method server go-method ""
-                    (lambda ()
-                      (let ((time-this-press (hirestime)))
-                        (if (> time-this-press (+ time-last-press min-time-between-presses))
-                          (go! pb)
-                          (display "Too soon after last press!\n"))
-                        (set! time-last-press time-this-press)))))
+    (add-osc-method
+      server
+      (string-append go-button "/press")
+      ""
+      (lambda ()
+        (let ((time-this-press (hirestime)))
+          (if (> time-this-press (+ time-last-press min-time-between-presses))
+            (go! pb)
+            (display "Too soon after last press!\n"))
+          (set! time-last-press time-this-press)))))
 
-  (add-osc-method server stop-method "" (lambda () (stop! pb)))
-  (add-osc-method server back-method "" (lambda () (back! pb))))
+  (add-osc-method server (string-append stop-button "/press") "" (lambda () (stop! pb)))
+  (add-osc-method server (string-append back-button "/press") "" (lambda () (back! pb)))
 
-
-(define (osc-playback-indicators pb addr go-led stop-led back-led)
+  ;; LEDs
+  (osc-send addr (string-append back-button "/set-led") 'green)
 
   (add-and-run-hook!
     (state-change-hook pb)
     (lambda (new-state)
 
       (if (eq? new-state 'running)
-        (osc-send addr stop-led 'green)
-        (osc-send addr stop-led 'off))
+        (osc-send addr (string-append stop-button "/set-led") 'green)
+        (osc-send addr (string-append stop-button "/set-led") 'off))
 
       (cond
         ((eq? new-state 'pause)
-         (osc-send addr go-led 'orange))
+         (osc-send addr (string-append go-button "/set-led") 'orange))
         ((eq? new-state 'ready)
-         (osc-send addr go-led 'green))
+         (osc-send addr (string-append go-button  "/set-led") 'green))
         ((eq? new-state 'running)
-         (osc-send addr go-led 'green))
+         (osc-send addr (string-append go-button  "/set-led") 'green))
         (else
-          (osc-send addr go-led 'off))))
+          (osc-send addr (string-append go-button  "/set-led") 'off))))
 
-    (playback-state pb))
-
-  (osc-send addr back-led 'green))
+    (playback-state pb)))
 
 
-(define (osc-select-button fix server button-method addr led)
+(define (osc-select-button fix server addr button)
 
-  (add-osc-method server button-method ""
-                  (lambda () (toggle-sel fix)))
+  (add-osc-method
+    server
+    (string-append button "/press")
+    ""
+    (lambda ()
+      (toggle-sel fix)))
 
   (add-and-run-hook!
     selection-hook
     (lambda (sel)
       (if (selected? fix)
-        (osc-send addr led 'orange)
-        (osc-send addr led 'red)))
+        (osc-send addr (string-append button "/set-led") 'orange)
+        (osc-send addr (string-append button "/set-led") 'red)))
     (get-selection)))
 
 
@@ -107,18 +112,18 @@
     (get-selection)))
 
 
-(define (osc-parameter-encoder attr server encoder-method addr led)
+(define (osc-parameter-encoder attr server addr encoder)
 
-  (add-osc-method server (string-append encoder-method "/inc") ""
+  (add-osc-method server (string-append encoder "/inc") ""
                   (lambda () (encoder-inc attr 3)))
 
-  (add-osc-method server (string-append encoder-method "/dec") ""
+  (add-osc-method server (string-append encoder "/dec") ""
                   (lambda () (encoder-inc attr -3)))
 
-  (add-osc-method server (string-append encoder-method "/inc-fine") ""
+  (add-osc-method server (string-append encoder "/inc-fine") ""
                   (lambda () (encoder-inc attr 1)))
 
-  (add-osc-method server (string-append encoder-method "/dec-fine") ""
+  (add-osc-method server (string-append encoder "/dec-fine") ""
                   (lambda () (encoder-inc attr -1)))
 
   (add-and-run-hook!
@@ -128,8 +133,8 @@
             (lambda (fix)
               (fixture-has-attr? fix attr))
             (get-selection))
-        (osc-send addr led 'green)
-        (osc-send addr led 'off)))
+        (osc-send addr (string-append encoder "/set-led") 'green)
+        (osc-send addr (string-append encoder "/set-led") 'off)))
     (get-selection)))
 
 
@@ -137,7 +142,7 @@
   (/ (* n 100) 127))
 
 
-(define (osc-state-fader server fader state)
+(define (osc-state-fader server addr fader state)
   (let ((fader-val 0))
     (register-state!
       (lighting-state
@@ -158,7 +163,9 @@
                       'no-value)))))
           state)))
 
-    (add-osc-method server fader "i"
+    (osc-send addr (string-append fader "/enable"))
+    (osc-send addr (string-append fader "/set-pickup") 0)
+    (add-osc-method server (string-append fader "/value-change") "i"
                     (lambda (v) (set! fader-val v)))))
 
 

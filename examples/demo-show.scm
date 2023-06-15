@@ -99,34 +99,30 @@
 
 (send-selection-updates-to (make-osc-address "osc.udp://localhost:7772"))
 
-(osc-send x1k2 "/x1k2/leds/*" 'off)
-
-(osc-playback-indicators pb x1k2 "/x1k2/leds/101" "/x1k2/leds/29" "/x1k2/leds/25")
-(osc-playback-controls pb osc-server "/x1k2/buttons/101" "/x1k2/buttons/29" "/x1k2/buttons/25")
-(osc-playback-indicators pb x1k2 "/x1k2/leds/102" "/x1k2/leds/32" "/x1k2/leds/28")
-(osc-playback-controls pb osc-server "/x1k2/buttons/102" "/x1k2/buttons/32" "/x1k2/buttons/28")
+(osc-playback-controls pb osc-server x1k2 "/x1k2/buttons/101" "/x1k2/buttons/29" "/x1k2/buttons/25")
+(osc-playback-controls pb osc-server x1k2 "/x1k2/buttons/102" "/x1k2/buttons/32" "/x1k2/buttons/28")
 
 (add-osc-method osc-server "/x1k2/buttons/30" "" (lambda ()
                                                    (reload-cue-list! pb)
                                                    (reassert-current-cue! pb)))
-(osc-send x1k2 "/x1k2/leds/30" 'green)
+(osc-send x1k2 "/x1k2/leds/30/set-led" 'green)
 
 (add-osc-method osc-server "/x1k2/buttons/31" "" sel)
-(osc-send x1k2 "/x1k2/leds/31" 'green)
+(osc-send x1k2 "/x1k2/buttons/31/set-led" 'green)
 
-(osc-select-button front-leds osc-server "/x1k2/buttons/17" x1k2 "/x1k2/leds/17")
-(osc-select-button front-wash osc-server "/x1k2/buttons/18" x1k2 "/x1k2/leds/18")
-(osc-select-button mhLL osc-server "/x1k2/buttons/21" x1k2 "/x1k2/leds/21")
-(osc-select-button mhL osc-server "/x1k2/buttons/22" x1k2 "/x1k2/leds/22")
-(osc-select-button mhR osc-server "/x1k2/buttons/23" x1k2 "/x1k2/leds/23")
-(osc-select-button mhRR osc-server "/x1k2/buttons/24" x1k2 "/x1k2/leds/24")
+(osc-select-button front-leds osc-server x1k2 "/x1k2/buttons/17")
+(osc-select-button front-wash osc-server x1k2 "/x1k2/buttons/18")
+(osc-select-button mhLL osc-server x1k2 "/x1k2/buttons/21")
+(osc-select-button mhL osc-server x1k2 "/x1k2/buttons/22")
+(osc-select-button mhR osc-server x1k2 "/x1k2/buttons/23")
+(osc-select-button mhRR osc-server x1k2 "/x1k2/buttons/24")
 
-(osc-parameter-encoder pan osc-server "/x1k2/encoders/1" x1k2 "/x1k2/leds/1")
-(osc-parameter-encoder tilt osc-server "/x1k2/encoders/2" x1k2 "/x1k2/leds/2")
-(osc-parameter-encoder gobo osc-server "/x1k2/encoders/3" x1k2 "/x1k2/leds/3")
-(osc-parameter-encoder intensity osc-server "/x1k2/encoders/102" x1k2 "/x1k2/nothing")
+(osc-parameter-encoder pan osc-server x1k2 "/x1k2/encoders/1")
+(osc-parameter-encoder tilt osc-server x1k2 "/x1k2/encoders/2")
+(osc-parameter-encoder gobo osc-server x1k2 "/x1k2/encoders/3")
+(osc-parameter-encoder intensity osc-server x1k2 "/x1k2/encoders/102")
 
-(osc-state-fader osc-server "/x1k2/faders/4"
+(osc-state-fader osc-server x1k2 "/x1k2/faders/4"
                  (lighting-state
                    (at mhL mhR colour (rgb 40 20 70))
                    (at mhL mhR 100)
