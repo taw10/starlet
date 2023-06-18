@@ -143,7 +143,7 @@ of stability (non-crashiness, consistency of language etc). Don't rely on
 syntax and interfaces staying the same, i.e. don't "git pull" right before a
 show!  Nevertheless, Starlet is reliable enough for adventurous types to
 consider using it for real shows.  Here it is running a show in front of a live
-(paying!) audience in February 2022:
+(paying!) audience in June 2023:
 
 ![Starlet in use](docs/show.jpg)
 
