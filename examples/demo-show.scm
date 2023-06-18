@@ -99,28 +99,28 @@
 
 (send-selection-updates-to (make-osc-address "osc.udp://localhost:7772"))
 
-(osc-playback-controls pb osc-server x1k2 "/x1k2/buttons/101" "/x1k2/buttons/29" "/x1k2/buttons/25")
-(osc-playback-controls pb osc-server x1k2 "/x1k2/buttons/102" "/x1k2/buttons/32" "/x1k2/buttons/28")
+(osc-playback-controls pb osc-server x1k2 "/x1k2/buttons/LAYER" "/x1k2/buttons/M" "/x1k2/buttons/I")
+(osc-playback-controls pb osc-server x1k2 "/x1k2/buttons/SHIFT" "/x1k2/buttons/P" "/x1k2/buttons/L")
 
-(add-osc-method osc-server "/x1k2/buttons/30" "" (lambda ()
-                                                   (reload-cue-list! pb)
-                                                   (reassert-current-cue! pb)))
-(osc-send x1k2 "/x1k2/leds/30/set-led" 'green)
+(osc-send x1k2 "/x1k2/buttons/N/set-led" 'green)
+(add-osc-method osc-server "/x1k2/buttons/N/press" "" (lambda ()
+                                                        (reload-cue-list! pb)
+                                                        (reassert-current-cue! pb)))
 
-(add-osc-method osc-server "/x1k2/buttons/31" "" sel)
-(osc-send x1k2 "/x1k2/buttons/31/set-led" 'green)
+(osc-send x1k2 "/x1k2/buttons/O/set-led" 'green)
+(add-osc-method osc-server "/x1k2/buttons/O/press" "" sel)
 
-(osc-select-button front-leds osc-server x1k2 "/x1k2/buttons/17")
-(osc-select-button front-wash osc-server x1k2 "/x1k2/buttons/18")
-(osc-select-button mhLL osc-server x1k2 "/x1k2/buttons/21")
-(osc-select-button mhL osc-server x1k2 "/x1k2/buttons/22")
-(osc-select-button mhR osc-server x1k2 "/x1k2/buttons/23")
-(osc-select-button mhRR osc-server x1k2 "/x1k2/buttons/24")
+(osc-select-button front-leds osc-server x1k2 "/x1k2/buttons/A")
+(osc-select-button front-wash osc-server x1k2 "/x1k2/buttons/B")
+(osc-select-button mhLL osc-server x1k2 "/x1k2/buttons/E")
+(osc-select-button mhL osc-server x1k2 "/x1k2/buttons/F")
+(osc-select-button mhR osc-server x1k2 "/x1k2/buttons/G")
+(osc-select-button mhRR osc-server x1k2 "/x1k2/buttons/H")
 
 (osc-parameter-encoder pan osc-server x1k2 "/x1k2/encoders/1")
 (osc-parameter-encoder tilt osc-server x1k2 "/x1k2/encoders/2")
 (osc-parameter-encoder gobo osc-server x1k2 "/x1k2/encoders/3")
-(osc-parameter-encoder intensity osc-server x1k2 "/x1k2/encoders/102")
+(osc-parameter-encoder intensity osc-server x1k2 "/x1k2/encoders/6")
 (osc-smart-potentiometer color-temperature osc-server x1k2 "/x1k2/potentiometers/4")
 
 (osc-state-fader osc-server x1k2 "/x1k2/faders/4"
