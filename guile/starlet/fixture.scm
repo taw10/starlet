@@ -96,12 +96,6 @@
     #:getter get-fixture-addr
     #:setter set-fixture-addr!)
 
-  (friendly-name
-    #:init-value "Fixture"
-    #:init-keyword #:friendly-name
-    #:getter get-fixture-friendly-name
-    #:setter set-fixture-friendly-name!)
-
   (scanout-func
     #:init-value (lambda (universe start-addr value set-dmx) #f)
     #:init-keyword #:scanout-func

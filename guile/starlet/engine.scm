@@ -87,12 +87,11 @@
 (define* (patch-real name
                      class
                      start-addr
-                     #:key (universe 0) (friendly-name "Fixture"))
+                     #:key (universe 0))
   (let ((new-fixture (make class
                            #:name name
                            #:sa start-addr
-                           #:uni universe
-                           #:friendly-name friendly-name)))
+                           #:uni universe)))
     (atomic-box-set! fixtures (cons new-fixture
                                     (atomic-box-ref fixtures)))
     new-fixture))
@@ -108,13 +107,12 @@
 (define* (patch-many-real name
                           class
                           start-addrs
-                          #:key (universe 0) (friendly-name "Fixture"))
+                          #:key (universe 0))
   (map (lambda (start-addr n)
          (patch-real `(list-ref ,name ,n)
                      class
                      start-addr
-                     #:universe universe
-                     #:friendly-name friendly-name))
+                     #:universe universe))
        start-addrs
        (iota (length start-addrs))))
 
