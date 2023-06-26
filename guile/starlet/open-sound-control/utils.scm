@@ -263,11 +263,12 @@
 
     (let ((set-gradients
             (lambda ()
-              (set! initial-vals (current-values fixtures attr-name))
-              (set! congruent-val (fader-congruent initial-vals attrs))
-              (set! up-gradients (fader-up-gradients initial-vals attrs congruent-val))
-              (set! dn-gradients (fader-down-gradients initial-vals attrs congruent-val))
-              (osc-send addr (string-append potentiometer "/set-pickup") congruent-val))))
+              (unless (nil? fixtures)
+                (set! initial-vals (current-values fixtures attr-name))
+                (set! congruent-val (fader-congruent initial-vals attrs))
+                (set! up-gradients (fader-up-gradients initial-vals attrs congruent-val))
+                (set! dn-gradients (fader-down-gradients initial-vals attrs congruent-val))
+                (osc-send addr (string-append potentiometer "/set-pickup") congruent-val)))))
 
       (add-and-run-hook!
         selection-hook
