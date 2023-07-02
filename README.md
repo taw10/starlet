@@ -118,10 +118,42 @@ To 'execute' a cue list, load it into a *playback* object:
 
 ```
 (define pb (make-playback #:cue-list my-cue-list))
-
 (cut-to-cue-number! pb 1)
 (go! pb)
 ```
+
+By giving names to lighting states, cue lists can be made very concise. The
+following example is from a real show:
+
+```
+  (cue  6 (snap blue-state))
+  (cue  7 (snap office-state))
+  (cue  8 (snap blue-state))
+  (cue  9 (snap office-state))
+  (cue 10 (snap blue-state))
+  (cue 11 (snap office-state))
+  (cue 12 (crossfade 2 blackout))
+  (cue 13 (snap office-state))
+```
+
+Since lighting states are first-class objects, you can even do calculations
+with them.  In this example (from another real show), the lighting sneaks
+progressively darker in a series of slow fades at dramatically appropriate
+points:
+
+```
+  (cue 2 (crossfade 1 evening-state))
+  (cue 3 (crossfade 15 (part-way-between evening-state night-state 0.2)))
+  (cue 4 (crossfade 15 (part-way-between evening-state night-state 0.4)))
+  (cue 5 (crossfade 15 (part-way-between evening-state night-state 0.6)))
+  (cue 6 (crossfade 15 (part-way-between evening-state night-state 0.8)))
+  (cue 7 (crossfade 15 night-state))
+```
+
+The _structure_ of the cue list is thus separated from the _design_ of the
+lighting states.  The structure can often be decided and programmed weeks in
+advance of the show, leaving you to concentrate on the designing the states
+during the technical rehearsal.
 
 
 Documentation index
