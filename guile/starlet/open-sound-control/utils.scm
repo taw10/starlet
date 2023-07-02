@@ -26,6 +26,7 @@
   #:use-module (starlet engine)
   #:use-module (starlet state)
   #:use-module (starlet utils)
+  #:use-module (starlet colours)
   #:use-module (open-sound-control client)
   #:use-module (open-sound-control server-thread)
   #:use-module (srfi srfi-1)
@@ -36,6 +37,7 @@
             osc-select-button
             osc-parameter-encoder
             osc-smart-potentiometer
+            osc-cmy-potentiometer
             osc-state-fader
             send-selection-updates-to))
 
@@ -346,3 +348,120 @@
           (unless (eq? source potentiometer)
             (set-initial-vals smart-pot (current-values fixtures attr-name))
             (reset-gradients smart-pot)))))))
+
+
+(define (osc-cmy-potentiometer attr-name server addr c-pot-method m-pot-method y-pot-method)
+
+  (let ((fixtures '())
+        (colours '()))
+
+    (let ((c-pot
+            (make-smart-potentiometer
+              server
+              addr
+              c-pot-method
+              (lambda (new-vals)
+                (set! colours
+                  (map
+                    (lambda (old-colour new-c)
+                      (cmy new-c
+                           (magenta old-colour)
+                           (yellow old-colour)))
+                    (map colour-as-cmy colours) new-vals))
+                (for-each
+                  (lambda (fix colour)
+                    (set-in-state! programmer-state
+                                   fix
+                                   attr-name
+                                   colour
+                                   c-pot-method))
+                  fixtures colours))))
+
+          (m-pot
+            (make-smart-potentiometer
+              server
+              addr
+              m-pot-method
+              (lambda (new-vals)
+                (set! colours
+                  (map
+                    (lambda (old-colour new-m)
+                      (cmy (cyan old-colour)
+                           new-m
+                           (yellow old-colour)))
+                    (map colour-as-cmy colours) new-vals))
+                (for-each
+                  (lambda (fix colour)
+                    (set-in-state! programmer-state
+                                   fix
+                                   attr-name
+                                   colour
+                                   m-pot-method))
+                  fixtures colours))))
+
+          (y-pot
+            (make-smart-potentiometer
+              server
+              addr
+              y-pot-method
+              (lambda (new-vals)
+                (set! colours
+                  (map
+                    (lambda (old-colour new-y)
+                      (cmy (cyan old-colour)
+                           (magenta old-colour)
+                           new-y))
+                    (map colour-as-cmy colours) new-vals))
+                (for-each
+                  (lambda (fix colour)
+                    (set-in-state! programmer-state
+                                   fix
+                                   attr-name
+                                   colour
+                                   y-pot-method))
+                  fixtures colours)))))
+
+      (add-and-run-hook!
+        selection-hook
+        (lambda (selection)
+          (receive
+            (new-fixtures attrs)
+            (fixtures-with-attr selection attr-name)
+            (if (nil? new-fixtures)
+              (begin
+                (osc-send addr (string-append c-pot-method "/disable"))
+                (osc-send addr (string-append m-pot-method "/disable"))
+                (osc-send addr (string-append y-pot-method "/disable")))
+              (begin
+                (set! fixtures new-fixtures)
+                (set-min-vals c-pot (map (lambda (x) 0) fixtures))
+                (set-min-vals m-pot (map (lambda (x) 0) fixtures))
+                (set-min-vals y-pot (map (lambda (x) 0) fixtures))
+                (set-max-vals c-pot (map (lambda (x) 100) fixtures))
+                (set-max-vals m-pot (map (lambda (x) 100) fixtures))
+                (set-max-vals y-pot (map (lambda (x) 100) fixtures))
+                (set! colours (current-values fixtures attr-name))
+                (set-initial-vals c-pot (map cyan (map colour-as-cmy colours)))
+                (set-initial-vals m-pot (map magenta (map colour-as-cmy colours)))
+                (set-initial-vals y-pot (map yellow (map colour-as-cmy colours)))
+                (reset-gradients c-pot)
+                (reset-gradients m-pot)
+                (reset-gradients y-pot)
+                (osc-send addr (string-append c-pot-method "/enable"))
+                (osc-send addr (string-append m-pot-method "/enable"))
+                (osc-send addr (string-append y-pot-method "/enable"))))))
+        (get-selection))
+
+      (add-update-hook!
+        programmer-state
+        (lambda (source)
+          (unless (or (eq? source c-pot-method)
+                      (eq? source m-pot-method)
+                      (eq? source y-pot-method))
+            (set! colours (current-values fixtures attr-name))
+            (set-initial-vals c-pot (map cyan (map colour-as-cmy colours)))
+            (set-initial-vals m-pot (map magenta (map colour-as-cmy colours)))
+            (set-initial-vals y-pot (map yellow (map colour-as-cmy colours)))
+            (reset-gradients c-pot)
+            (reset-gradients m-pot)
+            (reset-gradients y-pot)))))))
