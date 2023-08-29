@@ -24,7 +24,17 @@
   #:use-module (starlet attributes)
   #:use-module (starlet utils)
   #:use-module (starlet colours)
-  #:export (<generic-rgb>))
+  #:export (<generic-rgb>
+             <generic-rgbw>))
+
+
+(define (colour-as-rgbw-weirdness col weirdness)
+  (let ((rgb (colour-as-rgb col)))
+    (let ((w (* (- 1 weirdness) (apply min rgb))))
+      (list (- (red rgb) w)
+            (- (green rgb) w)
+            (- (blue rgb) w)
+            w))))
 
 
 (define-fixture
@@ -41,3 +51,20 @@
     (set-chan8 2 (percent->dmxval8 (* intensity 0.01 (cadr rgb))))
     (set-chan8 3 (percent->dmxval8 (* intensity 0.01 (caddr rgb))))))
 
+
+(define-fixture
+
+  <generic-rgbw>
+
+  (fixture-attributes
+    (attr-continuous intensity '(0 100) 0)
+    (attr-colour colour white)
+    (attr-continuous white-weirdness '(0 100) 0))
+
+  (let ((intensity (get-attr intensity))
+        (rgbw (colour-as-rgbw-weirdness (get-attr colour)
+                                        (/ (get-attr white-weirdness) 100))))
+    (set-chan8 1 (percent->dmxval8 (* 0.01 intensity (car rgbw))))
+    (set-chan8 2 (percent->dmxval8 (* 0.01 intensity (cadr rgbw))))
+    (set-chan8 3 (percent->dmxval8 (* 0.01 intensity (caddr rgbw))))
+    (set-chan8 4 (percent->dmxval8 (* 0.01 intensity (cadddr rgbw))))))
