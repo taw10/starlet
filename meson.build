@@ -45,5 +45,18 @@ executable('starlet-fixture-display',
            install: true)
 
 
+# Scene editor tool
+executable('starlet-editor',
+           ['src/starlet-editor.c',
+            'src/lispmachine.c'],
+           dependencies: [gtk_dep,
+                          cairo_dep,
+                          pango_dep,
+                          pangocairo_dep,
+                          guile_dep,
+                          lo_dep],
+           install: true)
+
+
 # Install Scheme source files (all at once)
 install_subdir('guile/starlet', install_dir: guile_sitedir)
