@@ -194,19 +194,27 @@ About the name
 Related projects
 ----------------
 
-Here are some related projects that I found especially interesting.
-Amazingly, Starlet is not the only project to be found in the almost absurdly
-specialised category of "Lisp-based stage lighting systems"!
+In the almost absurdly specialised category of "Lisp-based stage lighting
+systems", Starlet is far from being the only project:
 
-* [Afterglow](https://github.com/Deep-Symmetry/afterglow) Clojure live coding
-  environment using OLA
-* [Fivetwelve-CSS](https://github.com/beyondscreen/fivetwelve-css) DMX lighting
-  control using CSS. [Watch this video](https://www.youtube.com/watch?v=ani_MOZt5_c)
-* [QLC+](https://qlcplus.org/) the most popular open-source lighting control
+* [Lula](https://www.deinprogramm.de/sperber/lula/) is based on a very similar
+  concept, and predates Starlet by over two decades.  Read
+  [this paper](https://doi.org/10.1145/507635.507652), which establishes a
+  formal basis for describing lighting states in code, and
+  [this thesis](https://bibliographie.uni-tuebingen.de/xmlui/bitstream/handle/10900/48174/pdf/lula-thesis.pdf?sequence=1) which goes into much more detail.
+* [Afterglow](https://github.com/Deep-Symmetry/afterglow) is a live-coding
+  lighting controller based on Clojure.
+* [Fivetwelve-CSS](https://github.com/beyondscreen/fivetwelve-css) Controls
+  lighting using CSS.  It's not using Lisp, but it does use similar ideas about
+  composition.  [Watch this video](https://www.youtube.com/watch?v=ani_MOZt5_c)
+
+You may also be interested in:
+
+* [Guile-OSC](https://github.com/taw10/guile-osc) - Open Sound Control library
+  for Guile Scheme.
+* [QLC+](https://qlcplus.org/) - the most popular open-source lighting control
   program
-
-It's also worth taking a look at the
-[stage-lighting topic](https://github.com/topics/stage-lighting) on Github.
+* The [stage-lighting topic](https://github.com/topics/stage-lighting) on Github.
 
 
 Licence
